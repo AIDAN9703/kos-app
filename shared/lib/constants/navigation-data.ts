@@ -2,12 +2,10 @@ import {
   Calendar,
   User,
   LayoutDashboard,
-  MessageSquare,
   Users,
   UsersRound,
   Ship,
   Newspaper,
-  Heart,
   PackagePlus,
   Settings,
   Sparkles,
@@ -193,22 +191,10 @@ export const navigationData: NavigationData = {
 
   user: [
     {
-      href: "/profile/favorites",
-      label: "Favorites",
-      type: "link",
-      icon: Heart,
-    },
-    {
       href: "/profile/bookings",
-      label: "Bookings",
+      label: "My trips",
       type: "link",
       icon: Calendar,
-    },
-    {
-      href: "/profile/messages",
-      label: "Messages",
-      type: "link",
-      icon: MessageSquare,
     },
     {
       href: "/profile",

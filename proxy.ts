@@ -70,12 +70,6 @@ export default auth((req) => {
     if (!isAdmin) return NextResponse.json({ error: "Admin access required" }, { status: 403 });
   }
 
-  // Protect user-specific API routes
-  if (pathname.startsWith("/api/users/profile")) {
-    if (!isLoggedIn)
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
-  }
-
   // Protect upload API
   if (pathname.startsWith("/api/upload")) {
     if (!isLoggedIn)

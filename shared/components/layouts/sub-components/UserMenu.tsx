@@ -89,7 +89,7 @@ export default function UserMenu({ user, navigationData }: UserMenuProps) {
 
             {/* Section 3: Promotional "List your boat" */}
             <Link
-              href={user.isOwner ? "/profile/owner" : "/owner"}
+              href={user.isOwner ? "/profile/owner" : "/services/charter-management"}
               className="block group px-4 py-2 hover:bg-gray-50 rounded-lg transition-colors"
             >
               <div className="flex items-start justify-between gap-2">

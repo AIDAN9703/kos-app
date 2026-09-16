@@ -91,6 +91,16 @@ Unset boats fall back to America/New_York. Prod's remaining 12: 2 at La Coloma M
   unified booking detail page, dashboard, calendar, boats/users/captains/crew/add-ons/
   blog/settings CRUD.
 - **Auth** — email/password, Google OAuth, phone OTP; guest checkout throughout.
+- **Customer profile (`/profile`, rebuilt 2026-09-16)** — site header + left rail (identity
+  card, stacked nav, owner/captain entries by role). Overview: to-do cards (proposal to
+  review, payment due, missing phone/photo), next-trip hero with countdown, other upcoming
+  trips, past trips ("My trips"), latest blog posts as cards. Trips: "Upcoming" reservation
+  cards + "Past" tiles, one shared elevation style (`features/profile/components/surface.ts`); trip detail with boat-local times, payment card, customer-scoped Pay (only while
+  nothing is paid — checkout can't charge a remainder), proposal link, Stripe portal.
+  Settings: inline row editing, photo upload, notification preferences (real columns),
+  change password (email accounts), sign out. Owner/captain pages show real fleet /
+  assignment data. Favorites page removed (no favorites table; boat-card heart is
+  local-only state). All code in `features/profile/` — no React Query, no `/api/users/profile`.
 
 ---
 

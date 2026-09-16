@@ -1,41 +1,22 @@
-import { redirect } from "next/navigation";
 import { requireOwner } from "@/shared/lib/utils/auth-utils";
-import { userService } from "@/features/users/user.service";
-import { OwnerDashboard } from "@/features/profile/components/OwnerDashboard";
+import { PageHeader } from "@/features/profile/components/PageHeader";
+import { OwnerDashboard } from "@/features/profile/components/roles/OwnerDashboard";
+import { getOwnedBoats, getUpcomingOwnerCharters } from "@/features/profile/profile.queries";
 
-/**
- * Owner Dashboard Page
- *
- * Separate route for owner-specific features.
- * Users can switch to this view using the role switcher in the navbar.
- */
+export const dynamic = "force-dynamic";
+
+/** Owners only — requireOwner() sends everyone else back to /profile. */
 export default async function OwnerPage() {
-  // Require owner role - redirects to /profile if not owner
   const session = await requireOwner();
-
-  // Get user data (could include owner profile relations if needed)
-  const user = await userService.getUserById(session.user.id, {
-    // ownerProfile: true, // Add when ownerProfile relation is available
-  });
-
-  if (!user) {
-    redirect("/sign-up");
-  }
+  const [boats, charters] = await Promise.all([
+    getOwnedBoats(session.user.id),
+    getUpcomingOwnerCharters(session.user.id),
+  ]);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold text-primary">
-          Owner Dashboard
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Manage your fleet and track your business
-        </p>
-      </div>
-
-      {/* Owner Dashboard */}
-      <OwnerDashboard userId={user.id} />
+    <div className="space-y-8">
+      <PageHeader title="Owner dashboard" description="Your boats in the KOS fleet and the charters booked on them." />
+      <OwnerDashboard boats={boats} charters={charters} />
     </div>
   );
 }

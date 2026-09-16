@@ -485,24 +485,6 @@ export interface BookingCalendarEvent {
   };
 }
 
-/**
- * Profile page booking display format
- * Pre-formatted for user-facing display
- */
-export interface ProfileBooking {
-  id: string;
-  bookingStatus: string;
-  boatName: string;
-  boatType: string;
-  date: string;
-  duration: number;
-  location: string;
-  guests: number;
-  captain: boolean | null;
-  price: number;
-  status: string;
-  image: string;
-}
 
 // ============================================================================
 // API RESPONSE TYPES

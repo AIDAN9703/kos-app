@@ -1,52 +1,126 @@
 import { redirect } from "next/navigation";
-import { requireAuth } from "@/shared/lib/utils/auth-utils";
-import { AccountSettings } from "@/features/profile/components/AccountSettings";
 import { LogOut } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
+import { requireAuth } from "@/shared/lib/utils/auth-utils";
 import { signOutAction } from "@/features/auth/actions/sign-out";
-import { UserProfile } from "@/features/profile/profile.types";
-import { userService } from "@/features/users/user.service";
+import { updateAccountDetails } from "@/features/profile/actions/account.actions";
+import { BillingPortalButton } from "@/features/profile/components/BillingPortalButton";
+import { PageHeader } from "@/features/profile/components/PageHeader";
+import { EditableField } from "@/features/profile/components/settings/EditableField";
+import { NotificationPreferencesForm } from "@/features/profile/components/settings/NotificationPreferencesForm";
+import { PasswordSection } from "@/features/profile/components/settings/PasswordSection";
+import { ProfilePhotoField } from "@/features/profile/components/settings/ProfilePhotoField";
+import { SettingsSection } from "@/features/profile/components/settings/SettingsSection";
+import { getAccount } from "@/features/profile/profile.queries";
 
-const SignOutSection = () => (
-  <div className="pt-6 border-t border-gray-200 mt-8">
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-      <div>
-        <h3 className="font-medium text-gray-900">Sign Out</h3>
-        <p className="text-sm text-muted-foreground mt-1">
-          Sign out of your account
-        </p>
-      </div>
-      <form action={signOutAction}>
-        <Button
-          type="submit"
-          variant="outline"
-          className="w-full sm:w-auto border-destructive text-destructive hover:bg-destructive/10"
-        >
-          <LogOut className="h-4 w-4 mr-2" />
-          Sign out
-        </Button>
-      </form>
-    </div>
-  </div>
-);
+export const dynamic = "force-dynamic";
 
-export default async function SettingsPage() {
-  // Require authentication - middleware already protects this route
+export default async function AccountSettingsPage() {
   const session = await requireAuth();
-
-  // Fetch full user data for the form using service method directly
-  const userData = await userService.getUserById(session.user.id);
-
-  if (!userData) {
-    redirect("/sign-in");
-  }
-
-  const user = userData as UserProfile;
+  const account = await getAccount(session.user.id);
+  if (!account) redirect("/sign-in");
 
   return (
-    <div className="space-y-6">
-      <AccountSettings user={user} />
-      <SignOutSection />
+    <div>
+      <PageHeader title="Account settings" description="Your details, how we reach you, and how you sign in." />
+
+      <div className="mt-8">
+        <SettingsSection id="photo" title="Profile photo" description="Shown on your profile and to the crew.">
+          <ProfilePhotoField imageUrl={account.profileImage} />
+        </SettingsSection>
+
+        <SettingsSection id="personal" title="Personal information" description="How we address you and reach you about trips.">
+          <EditableField
+            label="Name"
+            fields={[
+              { key: "firstName", label: "First name", required: true, half: true },
+              { key: "lastName", label: "Last name", required: true, half: true },
+            ]}
+            values={{ firstName: account.firstName, lastName: account.lastName }}
+            displayValue={[account.firstName, account.lastName].filter(Boolean).join(" ") || null}
+            onSave={updateAccountDetails}
+          />
+          <EditableField
+            label="Email"
+            fields={[{ key: "email", label: "Email address", type: "email", required: true }]}
+            values={{ email: account.email }}
+            description="Confirmations, proposals and receipts go here."
+            onSave={updateAccountDetails}
+          />
+          <EditableField
+            label="Phone"
+            fields={[{ key: "phoneNumber", label: "Phone number", type: "tel", placeholder: "(305) 555-0123" }]}
+            values={{ phoneNumber: account.phoneNumber }}
+            description="Your captain uses this on the day of the trip."
+            aside={
+              account.phoneNumber && account.phoneVerified ? (
+                <span className="rounded-full bg-success-soft px-2 py-0.5 text-[11px] font-semibold text-success">
+                  Verified
+                </span>
+              ) : null
+            }
+            onSave={updateAccountDetails}
+          />
+          <EditableField
+            label="About you"
+            fields={[{ key: "bio", label: "Bio", type: "textarea", placeholder: "Anything the crew should know — occasions, favourite spots, how you like to spend a day on the water." }]}
+            values={{ bio: account.bio }}
+            onSave={updateAccountDetails}
+          />
+        </SettingsSection>
+
+        <SettingsSection id="address" title="Address" description="Used on invoices and receipts.">
+          <EditableField
+            label="Home address"
+            fields={[
+              { key: "address", label: "Street address" },
+              { key: "city", label: "City", half: true },
+              { key: "state", label: "State / region", half: true },
+              { key: "postalCode", label: "Postal code", half: true },
+              { key: "country", label: "Country", half: true },
+            ]}
+            values={{
+              address: account.address,
+              city: account.city,
+              state: account.state,
+              postalCode: account.postalCode,
+              country: account.country,
+            }}
+            onSave={updateAccountDetails}
+          />
+        </SettingsSection>
+
+        <SettingsSection id="notifications" title="Notifications" description="Choose how much you hear from us, and where.">
+          <NotificationPreferencesForm
+            emailNotifications={account.emailNotifications ?? "ALL"}
+            smsNotifications={account.smsNotifications ?? "IMPORTANT_ONLY"}
+            marketingEmailsEnabled={account.marketingEmailsEnabled}
+          />
+        </SettingsSection>
+
+        <SettingsSection id="security" title="Login & security">
+          <PasswordSection signsInWithGoogle={account.authProvider === "GOOGLE"} />
+        </SettingsSection>
+
+        <SettingsSection id="payments" title="Payments" description="Receipts, invoices and saved cards are handled securely by Stripe.">
+          <div className="border-b border-gray-200 py-4">
+            <BillingPortalButton />
+          </div>
+        </SettingsSection>
+
+        <section className="flex flex-col gap-4 border-t border-gray-200 py-8 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-primary">Sign out</h2>
+            <p className="mt-1 text-sm leading-6 text-slate-500">You&apos;ll need your password (or Google) to sign back in.</p>
+          </div>
+          <form action={signOutAction}>
+            <Button type="submit" variant="outline" className="border-destructive text-destructive hover:bg-destructive/5">
+              <LogOut />
+              Sign out
+            </Button>
+          </form>
+        </section>
+      </div>
     </div>
   );
 }
