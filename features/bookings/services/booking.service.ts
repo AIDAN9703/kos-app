@@ -1236,6 +1236,7 @@ export class BookingService {
         serviceFeeCents: bookingPricing.serviceFeeCents,
         serviceFeeWaived: bookingPricing.serviceFeeWaived,
         allowPayment: bookings.allowPayment,
+        paymentType: bookings.paymentType,
         taxAmountCents: bookingPricing.taxAmountCents,
         discountAmountCents: bookingPricing.discountAmountCents,
         totalAmountCents: bookingPricing.totalAmountCents,
@@ -1319,6 +1320,7 @@ export class BookingService {
       paymentMethod: booking.paymentMethod ?? null,
       serviceFeeWaived: Boolean(booking.serviceFeeWaived),
       allowPayment: Boolean(booking.allowPayment),
+      paymentType: booking.paymentType ?? null,
       paymentDisplayStatus: computePaymentDisplayStatus({
         totalPaidCents,
         totalAmountCents: effectiveTotalCents({

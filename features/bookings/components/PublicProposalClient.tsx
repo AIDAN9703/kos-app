@@ -94,7 +94,11 @@ export default function PublicProposalClient({
               <section>
                 <h2 className="text-lg font-semibold text-primary">Payment Summary</h2>
                 <div className="mt-4">
-                  <ProposalPricingCard bookings={data.bookings} />
+                  <ProposalPricingCard
+                    bookings={data.bookings}
+                    depositAmountCents={data.depositAmountCents}
+                    totalPaidCents={data.totalPaidCents}
+                  />
                 </div>
                 <div className="mt-8">
                   <ProposalActions

@@ -85,10 +85,24 @@ export default async function BookingDetailsPage({ params }: BookingDetailsPageP
     crewProfileService.getCrewForAssignment(),
     userService.getAdmins(),
     auth(),
-    // Only inquiries can be priced into a proposal — skip the fetch otherwise.
+    // Inquiries get every boat's tiers (Create proposal); priced deals get
+    // their own boat's tiers for the Finances editor.
     booking.bookingStatus === "INQUIRY"
       ? boatService.getAllActivePricingTiers()
-      : Promise.resolve([]),
+      : booking.boatId
+        ? boatService.getBoatPricingTiers(booking.boatId).then((tiers) =>
+            tiers
+              .filter((t) => t.isActive)
+              .map((t) => ({
+                id: t.id,
+                boatId: t.boatId,
+                hours: t.hours,
+                price: t.price,
+                name: t.name,
+                isDefault: t.isDefault,
+              }))
+          )
+        : Promise.resolve([]),
     // Charter party: sibling boats sailing under the same group.
     booking.bookingGroupId ? bookingService.getChargeableParty(id) : Promise.resolve(null),
   ]);
@@ -235,6 +249,11 @@ export default async function BookingDetailsPage({ params }: BookingDetailsPageP
   const currency = booking.currency ?? "USD";
   const fmt = (c: number) => formatCentsAsCurrency(c, { currency });
 
+  const paymentType: "DEPOSIT_ONLY" | "FULL_PAYMENT" | null =
+    booking.paymentType === "DEPOSIT_ONLY" || booking.paymentType === "FULL_PAYMENT"
+      ? booking.paymentType
+      : null;
+
   // The customer's exact line items — shared by Finances and the resend dialog.
   const lines = {
     boatName: booking.boatName,
@@ -260,6 +279,7 @@ export default async function BookingDetailsPage({ params }: BookingDetailsPageP
           customerPhone: booking.customerPhone,
           editsSinceSend: changesSinceLastSend,
           allowPayment: booking.allowPayment,
+          paymentType,
           currency,
           money,
           lines,
@@ -410,8 +430,12 @@ export default async function BookingDetailsPage({ params }: BookingDetailsPageP
             <FinancesCard
               bookingId={id}
               isInquiry={isInquiry}
+              isSettled={isSettled}
               money={money}
               lines={lines}
+              pricingTierId={booking.pricingTierId}
+              pricingTiers={isInquiry ? [] : pricingTiers}
+              paymentType={paymentType}
               payments={bookingPayments}
               expenseLines={expenseLines}
               opsGmvCents={ops?.gmvCents ?? null}

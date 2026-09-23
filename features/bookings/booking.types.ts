@@ -360,6 +360,8 @@ export interface BookingDetails extends BookingListItem {
   paymentMethod: string | null;
   /** Proposal page shows a pay button when true. */
   allowPayment: boolean;
+  /** What that button asks for: "DEPOSIT_ONLY" | "FULL_PAYMENT" (free text in the DB). */
+  paymentType: string | null;
   /** Channel the deal came through (bookings.source). */
   source: string | null;
   updatedAt: Date;

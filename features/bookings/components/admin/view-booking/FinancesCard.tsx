@@ -5,11 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui
 import { cn } from "@/shared/lib/utils/general-utils";
 import { formatCentsAsCurrency } from "@/shared/lib/utils/money-utils";
 import type { Payment } from "@/database/types";
-import type { BookingAddOn } from "@/features/bookings/booking.types";
 import type { BookingExpenseLine } from "@/features/bookings/booking-expense.types";
 import type { CustomerMoney } from "@/features/bookings/lib/booking-money";
+import type { PricingTierOption } from "@/features/bookings/components/admin/booking-forms/types";
 import { AdminBookingMakePaymentButton } from "./AdminBookingMakePaymentButton";
 import { BookingAddExpenseButton } from "./BookingAddExpenseButton";
+import { FinancesBreakdown, type FinancesLines, type PaymentTerms } from "./FinancesBreakdown";
+
+export type { FinancesLines } from "./FinancesBreakdown";
 
 const METHOD_LABELS: Record<string, string> = {
   STRIPE_CHECKOUT: "Card",
@@ -26,25 +29,21 @@ const TYPE_LABELS: Record<string, string> = {
   REFUND: "Refund",
 };
 
-export interface FinancesLines {
-  boatName: string | null;
-  basePriceCents: number;
-  captainFeeCents: number;
-  cleaningFeeCents: number;
-  addOns: BookingAddOn[];
-}
-
 /**
  * The customer's money, top to bottom the way an admin reads it: what they
- * owe → what they've paid → the payments behind it. One line per payment;
- * card payments open in Stripe. Add expense lives here too (it's money);
- * what KOS makes is read in CommissionCard.
+ * owe → what they've paid → the payments behind it. The breakdown becomes an
+ * editor in the page's edit mode (FinancesBreakdown). Add expense lives here
+ * too (it's money); what KOS makes is read in CommissionCard.
  */
 export function FinancesCard({
   bookingId,
   isInquiry,
+  isSettled,
   money,
   lines,
+  pricingTierId,
+  pricingTiers,
+  paymentType,
   payments,
   expenseLines,
   opsGmvCents,
@@ -57,8 +56,13 @@ export function FinancesCard({
 }: {
   bookingId: string;
   isInquiry: boolean;
+  /** COMPLETED / CANCELLED — pricing is history, no editing. */
+  isSettled: boolean;
   money: CustomerMoney;
   lines: FinancesLines;
+  pricingTierId: string | null;
+  pricingTiers: PricingTierOption[];
+  paymentType: PaymentTerms | null;
   payments: Payment[];
   /** For the Add expense editor (the totals show in Commission). */
   expenseLines: BookingExpenseLine[];
@@ -106,43 +110,22 @@ export function FinancesCard({
         </CardContent>
       ) : (
         <CardContent className="space-y-6">
-          {/* ── What the customer owes ── */}
           <section>
             <SectionLabel>Breakdown</SectionLabel>
-            <dl className="mt-2 space-y-1.5 text-sm">
-              <Row label={lines.boatName ?? "Charter"} value={fmt(lines.basePriceCents)} />
-              {lines.addOns.map((a, i) => (
-                <Row
-                  key={i}
-                  label={`${a.name}${a.quantity > 1 ? ` × ${a.quantity}` : ""}`}
-                  value={fmt(Math.round(a.total * 100))}
-                  muted
-                />
-              ))}
-              {lines.captainFeeCents > 0 ? <Row label="Captain" value={fmt(lines.captainFeeCents)} muted /> : null}
-              {lines.cleaningFeeCents > 0 ? <Row label="Cleaning" value={fmt(lines.cleaningFeeCents)} muted /> : null}
-              <Row
-                label={money.serviceFeeWaived ? "Card fee · waived" : "Card fee"}
-                value={fmt(money.serviceFeeCents)}
-                muted
-                strike={money.serviceFeeWaived}
+            <div className="mt-2">
+              <FinancesBreakdown
+                bookingId={bookingId}
+                editable={!isSettled}
+                currency={currency}
+                money={money}
+                lines={lines}
+                pricingTierId={pricingTierId}
+                pricingTiers={pricingTiers}
+                paymentType={paymentType}
               />
-              <Divider />
-              <Row label="Total" value={fmt(money.totalCents)} strong />
-              <Row label="Paid" value={fmt(money.paidCents)} tone={money.paidCents > 0 ? "success" : undefined} />
-              <Row
-                label={money.balanceCents > 0 ? "Balance due" : "Balance"}
-                value={money.balanceCents > 0 ? fmt(money.balanceCents) : "Settled"}
-                tone={money.balanceCents > 0 ? "warning" : "success"}
-                strong
-              />
-              {money.depositCents && money.paidCents === 0 ? (
-                <Row label="Deposit to secure" value={fmt(money.depositCents)} muted />
-              ) : null}
-            </dl>
+            </div>
           </section>
 
-          {/* ── The ledger ── */}
           <section>
             <SectionLabel>Payments</SectionLabel>
             {payments.length === 0 ? (
@@ -226,43 +209,11 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Divider() {
-  return <div className="my-2 border-t border-border/50" role="presentation" />;
-}
-
-function Row({
-  label,
-  value,
-  muted,
-  strong,
-  strike,
-  tone,
-}: {
-  label: string;
-  value: string;
-  muted?: boolean;
-  strong?: boolean;
-  strike?: boolean;
-  tone?: "success" | "warning" | "destructive";
-}) {
+function Row({ label, value, muted }: { label: string; value: string; muted?: boolean }) {
   return (
     <div className="flex items-baseline justify-between gap-4">
-      <dt className={cn("truncate", muted ? "text-muted-foreground" : "text-foreground", strong && "font-semibold")}>
-        {label}
-      </dt>
-      <dd
-        className={cn(
-          "shrink-0 tabular-nums",
-          muted && !tone && "text-muted-foreground",
-          strong && "font-semibold",
-          strike && "line-through opacity-60",
-          tone === "success" && "text-success",
-          tone === "warning" && "text-warning",
-          tone === "destructive" && "text-destructive"
-        )}
-      >
-        {value}
-      </dd>
+      <dt className={cn("truncate", muted ? "text-muted-foreground" : "text-foreground")}>{label}</dt>
+      <dd className={cn("shrink-0 tabular-nums", muted && "text-muted-foreground")}>{value}</dd>
     </div>
   );
 }

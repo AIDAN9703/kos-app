@@ -40,8 +40,9 @@ interface ProposalActionsProps {
  *    visitors keep their payment path — accepting isn't a dead end).
  * 3. Paid:                 confirmation banner.
  *
- * One payment button, honoring the admin's deposit-vs-full choice. Change
- * requests send immediately and land on the admin's activity timeline.
+ * When a deposit exists the customer picks deposit-first or pay-in-full
+ * (defaulting to the admin's choice); otherwise one full-payment button.
+ * Change requests send immediately and land on the admin's activity timeline.
  */
 export function ProposalActions({
   publicToken,
@@ -61,11 +62,15 @@ export function ProposalActions({
   const [requestPending, startRequestTransition] = useTransition();
 
   const isPaid = totalPaidCents > 0;
-  const hasDeposit = depositAmountCents != null && depositAmountCents > 0;
-  // Deposit secures the date only when the admin chose it AND an amount exists.
-  const chargeType: "deposit" | "full" =
-    paymentType === "DEPOSIT_ONLY" && hasDeposit ? "deposit" : "full";
-  const chargeAmountCents = chargeType === "deposit" ? depositAmountCents! : totalAmountCents;
+  const hasDeposit =
+    depositAmountCents != null && depositAmountCents > 0 && depositAmountCents < totalAmountCents;
+  // Admin's choice is the default; the customer can switch when a deposit exists.
+  const [chargeType, setChargeType] = useState<"deposit" | "full">(
+    paymentType === "DEPOSIT_ONLY" && hasDeposit ? "deposit" : "full"
+  );
+  const effectiveChargeType: "deposit" | "full" = hasDeposit ? chargeType : "full";
+  const chargeAmountCents =
+    effectiveChargeType === "deposit" ? depositAmountCents! : totalAmountCents;
   const canPayByCard = allowPayment && !serviceFeeWaived;
 
   const handlePay = () => {
@@ -74,7 +79,7 @@ export function ProposalActions({
       const formData = new FormData();
       formData.set("publicToken", publicToken);
       formData.set("payNow", "true");
-      formData.set("chargeType", chargeType);
+      formData.set("chargeType", effectiveChargeType);
 
       const result = await acceptProposalAction({ success: false }, formData);
       if (result.success && result.data?.checkoutUrl) {
@@ -119,6 +124,23 @@ export function ProposalActions({
       }
     });
   };
+
+  const paymentChoice = hasDeposit ? (
+    <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="How much to pay now">
+      <PayChoice
+        active={effectiveChargeType === "deposit"}
+        label="Pay the deposit"
+        detail={`${formatCentsAsCurrency(depositAmountCents!)} now · rest before the trip`}
+        onClick={() => setChargeType("deposit")}
+      />
+      <PayChoice
+        active={effectiveChargeType === "full"}
+        label="Pay in full"
+        detail={`${formatCentsAsCurrency(totalAmountCents)} now`}
+        onClick={() => setChargeType("full")}
+      />
+    </div>
+  ) : null;
 
   const requestChangesButton = (
     <Button
@@ -212,6 +234,7 @@ export function ProposalActions({
           <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
         )}
         {requestSentNote}
+        {canPayByCard ? paymentChoice : null}
         {canPayByCard && (
           <Button size="lg" className="h-11 w-full gap-2 rounded-full" disabled={pending} onClick={handlePay}>
             {pending ? (
@@ -219,7 +242,7 @@ export function ProposalActions({
             ) : (
               <CreditCard className="h-4 w-4" />
             )}
-            {chargeType === "deposit"
+            {effectiveChargeType === "deposit"
               ? `Pay ${formatCentsAsCurrency(chargeAmountCents)} deposit`
               : `Complete payment · ${formatCentsAsCurrency(chargeAmountCents)}`}
           </Button>
@@ -240,6 +263,7 @@ export function ProposalActions({
 
       {canPayByCard ? (
         <>
+          {paymentChoice}
           <Button size="lg" className="h-11 w-full gap-2 rounded-full" disabled={pending} onClick={handlePay}>
             {pending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -249,7 +273,7 @@ export function ProposalActions({
             Looks good — continue to payment
           </Button>
           <p className="text-center text-xs text-muted-foreground">
-            {chargeType === "deposit"
+            {effectiveChargeType === "deposit"
               ? `You'll pay the ${formatCentsAsCurrency(chargeAmountCents)} deposit now to secure your date.`
               : `You'll pay ${formatCentsAsCurrency(chargeAmountCents)} to secure your date.`}
           </p>
@@ -270,5 +294,34 @@ export function ProposalActions({
       {requestChangesButton}
       {requestChangesDialog}
     </div>
+  );
+}
+
+function PayChoice({
+  active,
+  label,
+  detail,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  detail: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={active}
+      onClick={onClick}
+      className={
+        active
+          ? "rounded-xl border-2 border-primary bg-primary/5 px-3 py-2.5 text-left"
+          : "rounded-xl border border-border/60 px-3 py-2.5 text-left transition-colors hover:bg-muted/50"
+      }
+    >
+      <span className="block text-sm font-semibold text-primary">{label}</span>
+      <span className="block text-xs text-slate-500">{detail}</span>
+    </button>
   );
 }

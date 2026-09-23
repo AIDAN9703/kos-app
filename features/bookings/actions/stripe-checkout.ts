@@ -302,10 +302,15 @@ export async function createCheckoutSessionForBooking(
 }
 
 /**
- * Get an existing valid checkout session URL for a booking,
- * or create a new one if none exists / the old one expired.
+ * Get an existing valid checkout session URL for a booking, or create a new
+ * one if none exists / the old one expired. Pass `chargeType` when the payer
+ * chose deposit-vs-full: an open session for a different amount is expired
+ * and replaced, so the customer is never sent to a stale price.
  */
-export async function getOrCreateCheckoutUrl(bookingId: string): Promise<string> {
+export async function getOrCreateCheckoutUrl(
+  bookingId: string,
+  options?: { chargeType?: "deposit" | "full" }
+): Promise<string> {
   const existingPayments = await paymentService.getPaymentsForPayable("BOOKING", bookingId);
 
   // Check for an existing PENDING checkout session
@@ -317,23 +322,40 @@ export async function getOrCreateCheckoutUrl(bookingId: string): Promise<string>
   );
 
   if (pendingCheckout?.stripeCheckoutSessionId) {
+    const stripe = getStripe();
+    let reusable = false;
     try {
-      const stripe = getStripe();
       const session = await stripe.checkout.sessions.retrieve(
         pendingCheckout.stripeCheckoutSessionId
       );
-      // Session is still open — return its URL
       if (session.status === "open" && session.url) {
-        return session.url;
+        // A deposit session can't serve a full-payment request (or vice
+        // versa): the pending row's type says what the session charges.
+        const sessionIsDeposit = pendingCheckout.paymentType === "DEPOSIT";
+        const wantsDeposit = options?.chargeType === "deposit";
+        reusable = options?.chargeType === undefined || sessionIsDeposit === wantsDeposit;
+        if (reusable) return session.url;
+        try {
+          await stripe.checkout.sessions.expire(session.id);
+        } catch {
+          // Already expired/completed — the row below is cancelled either way.
+        }
       }
     } catch {
       // Session expired or invalid — fall through to create a new one
     }
 
-    // Mark the stale payment as CANCELLED
-    await paymentService.updatePayment(pendingCheckout.id, {
-      status: "CANCELLED",
-    });
+    // Mark this booking's pending rows on that session as CANCELLED. Checkout
+    // is always started from the lead booking, so its rows are the ones that
+    // gate reuse; sibling rows are settled or cancelled by session id downstream.
+    for (const p of existingPayments) {
+      if (
+        p.status === "PENDING" &&
+        p.stripeCheckoutSessionId === pendingCheckout.stripeCheckoutSessionId
+      ) {
+        await paymentService.updatePayment(p.id, { status: "CANCELLED" });
+      }
+    }
   }
 
   // Also check for legacy Payment Link payments
@@ -353,5 +375,7 @@ export async function getOrCreateCheckoutUrl(bookingId: string): Promise<string>
     }
   }
 
-  return createCheckoutSessionForBooking(bookingId);
+  return createCheckoutSessionForBooking(bookingId, {
+    chargeType: options?.chargeType,
+  });
 }

@@ -6,9 +6,16 @@ import type { ProposalBooking } from "@/features/bookings/lib/proposal.types";
 
 interface ProposalPricingCardProps {
   bookings: ProposalBooking[];
+  /** Deposit that locks the date, when the admin set one. */
+  depositAmountCents?: number | null;
+  totalPaidCents?: number;
 }
 
-export function ProposalPricingCard({ bookings }: ProposalPricingCardProps) {
+export function ProposalPricingCard({
+  bookings,
+  depositAmountCents = null,
+  totalPaidCents = 0,
+}: ProposalPricingCardProps) {
   const subtotalCents = bookings.reduce((sum, b) => sum + b.totalCents - b.serviceFeeCents, 0);
   const totalServiceFeeCents = bookings.reduce((sum, b) => sum + b.serviceFeeCents, 0);
   // Waived = settled off-card; the fee stays visible (struck) so the math is
@@ -73,6 +80,19 @@ export function ProposalPricingCard({ bookings }: ProposalPricingCardProps) {
             {formatCentsAsCurrency(grandTotalCents)}
           </span>
         </div>
+        {depositAmountCents && depositAmountCents > 0 && depositAmountCents < grandTotalCents ? (
+          <div className="mt-2 rounded-xl bg-gold-soft/60 px-3 py-2 text-sm">
+            <div className="flex items-baseline justify-between">
+              <span className="text-slate-700">Deposit to secure your date</span>
+              <span className="font-semibold text-primary">{formatCentsAsCurrency(depositAmountCents)}</span>
+            </div>
+            <p className="mt-0.5 text-xs text-slate-500">
+              {totalPaidCents > 0
+                ? `${formatCentsAsCurrency(totalPaidCents)} received · ${formatCentsAsCurrency(Math.max(0, grandTotalCents - totalPaidCents))} due before the trip`
+                : `Pay the deposit now and the remaining ${formatCentsAsCurrency(grandTotalCents - depositAmountCents)} before the trip, or pay in full today.`}
+            </p>
+          </div>
+        ) : null}
       </div>
     </div>
   );

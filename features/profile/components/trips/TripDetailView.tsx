@@ -14,10 +14,6 @@ import { TripStatusBadge } from "./TripStatusBadge";
 export function TripDetailView({ trip }: { trip: TripDetail }) {
   const hours = tripDurationHours(trip);
   const canPayNow = trip.status === "BOOKED" && trip.paidCents === 0 && trip.totalCents > 0;
-  const payLabel =
-    trip.depositCents && trip.depositCents < trip.totalCents
-      ? `Pay ${formatCentsAsCurrency(trip.depositCents)} deposit`
-      : `Pay ${formatCentsAsCurrency(trip.totalCents)}`;
 
   const facts = [
     { Icon: CalendarDays, label: "Date", value: tripDate(trip) },
@@ -136,7 +132,15 @@ export function TripDetailView({ trip }: { trip: TripDetail }) {
                   <Link href={`/bookings/proposal/${trip.publicToken}`}>Review proposal</Link>
                 </Button>
               ) : null}
-              {canPayNow ? <PayTripButton tripId={trip.id} label={payLabel} /> : null}
+              {canPayNow ? (
+                <PayTripButton
+                  tripId={trip.id}
+                  totalCents={trip.totalCents}
+                  depositCents={trip.depositCents}
+                  paymentType={trip.paymentType}
+                  currency={trip.currency}
+                />
+              ) : null}
               {trip.status === "BOOKED" && trip.paidCents > 0 && trip.balanceCents > 0 ? (
                 <p className="text-sm leading-6 text-slate-600">
                   Your balance is due before departure — we&apos;ll send a secure payment link.

@@ -139,6 +139,7 @@ export async function getTrip(userId: string, bookingId: string): Promise<TripDe
       cancelledAt: bookings.cancelledAt,
       cancellationReason: bookings.cancellationReason,
       currency: bookingPricing.currency,
+      paymentType: bookings.paymentType,
     })
     .from(bookings)
     .leftJoin(bookingPricing, eq(bookingPricing.bookingId, bookings.id))
@@ -157,6 +158,8 @@ export async function getTrip(userId: string, bookingId: string): Promise<TripDe
     cancelledAt: row.cancelledAt,
     cancellationReason: row.cancellationReason,
     currency: row.currency ?? "USD",
+    paymentType:
+      row.paymentType === "DEPOSIT_ONLY" || row.paymentType === "FULL_PAYMENT" ? row.paymentType : null,
   };
 }
 
