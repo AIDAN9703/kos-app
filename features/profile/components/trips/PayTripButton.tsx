@@ -13,8 +13,6 @@ interface PayTripButtonProps {
   totalCents: number;
   /** Deposit that locks the date; null when the trip has no deposit option. */
   depositCents: number | null;
-  /** Admin's default — the customer can still switch when a deposit exists. */
-  paymentType: "DEPOSIT_ONLY" | "FULL_PAYMENT" | null;
   currency: string;
 }
 
@@ -22,11 +20,9 @@ interface PayTripButtonProps {
  * Sends the customer to Stripe Checkout for their own trip. With a deposit on
  * offer they choose deposit-first or pay-in-full; otherwise one button.
  */
-export function PayTripButton({ tripId, totalCents, depositCents, paymentType, currency }: PayTripButtonProps) {
+export function PayTripButton({ tripId, totalCents, depositCents, currency }: PayTripButtonProps) {
   const hasDeposit = depositCents != null && depositCents > 0 && depositCents < totalCents;
-  const [choice, setChoice] = useState<"deposit" | "full">(
-    hasDeposit && paymentType === "DEPOSIT_ONLY" ? "deposit" : "full"
-  );
+  const [choice, setChoice] = useState<"deposit" | "full">("full");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const fmt = (c: number) => formatCentsAsCurrency(c, { currency });

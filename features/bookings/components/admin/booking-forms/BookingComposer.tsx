@@ -274,7 +274,6 @@ export function BookingComposer({
 
   // ── Send options ──
   const [allowPayment, setAllowPayment] = useState(false);
-  const [paymentType, setPaymentType] = useState<"DEPOSIT_ONLY" | "FULL_PAYMENT">("FULL_PAYMENT");
   // Coming from a lead, the point is to SEND — default the channels on
   // (SMS only with consent) instead of silently saving it unsent.
   const [sendProposalEmail, setSendProposalEmail] = useState(
@@ -346,7 +345,6 @@ export function BookingComposer({
       source: source || null,
       agentCode: agentAdmin ? adminDisplayName(agentAdmin) : null,
       allowPayment,
-      paymentType,
       sendProposalEmail,
       sendProposalSms,
     };
@@ -409,7 +407,6 @@ export function BookingComposer({
     adminNotes,
     source,
     allowPayment,
-    paymentType,
     sendProposalEmail,
     sendProposalSms,
     onSuccess,
@@ -837,21 +834,10 @@ export function BookingComposer({
                 />
                 <Label htmlFor="composer-allow-payment" className="font-normal">
                   Allow payment now
+                  <span className="ml-1 text-xs text-muted-foreground">
+                    (guest can pay the deposit if one is set, or the full amount)
+                  </span>
                 </Label>
-                {allowPayment && (
-                  <Select
-                    value={paymentType}
-                    onValueChange={(v) => setPaymentType(v as "DEPOSIT_ONLY" | "FULL_PAYMENT")}
-                  >
-                    <SelectTrigger className="h-8 w-40">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="FULL_PAYMENT">Full payment</SelectItem>
-                      <SelectItem value="DEPOSIT_ONLY">Deposit only</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
               </div>
             )}
           </div>

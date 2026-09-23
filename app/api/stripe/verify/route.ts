@@ -238,6 +238,18 @@ async function buildVerifyResponse(
     }
   }
 
+  // What the guest actually paid — today's session and everything so far —
+  // so the thank-you page never presents the booking total as "paid".
+  const succeeded = (await paymentService.getBookingPayments(bookingId)).filter(
+    (p) => p.status === "SUCCEEDED" && p.paymentType !== "REFUND"
+  );
+  const totalPaidCents = succeeded.reduce((sum, p) => sum + Number(p.amountCents), 0);
+  const paidNowCents = sessionId
+    ? succeeded
+        .filter((p) => p.stripeCheckoutSessionId === sessionId)
+        .reduce((sum, p) => sum + Number(p.amountCents), 0)
+    : 0;
+
   const [details] = await db
     .select({
       id: bookings.id,
@@ -254,6 +266,7 @@ async function buildVerifyResponse(
       basePriceCents: bookingPricing.basePriceCents,
       cleaningFeeCents: bookingPricing.cleaningFeeCents,
       serviceFeeCents: bookingPricing.serviceFeeCents,
+      serviceFeeWaived: bookingPricing.serviceFeeWaived,
       captainFeeCents: bookingPricing.captainFeeCents,
       depositAmountCents: bookingPricing.depositAmountCents,
     })
@@ -287,6 +300,14 @@ async function buildVerifyResponse(
           depositAmountCents: details.depositAmountCents
             ? Number(details.depositAmountCents)
             : null,
+          paidNowCents,
+          totalPaidCents,
+          remainingCents: Math.max(
+            0,
+            (details.totalAmountCents ? Number(details.totalAmountCents) : 0) -
+              (details.serviceFeeWaived ? Number(details.serviceFeeCents ?? 0) : 0) -
+              totalPaidCents
+          ),
         }
       : null,
   });

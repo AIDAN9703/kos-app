@@ -253,7 +253,6 @@ export class BookingService {
         assignedAdminId: assignedAdminId ?? null,
         publicToken: tokenForThisBooking,
         allowPayment: input.allowPayment ?? false,
-        paymentType: input.paymentType ?? "FULL_PAYMENT",
         publishedAt: publishNow ? now : null,
       };
 
@@ -425,7 +424,6 @@ export class BookingService {
       // Charter times display in the BOAT's local time everywhere.
       timezone: (first.boatId ? boatsById.get(first.boatId)?.timezone : null) ?? null,
       allowPayment: first.allowPayment,
-      paymentType: first.paymentType,
       acceptedAt: first.acceptedAt,
       totalPaidCents: Number(paidRow?.paid ?? 0),
       // Deposit to secure the date = SUM of per-boat deposits across the
@@ -1236,7 +1234,6 @@ export class BookingService {
         serviceFeeCents: bookingPricing.serviceFeeCents,
         serviceFeeWaived: bookingPricing.serviceFeeWaived,
         allowPayment: bookings.allowPayment,
-        paymentType: bookings.paymentType,
         taxAmountCents: bookingPricing.taxAmountCents,
         discountAmountCents: bookingPricing.discountAmountCents,
         totalAmountCents: bookingPricing.totalAmountCents,
@@ -1320,7 +1317,6 @@ export class BookingService {
       paymentMethod: booking.paymentMethod ?? null,
       serviceFeeWaived: Boolean(booking.serviceFeeWaived),
       allowPayment: Boolean(booking.allowPayment),
-      paymentType: booking.paymentType ?? null,
       paymentDisplayStatus: computePaymentDisplayStatus({
         totalPaidCents,
         totalAmountCents: effectiveTotalCents({

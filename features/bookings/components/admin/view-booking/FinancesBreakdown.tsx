@@ -25,8 +25,6 @@ export interface FinancesLines {
   addOns: BookingAddOn[];
 }
 
-export type PaymentTerms = "DEPOSIT_ONLY" | "FULL_PAYMENT";
-
 interface FinancesBreakdownProps {
   bookingId: string;
   /** Priced and not settled — the page's Edit trip flips this into a form. */
@@ -37,7 +35,6 @@ interface FinancesBreakdownProps {
   pricingTierId: string | null;
   /** This boat's tiers — a preset for the base price, like the composer. */
   pricingTiers: PricingTierOption[];
-  paymentType: PaymentTerms | null;
 }
 
 const CUSTOM = "__custom__";
@@ -69,7 +66,6 @@ export function FinancesBreakdown({
   lines,
   pricingTierId,
   pricingTiers,
-  paymentType,
 }: FinancesBreakdownProps) {
   const { editing, registerSaver } = useBookingEditMode();
   const router = useRouter();
@@ -188,7 +184,7 @@ export function FinancesBreakdown({
           <DollarField label="Charter price" value={base} onChange={(v) => { setBase(v); setTierId(CUSTOM); }} />
           <DollarField label="Captain fee" value={captain} onChange={setCaptain} />
           <DollarField label="Cleaning fee" value={cleaning} onChange={setCleaning} />
-          <DollarField label="Deposit" value={deposit} onChange={setDeposit} hint="Blank = no deposit option" />
+          <DollarField label="Deposit" value={deposit} onChange={setDeposit} hint="Blank = guest must pay in full" />
         </div>
 
         <AddOnsFields lineItems={addOns} onChange={setAddOns} />
@@ -238,14 +234,8 @@ export function FinancesBreakdown({
       />
       <div className="my-2 border-t border-border/50" role="presentation" />
       <Row
-        label="Payment terms"
-        value={
-          paymentType === "DEPOSIT_ONLY" && money.depositCents
-            ? `Deposit first · ${fmt(money.depositCents)}`
-            : money.depositCents
-              ? `Full payment · ${fmt(money.depositCents)} deposit available`
-              : "Full payment"
-        }
+        label="Deposit option"
+        value={money.depositCents ? `${fmt(money.depositCents)} · guest may pay this first` : "None · full payment only"}
         muted
       />
     </dl>

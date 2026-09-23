@@ -10,7 +10,7 @@ import type { CustomerMoney } from "@/features/bookings/lib/booking-money";
 import type { PricingTierOption } from "@/features/bookings/components/admin/booking-forms/types";
 import { AdminBookingMakePaymentButton } from "./AdminBookingMakePaymentButton";
 import { BookingAddExpenseButton } from "./BookingAddExpenseButton";
-import { FinancesBreakdown, type FinancesLines, type PaymentTerms } from "./FinancesBreakdown";
+import { FinancesBreakdown, type FinancesLines } from "./FinancesBreakdown";
 
 export type { FinancesLines } from "./FinancesBreakdown";
 
@@ -43,7 +43,6 @@ export function FinancesCard({
   lines,
   pricingTierId,
   pricingTiers,
-  paymentType,
   payments,
   expenseLines,
   opsGmvCents,
@@ -62,7 +61,6 @@ export function FinancesCard({
   lines: FinancesLines;
   pricingTierId: string | null;
   pricingTiers: PricingTierOption[];
-  paymentType: PaymentTerms | null;
   payments: Payment[];
   /** For the Add expense editor (the totals show in Commission). */
   expenseLines: BookingExpenseLine[];
@@ -121,7 +119,6 @@ export function FinancesCard({
                 lines={lines}
                 pricingTierId={pricingTierId}
                 pricingTiers={pricingTiers}
-                paymentType={paymentType}
               />
             </div>
           </section>

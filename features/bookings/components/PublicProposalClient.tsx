@@ -105,7 +105,6 @@ export default function PublicProposalClient({
                     publicToken={publicToken}
                     allowPayment={data.allowPayment}
                     serviceFeeWaived={data.bookings.some((b) => b.serviceFeeWaived)}
-                    paymentType={data.paymentType}
                     isAccepted={!!data.acceptedAt}
                     totalPaidCents={data.totalPaidCents}
                     depositAmountCents={data.depositAmountCents}

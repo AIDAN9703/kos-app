@@ -31,9 +31,9 @@ function toAbsoluteImageUrl(url: string | null, baseUrl: string): string | undef
  * booking, all sharing the session id, so per-boat financials stay correct
  * and the webhook/verify can settle and confirm the entire party.
  *
- * Respects the lead booking's paymentType — if DEPOSIT_ONLY and deposits are
- * configured, the session charges the SUM of per-boat deposits; otherwise
- * the party total. Pass chargeType to override.
+ * Charges the party total unless the payer chose the deposit (chargeType
+ * "deposit"), in which case it charges the SUM of per-boat deposits. A
+ * deposit exists only if the admin entered one — there is no other switch.
  */
 export async function createCheckoutSessionForBooking(
   bookingId: string,
@@ -73,14 +73,7 @@ export async function createCheckoutSessionForBooking(
   );
   const hasDeposit = partyDepositCents > 0;
 
-  let isDeposit: boolean;
-  if (options?.chargeType === "deposit") {
-    isDeposit = hasDeposit;
-  } else if (options?.chargeType === "full") {
-    isDeposit = false;
-  } else {
-    isDeposit = lead.booking.paymentType === "DEPOSIT_ONLY" && hasDeposit;
-  }
+  const isDeposit = options?.chargeType === "deposit" && hasDeposit;
 
   const chargeCents = isDeposit ? partyDepositCents : partyTotalCents;
   const paymentRecordType: PaymentType = isDeposit ? "DEPOSIT" : "FULL_PAYMENT";

@@ -86,7 +86,12 @@ export const bookings = pgTable(
     // ==========================================================================
     publicToken: uuid("public_token"), // Shareable link; set when "sent to customer"
     allowPayment: boolean("allow_payment").default(false).notNull(),
-    paymentType: text("payment_type").default("FULL_PAYMENT"), // "DEPOSIT_ONLY" | "FULL_PAYMENT"
+    /**
+     * LEGACY (unused since 2026-09-23): the admin's deposit-vs-full default.
+     * Deposits are now driven only by booking_pricing.deposit_amount_cents —
+     * an amount means the guest may pay it first. Drop in a later migration.
+     */
+    paymentType: text("payment_type").default("FULL_PAYMENT"),
     publishedAt: timestamp("published_at", { mode: "date", withTimezone: true }),
     acceptedAt: timestamp("accepted_at", { mode: "date", withTimezone: true }),
     acceptedCustomerNote: text("accepted_customer_note"),

@@ -43,8 +43,6 @@ export interface TripDetail extends TripSummary {
   cancelledAt: Date | null;
   cancellationReason: string | null;
   currency: string;
-  /** Admin's default for the pay button: deposit first or everything. */
-  paymentType: "DEPOSIT_ONLY" | "FULL_PAYMENT" | null;
 }
 
 /** Something on the overview page the customer should act on. */

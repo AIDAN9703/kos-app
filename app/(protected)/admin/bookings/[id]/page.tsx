@@ -249,11 +249,6 @@ export default async function BookingDetailsPage({ params }: BookingDetailsPageP
   const currency = booking.currency ?? "USD";
   const fmt = (c: number) => formatCentsAsCurrency(c, { currency });
 
-  const paymentType: "DEPOSIT_ONLY" | "FULL_PAYMENT" | null =
-    booking.paymentType === "DEPOSIT_ONLY" || booking.paymentType === "FULL_PAYMENT"
-      ? booking.paymentType
-      : null;
-
   // The customer's exact line items — shared by Finances and the resend dialog.
   const lines = {
     boatName: booking.boatName,
@@ -279,7 +274,6 @@ export default async function BookingDetailsPage({ params }: BookingDetailsPageP
           customerPhone: booking.customerPhone,
           editsSinceSend: changesSinceLastSend,
           allowPayment: booking.allowPayment,
-          paymentType,
           currency,
           money,
           lines,
@@ -435,7 +429,6 @@ export default async function BookingDetailsPage({ params }: BookingDetailsPageP
               lines={lines}
               pricingTierId={booking.pricingTierId}
               pricingTiers={isInquiry ? [] : pricingTiers}
-              paymentType={paymentType}
               payments={bookingPayments}
               expenseLines={expenseLines}
               opsGmvCents={ops?.gmvCents ?? null}

@@ -64,6 +64,12 @@ interface BookingSummary {
   serviceFeeCents: number | null;
   captainFeeCents: number | null;
   depositAmountCents: number | null;
+  /** Settled by this checkout session. */
+  paidNowCents?: number;
+  /** Everything settled on the booking so far. */
+  totalPaidCents?: number;
+  /** Still owed before the trip (0 when paid in full). */
+  remainingCents?: number;
 }
 
 type VerifyState = "loading" | "verified" | "processing" | "error";
@@ -195,6 +201,9 @@ export default function PaymentSuccessClient() {
         )
       : null;
 
+  const paidNowCents = booking?.paidNowCents ?? 0;
+  const remainingCents = booking?.remainingCents ?? 0;
+
   const priceRows: { label: string; cents: number }[] = [
     { label: "Base price", cents: booking?.basePriceCents ?? 0 },
     { label: "Cleaning fee", cents: booking?.cleaningFeeCents ?? 0 },
@@ -216,8 +225,11 @@ export default function PaymentSuccessClient() {
         See you on the water.
       </h1>
       <p className="mt-4 text-[15px] leading-7 text-slate-600 sm:text-base">
-        Your payment went through and your charter is locked in. A confirmation email is on its
-        way{booking?.customerName ? `, ${booking.customerName.split(" ")[0]}` : ""}.
+        {remainingCents > 0
+          ? `Your deposit went through and your date is locked in. The remaining ${formatCentsAsCurrency(remainingCents)} is due before your trip — we'll send a payment link when it's time.`
+          : "Your payment went through and your charter is locked in."}{" "}
+        A confirmation email is on its way
+        {booking?.customerName ? `, ${booking.customerName.split(" ")[0]}` : ""}.
       </p>
 
       {/* ── Boat photo ── */}
@@ -266,11 +278,20 @@ export default function PaymentSuccessClient() {
           <FactRow key={row.label} label={row.label} value={formatCentsAsCurrency(row.cents)} />
         ))}
         {booking?.totalAmountCents ? (
+          <FactRow label="Charter total" value={formatCentsAsCurrency(booking.totalAmountCents)} />
+        ) : null}
+        {paidNowCents > 0 ? (
           <div className="flex items-baseline justify-between gap-6 py-3">
-            <span className="text-sm font-semibold text-primary">Total paid</span>
-            <span className="text-base font-bold text-success">
-              {formatCentsAsCurrency(booking.totalAmountCents)}
+            <span className="text-sm font-semibold text-primary">
+              {remainingCents > 0 ? "Deposit paid today" : "Paid today"}
             </span>
+            <span className="text-base font-bold text-success">{formatCentsAsCurrency(paidNowCents)}</span>
+          </div>
+        ) : null}
+        {remainingCents > 0 ? (
+          <div className="flex items-baseline justify-between gap-6 py-3">
+            <span className="text-sm font-semibold text-primary">Remaining balance</span>
+            <span className="text-base font-semibold text-primary">{formatCentsAsCurrency(remainingCents)}</span>
           </div>
         ) : null}
       </div>

@@ -155,7 +155,6 @@ export const createBookingsSchema = z.object({
   bookings: z.array(bookingSectionSchema).min(1, "At least one booking is required"),
   groupName: z.string().nullable().optional(),
   allowPayment: z.boolean().optional().default(false),
-  paymentType: z.enum(["DEPOSIT_ONLY", "FULL_PAYMENT"]).optional().default("FULL_PAYMENT"),
   sendProposalEmail: z.boolean().optional().default(false),
   sendProposalSms: z.boolean().optional().default(false),
   publishNow: z.boolean().optional(),
@@ -185,7 +184,6 @@ export const createBookingFullSchema = z.object({
   agentCode: z.string().nullable().optional(),
   // Send options (only the Stripe proposal path is wired today)
   allowPayment: z.boolean().optional().default(false),
-  paymentType: z.enum(["DEPOSIT_ONLY", "FULL_PAYMENT"]).optional().default("FULL_PAYMENT"),
   sendProposalEmail: z.boolean().optional().default(false),
   sendProposalSms: z.boolean().optional().default(false),
 });

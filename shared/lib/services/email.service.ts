@@ -661,18 +661,40 @@ export async function sendBookingConfirmationEmail(
     ? `${booking.userFirstName} ${booking.userLastName}`
     : booking.customerName || 'Guest';
 
+  // Say exactly what was paid. A deposit payer must never read "Total" as
+  // "what you paid" — that line scared a real guest.
+  const totalCents = booking.serviceFeeWaived
+    ? (booking.totalAmountCents ?? 0) - (booking.serviceFeeCents ?? 0)
+    : (booking.totalAmountCents ?? 0);
+  const paidCents = booking.totalPaidCents ?? 0;
+  const remainingCents = Math.max(0, totalCents - paidCents);
+  const isDeposit = paidCents > 0 && remainingCents > 0;
+  const moneyRow = (label: string, value: string, strong = false) => `
+                <p style="margin:6px 0 0;font-size:14px;color:${BRAND_NAVY};">
+                  <span style="color:#6b7b8b;">${label}:</span>
+                  <strong style="font-weight:${strong ? 700 : 600};">&nbsp;${value}</strong>
+                </p>`;
+
   try {
     const { data, error } = await resend.emails.send({
       from: `${FROM_NAME} <${FROM_EMAIL}>`,
       to: customerEmail,
-      subject: `Booking confirmed — ${booking.boatName || 'your yacht charter'}`,
+      subject: isDeposit
+        ? `Deposit received — ${booking.boatName || 'your yacht charter'} is booked`
+        : `Booking confirmed — ${booking.boatName || 'your yacht charter'}`,
       html: buildBrandEmailHtml({
-        previewText: 'Payment received — your charter is locked in. See you on the water.',
+        previewText: isDeposit
+          ? `Deposit received — your date is locked in. ${formatCentsAsCurrency(remainingCents)} is due before the trip.`
+          : 'Payment received — your charter is locked in. See you on the water.',
         contentHtml: `
               <p class="proposal-greeting">Hi ${escapeHtml(customerName)},</p>
 
               <p class="proposal-lead">
-                Your payment went through and your charter is confirmed. We can't wait to
+                ${
+                  isDeposit
+                    ? `Your <strong>${formatCentsAsCurrency(paidCents)}</strong> deposit went through and your date is locked in. The remaining <strong>${formatCentsAsCurrency(remainingCents)}</strong> is due before your trip — we'll send a payment link when it's time.`
+                    : `Your payment went through and your charter is confirmed.`
+                } We can't wait to
                 welcome you aboard <strong>${escapeHtml(booking.boatName || 'your yacht')}</strong>.
               </p>
 
@@ -699,10 +721,9 @@ export async function sendBookingConfirmationEmail(
                 </p>`
                     : ''
                 }
-                <p style="margin:6px 0 0;font-size:14px;color:${BRAND_NAVY};">
-                  <span style="color:#6b7b8b;">Total:</span>
-                  <strong style="font-weight:600;">&nbsp;${formatCentsAsCurrency(booking.totalAmountCents || 0)}</strong>
-                </p>
+                ${moneyRow('Charter total', formatCentsAsCurrency(totalCents))}
+                ${paidCents > 0 ? moneyRow(isDeposit ? 'Deposit paid' : 'Paid', formatCentsAsCurrency(paidCents), true) : ''}
+                ${remainingCents > 0 ? moneyRow('Remaining balance', formatCentsAsCurrency(remainingCents)) : ''}
               </div>
 
               <div class="proposal-next">

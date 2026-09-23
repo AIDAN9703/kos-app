@@ -95,7 +95,6 @@ export async function createBookingFull(
           ? `${input.bookings[0].customerName}'s charter party`
           : null,
         allowPayment: input.allowPayment ?? false,
-        paymentType: input.paymentType ?? "FULL_PAYMENT",
         sendProposalEmail,
         sendProposalSms,
         publishNow,

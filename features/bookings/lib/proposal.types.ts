@@ -48,7 +48,6 @@ export interface ProposalData {
   /** Lead boat's IANA zone — Trip Details renders boat-local, not viewer-local. */
   timezone: string | null;
   allowPayment: boolean;
-  paymentType: "DEPOSIT_ONLY" | "FULL_PAYMENT" | null;
   acceptedAt: Date | null;
   totalPaidCents: number;
   depositAmountCents: number | null;

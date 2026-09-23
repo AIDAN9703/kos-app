@@ -27,7 +27,6 @@ export default async function PublicProposalPage({ params }: Props) {
     dropoffLocation: raw.dropoffLocation,
     timezone: raw.timezone,
     allowPayment: raw.allowPayment,
-    paymentType: (raw.paymentType as "DEPOSIT_ONLY" | "FULL_PAYMENT" | null) ?? null,
     acceptedAt: raw.acceptedAt,
     totalPaidCents: raw.totalPaidCents ?? 0,
     depositAmountCents: raw.depositAmountCents ?? null,

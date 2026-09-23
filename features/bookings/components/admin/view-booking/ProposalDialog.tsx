@@ -25,7 +25,7 @@ import {
   setProposalAllowPayment,
   shareProposalLink,
 } from "@/features/bookings/actions/deal.actions";
-import { setPaymentTerms } from "@/features/bookings/actions/booking-pricing.actions";
+import { setBookingDeposit } from "@/features/bookings/actions/booking-pricing.actions";
 
 export interface ProposalDialogData {
   bookingId: string;
@@ -37,8 +37,6 @@ export interface ProposalDialogData {
   /** Admin edits since the customer last got the link. */
   editsSinceSend: number;
   allowPayment: boolean;
-  /** What the pay button asks for: everything, or the deposit first. */
-  paymentType: "DEPOSIT_ONLY" | "FULL_PAYMENT" | null;
   currency: string;
   money: CustomerMoney;
   lines: {
@@ -76,7 +74,6 @@ export function ProposalDialog({
     customerPhone,
     editsSinceSend,
     allowPayment,
-    paymentType,
     currency,
     money,
     lines,
@@ -88,15 +85,12 @@ export function ProposalDialog({
   const [sending, setSending] = useState(false);
   const [copied, setCopied] = useState(false);
   const [pay, setPay] = useState(allowPayment);
-  const [terms, setTerms] = useState<"DEPOSIT_ONLY" | "FULL_PAYMENT">(
-    paymentType === "DEPOSIT_ONLY" && money.depositCents ? "DEPOSIT_ONLY" : "FULL_PAYMENT"
-  );
   const [depositInput, setDepositInput] = useState(money.depositCents ? String(centsToDollars(money.depositCents)) : "");
-  const [savingTerms, setSavingTerms] = useState(false);
+  const [savingDeposit, setSavingDeposit] = useState(false);
   const [, startTransition] = useTransition();
-  // Only relevant while nothing has been paid — after a deposit the remainder
-  // is collected off this link.
-  const termsApply = pay && money.paidCents === 0 && !money.serviceFeeWaived;
+  // A deposit only matters while nothing has been paid — after that the
+  // remainder is collected off this link.
+  const depositApplies = pay && money.paidCents === 0 && !money.serviceFeeWaived;
   const depositDraftCents = dollarsToCents(Number(depositInput.replace(/[$,]/g, "")) || 0);
   const fmt = (c: number) => formatCentsAsCurrency(c, { currency });
 
@@ -135,20 +129,17 @@ export function ProposalDialog({
   }
 
 
-  async function saveTerms(next: "DEPOSIT_ONLY" | "FULL_PAYMENT", depositCents: number | null) {
-    setSavingTerms(true);
-    const previous = terms;
-    setTerms(next);
-    const r = await setPaymentTerms(bookingId, {
-      paymentType: next,
-      ...(depositCents !== null ? { depositAmountCents: depositCents } : {}),
-    });
-    setSavingTerms(false);
+  async function saveDeposit() {
+    if (depositDraftCents === (money.depositCents ?? 0)) return;
+    setSavingDeposit(true);
+    const r = await setBookingDeposit(bookingId, depositDraftCents > 0 ? depositDraftCents : null);
+    setSavingDeposit(false);
     if (!r.success) {
-      setTerms(previous);
-      toast({ title: "Couldn't update payment terms", description: r.error, variant: "destructive" });
+      setDepositInput(money.depositCents ? String(centsToDollars(money.depositCents)) : "");
+      toast({ title: "Couldn't update the deposit", description: r.error, variant: "destructive" });
       return;
     }
+    toast({ title: depositDraftCents > 0 ? "Deposit option set" : "Deposit removed" });
     router.refresh();
   }
 
@@ -213,50 +204,33 @@ export function ProposalDialog({
           <Switch checked={pay} onCheckedChange={togglePay} disabled={money.serviceFeeWaived} />
         </label>
 
-        {termsApply ? (
+        {depositApplies ? (
           <div className="space-y-2 rounded-xl bg-secondary/40 p-3 text-sm">
-            <p className="font-medium">What the pay button asks for</p>
-            <div className="grid grid-cols-2 gap-2">
-              <TermsChoice
-                active={terms === "FULL_PAYMENT"}
-                disabled={savingTerms}
-                label="Full amount"
-                detail={fmt(money.totalCents)}
-                onClick={() => saveTerms("FULL_PAYMENT", null)}
-              />
-              <TermsChoice
-                active={terms === "DEPOSIT_ONLY"}
-                disabled={savingTerms || depositDraftCents <= 0}
-                label="Deposit first"
-                detail={depositDraftCents > 0 ? fmt(depositDraftCents) : "Set an amount"}
-                onClick={() => saveTerms("DEPOSIT_ONLY", depositDraftCents)}
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Deposit</span>
-              <div className="relative flex-1">
+            <div className="flex items-center justify-between gap-3">
+              <span>
+                <span className="font-medium">Deposit option</span>
+                <span className="block text-xs text-muted-foreground">
+                  {depositDraftCents > 0
+                    ? `Guest can pay ${fmt(depositDraftCents)} now or the full ${fmt(money.totalCents)}`
+                    : "Blank = the link only offers the full amount"}
+                </span>
+              </span>
+              <div className="relative w-32 shrink-0">
                 <span className="pointer-events-none absolute inset-y-0 left-2.5 flex items-center text-xs text-muted-foreground">$</span>
                 <Input
                   inputMode="decimal"
                   value={depositInput}
                   onChange={(e) => setDepositInput(e.target.value)}
-                  onBlur={() => {
-                    if (depositDraftCents !== (money.depositCents ?? 0)) {
-                      void saveTerms(depositDraftCents > 0 ? terms : "FULL_PAYMENT", depositDraftCents);
-                    }
+                  onBlur={() => void saveDeposit()}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") (e.target as HTMLInputElement).blur();
                   }}
+                  disabled={savingDeposit}
                   placeholder="0.00"
                   className="h-8 pl-6 text-sm"
                 />
               </div>
             </div>
-            <p className="text-xs text-muted-foreground">
-              {terms === "DEPOSIT_ONLY"
-                ? "The customer pays the deposit to lock the date; the balance is collected before the trip."
-                : money.depositCents
-                  ? "The customer can still choose to pay just the deposit from the link."
-                  : "No deposit set — the link only offers the full amount."}
-            </p>
           </div>
         ) : null}
 
@@ -289,36 +263,6 @@ export function ProposalDialog({
       </div>
       </DialogContent>
     </Dialog>
-  );
-}
-
-function TermsChoice({
-  active,
-  disabled,
-  label,
-  detail,
-  onClick,
-}: {
-  active: boolean;
-  disabled?: boolean;
-  label: string;
-  detail: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      aria-pressed={active}
-      className={cn(
-        "rounded-lg border px-3 py-2 text-left transition-colors disabled:opacity-50",
-        active ? "border-primary bg-primary/10" : "border-border/60 hover:bg-secondary/60"
-      )}
-    >
-      <span className="block text-sm font-medium">{label}</span>
-      <span className="block text-xs text-muted-foreground tabular-nums">{detail}</span>
-    </button>
   );
 }
 

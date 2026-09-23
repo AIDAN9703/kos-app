@@ -137,7 +137,6 @@ export function TripDetailView({ trip }: { trip: TripDetail }) {
                   tripId={trip.id}
                   totalCents={trip.totalCents}
                   depositCents={trip.depositCents}
-                  paymentType={trip.paymentType}
                   currency={trip.currency}
                 />
               ) : null}

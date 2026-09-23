@@ -23,8 +23,6 @@ interface ProposalActionsProps {
   allowPayment: boolean;
   /** Card fee waived — balance is being settled off-card, so no card button. */
   serviceFeeWaived: boolean;
-  /** Admin's choice at proposal time: which charge secures the date. */
-  paymentType: "DEPOSIT_ONLY" | "FULL_PAYMENT" | null;
   isAccepted: boolean;
   totalPaidCents: number;
   depositAmountCents: number | null;
@@ -40,15 +38,15 @@ interface ProposalActionsProps {
  *    visitors keep their payment path — accepting isn't a dead end).
  * 3. Paid:                 confirmation banner.
  *
- * When a deposit exists the customer picks deposit-first or pay-in-full
- * (defaulting to the admin's choice); otherwise one full-payment button.
+ * When a deposit exists the customer picks deposit-first or pay-in-full;
+ * otherwise one full-payment button. A deposit exists only if the admin
+ * entered an amount — there is no separate switch.
  * Change requests send immediately and land on the admin's activity timeline.
  */
 export function ProposalActions({
   publicToken,
   allowPayment,
   serviceFeeWaived,
-  paymentType,
   isAccepted,
   totalPaidCents,
   depositAmountCents,
@@ -64,10 +62,7 @@ export function ProposalActions({
   const isPaid = totalPaidCents > 0;
   const hasDeposit =
     depositAmountCents != null && depositAmountCents > 0 && depositAmountCents < totalAmountCents;
-  // Admin's choice is the default; the customer can switch when a deposit exists.
-  const [chargeType, setChargeType] = useState<"deposit" | "full">(
-    paymentType === "DEPOSIT_ONLY" && hasDeposit ? "deposit" : "full"
-  );
+  const [chargeType, setChargeType] = useState<"deposit" | "full">("full");
   const effectiveChargeType: "deposit" | "full" = hasDeposit ? chargeType : "full";
   const chargeAmountCents =
     effectiveChargeType === "deposit" ? depositAmountCents! : totalAmountCents;

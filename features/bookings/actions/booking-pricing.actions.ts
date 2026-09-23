@@ -193,71 +193,51 @@ export async function updateBookingPricing(
   }
 }
 
-const paymentTermsSchema = z.object({
-  paymentType: z.enum(["DEPOSIT_ONLY", "FULL_PAYMENT"]),
-  /** Required when switching to deposit-first and the booking has no deposit yet. */
-  depositAmountCents: centsField.nullable().optional(),
-});
-
-export type PaymentTermsInput = z.infer<typeof paymentTermsSchema>;
-
 /**
- * What the pay button on the customer's link asks for: the full amount, or a
- * deposit first. Switching to deposit-first on a booking with no deposit
- * needs an amount — the customer can't pay a deposit that doesn't exist.
+ * Set (or clear) the deposit a guest may pay first. This is the ONLY switch
+ * for deposits: an amount means the customer's link offers "pay the deposit"
+ * next to "pay in full"; blank means full payment only.
  */
-export async function setPaymentTerms(bookingId: string, rawInput: unknown): Promise<ActionResult> {
+export async function setBookingDeposit(
+  bookingId: string,
+  depositAmountCents: number | null
+): Promise<ActionResult> {
   const adminAuth = await getAdminSession();
   if (adminAuth.error !== undefined) return { success: false, error: adminAuth.error };
 
-  const parsed = paymentTermsSchema.safeParse(rawInput);
-  if (!parsed.success) return { success: false, error: "Invalid payment terms" };
-  const input = parsed.data;
+  const parsed = centsField.nullable().safeParse(depositAmountCents);
+  if (!parsed.success) return { success: false, error: "Enter a valid deposit amount." };
+  const next = parsed.data && parsed.data > 0 ? parsed.data : null;
 
   try {
     const booking = await bookingService.getBookingById(bookingId);
     if (!booking) return { success: false, error: "Booking not found" };
+    const total = booking.serviceFeeWaived
+      ? (booking.totalAmountCents ?? 0) - (booking.serviceFeeCents ?? 0)
+      : (booking.totalAmountCents ?? 0);
+    if (next != null && next >= total) {
+      return { success: false, error: "The deposit has to be less than the total." };
+    }
+    const current = booking.depositAmountCents ?? null;
+    if (next === current) return { success: true };
 
-    const currentDeposit = booking.depositAmountCents ?? 0;
-    const nextDeposit =
-      input.depositAmountCents !== undefined ? (input.depositAmountCents ?? 0) : currentDeposit;
-
-    if (input.paymentType === "DEPOSIT_ONLY" && nextDeposit <= 0) {
-      return { success: false, error: "Set a deposit amount before asking for a deposit first." };
-    }
-    if (nextDeposit > (booking.totalAmountCents ?? 0)) {
-      return { success: false, error: "The deposit can't be more than the total." };
-    }
-
-    const changed: string[] = [];
-    if (input.paymentType !== (booking.paymentType ?? "FULL_PAYMENT")) {
-      await db
-        .update(bookings)
-        .set({ paymentType: input.paymentType, updatedAt: new Date() })
-        .where(eq(bookings.id, bookingId));
-      changed.push("paymentType");
-    }
-    if (nextDeposit !== currentDeposit) {
-      await db
-        .update(bookingPricing)
-        .set({ depositAmountCents: nextDeposit || null, updatedAt: new Date() })
-        .where(eq(bookingPricing.bookingId, bookingId));
-      changed.push("depositAmountCents");
-    }
-    if (changed.length === 0) return { success: true };
+    await db
+      .update(bookingPricing)
+      .set({ depositAmountCents: next, updatedAt: new Date() })
+      .where(eq(bookingPricing.bookingId, bookingId));
 
     await bookingEventsService.logBookingUpdated({
       bookingId,
       actorId: adminAuth.session.user.id,
-      previousState: { paymentType: booking.paymentType, depositAmountCents: currentDeposit || null },
-      newState: { paymentType: input.paymentType, depositAmountCents: nextDeposit || null },
-      changedFields: changed,
+      previousState: { depositAmountCents: current },
+      newState: { depositAmountCents: next },
+      changedFields: ["depositAmountCents"],
     });
 
     revalidateBooking(bookingId);
     return { success: true };
   } catch (error) {
-    console.error("setPaymentTerms failed:", error);
-    return { success: false, error: "Couldn't update the payment terms. Please try again." };
+    console.error("setBookingDeposit failed:", error);
+    return { success: false, error: "Couldn't update the deposit. Please try again." };
   }
 }
