@@ -1,14 +1,18 @@
 import { boats, boatCategoryEnum } from "@/database/schema";
 import { SearchParamsType } from "@/shared/lib/types/types";
-import { and, asc, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lte, sql, type AnyColumn, type SQL } from "drizzle-orm";
 import { parseArrayParam, parseNumberParam, parseStringParam } from "@/shared/lib/utils/search-params-utils";
+
+type BoatCategory = (typeof boatCategoryEnum.enumValues)[number];
+const isBoatCategory = (value: string): value is BoatCategory =>
+  (boatCategoryEnum.enumValues as readonly string[]).includes(value);
 
 /**
  * Service for building complex database queries for boat search
  */
 export class SearchQueryBuilder {
-  private conditions: any[] = [];
-  private orderBy: any[] = [];
+  private conditions: SQL[] = [];
+  private orderBy: SQL[] = [];
 
   constructor() {
     // Always start with active boats only
@@ -35,14 +39,12 @@ export class SearchQueryBuilder {
       const categories = parseArrayParam(searchParams.category);
       
       if (categories.length > 0) {
-        const validCategories = categories.filter(cat => 
-          boatCategoryEnum.enumValues.includes(cat as any)
-        );
-        
+        const validCategories = categories.filter(isBoatCategory);
+
         if (validCategories.length === 1) {
-          this.conditions.push(eq(boats.category, validCategories[0] as any));
+          this.conditions.push(eq(boats.category, validCategories[0]));
         } else if (validCategories.length > 1) {
-          this.conditions.push(inArray(boats.category, validCategories as any[]));
+          this.conditions.push(inArray(boats.category, validCategories));
         }
       }
     }
@@ -84,7 +86,7 @@ export class SearchQueryBuilder {
    * Add numeric range filters for boat specifications
    */
   addSpecificationFilters(searchParams: SearchParamsType): this {
-    const addNumericFilter = (param: string | string[] | undefined, field: any, operator: typeof gte | typeof lte) => {
+    const addNumericFilter = (param: string | string[] | undefined, field: AnyColumn, operator: typeof gte | typeof lte) => {
       const value = parseNumberParam(param);
       if (value !== null) {
         this.conditions.push(operator(field, value));
@@ -181,14 +183,14 @@ export class SearchQueryBuilder {
   /**
    * Build complete query conditions
    */
-  buildConditions(): any {
+  buildConditions(): SQL | undefined {
     return this.conditions.length > 1 ? and(...this.conditions) : this.conditions[0];
   }
 
   /**
    * Get order by clauses
    */
-  getOrderBy(): any[] {
+  getOrderBy(): SQL[] {
     return this.orderBy;
   }
 

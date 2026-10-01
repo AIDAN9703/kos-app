@@ -1,51 +1,5 @@
 import type { BookingStatus } from "@/database/types";
 
-/**
- * The deal lifecycle in one vocabulary. STORED (booking.bookingStatus):
- * Inquiry → Proposed → Booked → Completed, Cancelled off to the side. DERIVED
- * here for the pipeline: Contacted (firstContactedAt), Paid (the payments
- * ledger), Dispute (refund / chargeback / failed), Archived. Payment is a
- * label beside Booked — "Deposit paid" / "Paid" — never a status of its own.
- * Nothing in this file is stored.
- */
-
-export type DealStatus =
-  | "INQUIRY"
-  | "PROPOSED"
-  | "BOOKED"
-  | "PAID"
-  | "DISPUTE"
-  | "COMPLETED"
-  | "CANCELLED"
-  | "ARCHIVED";
-
-export function computeDealStatusForBooking(input: {
-  bookingStatus: string;
-  paymentDisplayStatus?: string | null;
-  hasRefund?: boolean | null;
-  archivedAt?: Date | string | null;
-}): DealStatus {
-  const { paymentDisplayStatus, hasRefund, archivedAt } = input;
-  const bookingStatus = canonicalBookingStatus(input.bookingStatus);
-  if (archivedAt) return "ARCHIVED";
-  if (bookingStatus === "CANCELLED") return "CANCELLED";
-  if (bookingStatus === "COMPLETED") return "COMPLETED";
-  if (
-    hasRefund ||
-    paymentDisplayStatus === "REFUNDED" ||
-    paymentDisplayStatus === "CHARGEBACK" ||
-    paymentDisplayStatus === "FAILED"
-  ) {
-    return "DISPUTE";
-  }
-  if (paymentDisplayStatus === "PAID") return "PAID";
-  // Deposit paid is still "Booked" on the pipeline; the payment label says
-  // how much of it is in.
-  if (bookingStatus === "BOOKED") return "BOOKED";
-  if (bookingStatus === "PROPOSED") return "PROPOSED";
-  return "INQUIRY";
-}
-
 /** Admin-facing words for the stored statuses. Change words here, nowhere else. */
 export const BOOKING_STATUS_LABELS: Record<BookingStatus, string> = {
   INQUIRY: "Inquiry",

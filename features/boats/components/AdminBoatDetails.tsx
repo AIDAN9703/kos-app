@@ -9,7 +9,7 @@ import {
 import { Button } from "@/shared/components/ui/button";
 import Link from "next/link";
 import Image from "next/image";
-import { Anchor, Users, Ship, Gauge, LifeBuoy, Power } from "lucide-react";
+import { Anchor, Users, Ship } from "lucide-react";
 import { boats, boatPricingTiers } from "@/database/schema";
 import { formatCurrency } from "@/shared/lib/utils/general-utils";
 

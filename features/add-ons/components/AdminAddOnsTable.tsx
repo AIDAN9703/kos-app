@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
+import { createColumnHelper } from "@tanstack/react-table";
 import { Edit, MoreVertical, PackagePlus, Trash2 } from "lucide-react";
 
 import { Button } from "@/shared/components/ui/button";
@@ -29,18 +29,21 @@ export function AdminAddOnsTable({ addOns }: { addOns: AddOnListItem[] }) {
   const { toast } = useToast();
   const [editing, setEditing] = useState<AddOnListItem | null>(null);
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this add-on? Boats currently offering it will lose it.")) return;
-    const result = await deleteAddOn(id);
-    if (result.success) {
-      toast({ title: "Add-on deleted." });
-      router.refresh();
-    } else {
-      toast({ title: "Error", description: result.error, variant: "destructive" });
-    }
-  };
+  const handleDelete = useCallback(
+    async (id: string) => {
+      if (!confirm("Delete this add-on? Boats currently offering it will lose it.")) return;
+      const result = await deleteAddOn(id);
+      if (result.success) {
+        toast({ title: "Add-on deleted." });
+        router.refresh();
+      } else {
+        toast({ title: "Error", description: result.error, variant: "destructive" });
+      }
+    },
+    [router, toast]
+  );
 
-  const columns = useMemo<ColumnDef<AddOnListItem, any>[]>(
+  const columns = useMemo(
     () => [
       columnHelper.accessor("name", {
         header: "Add-on",
@@ -86,7 +89,10 @@ export function AdminAddOnsTable({ addOns }: { addOns: AddOnListItem[] }) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onSelect={() => setEditing(row.original)} className="cursor-pointer">
+                <DropdownMenuItem
+                  onSelect={() => setEditing(row.original)}
+                  className="cursor-pointer"
+                >
                   <Edit className="mr-2 h-4 w-4" />
                   Edit
                 </DropdownMenuItem>
@@ -104,8 +110,7 @@ export function AdminAddOnsTable({ addOns }: { addOns: AddOnListItem[] }) {
         ),
       }),
     ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
+    [handleDelete]
   );
 
   return (

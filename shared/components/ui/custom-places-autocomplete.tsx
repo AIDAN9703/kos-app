@@ -36,17 +36,13 @@ export function CustomPlacesAutocomplete({
   onBlur,
 }: CustomPlacesAutocompleteProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const autocompleteService =
-    useRef<google.maps.places.AutocompleteService | null>(null);
+  const autocompleteService = useRef<google.maps.places.AutocompleteService | null>(null);
   const placesService = useRef<google.maps.places.PlacesService | null>(null);
-  const sessionToken =
-    useRef<google.maps.places.AutocompleteSessionToken | null>(null);
+  const sessionToken = useRef<google.maps.places.AutocompleteSessionToken | null>(null);
 
   const [isReady, setIsReady] = useState(false);
   const [inputValue, setInputValue] = useState(defaultValue);
-  const [predictions, setPredictions] = useState<
-    google.maps.places.AutocompletePrediction[]
-  >([]);
+  const [predictions, setPredictions] = useState<google.maps.places.AutocompletePrediction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   // Check if Google Maps API is loaded
@@ -61,12 +57,10 @@ export function CustomPlacesAutocomplete({
           setIsReady(true);
 
           try {
-            autocompleteService.current =
-              new google.maps.places.AutocompleteService();
-            sessionToken.current =
-              new google.maps.places.AutocompleteSessionToken();
+            autocompleteService.current = new google.maps.places.AutocompleteService();
+            sessionToken.current = new google.maps.places.AutocompleteSessionToken();
             placesService.current = new google.maps.places.PlacesService(
-              document.createElement("div"),
+              document.createElement("div")
             );
           } catch (error) {
             console.error("Error initializing Google Maps services:", error);
@@ -81,10 +75,7 @@ export function CustomPlacesAutocomplete({
     const intervalId = setInterval(() => {
       if (attempts > maxAttempts) {
         clearInterval(intervalId);
-        if (onError)
-          onError(
-            "Google Maps API could not be loaded. Please refresh the page.",
-          );
+        if (onError) onError("Google Maps API could not be loaded. Please refresh the page.");
         return;
       }
 
@@ -109,66 +100,56 @@ export function CustomPlacesAutocomplete({
   const { clearSelectedPlace } = useSearchStore();
 
   // Fetch predictions with debouncing
-  const fetchPredictions = useCallback(
-    debounce((input: string) => {
-      if (
-        !autocompleteService.current ||
-        input.length < 1 ||
-        !sessionToken.current
-      ) {
-        setPredictions([]);
-        setIsLoading(false);
-        return;
-      }
+  // One debounced fetcher for the component's lifetime.
+  const fetchPredictions = useMemo(
+    () =>
+      debounce((input: string) => {
+        if (!autocompleteService.current || input.length < 1 || !sessionToken.current) {
+          setPredictions([]);
+          setIsLoading(false);
+          return;
+        }
 
-      setIsLoading(true);
+        setIsLoading(true);
 
-      try {
-        autocompleteService.current.getPlacePredictions(
-          {
-            input,
-            sessionToken: sessionToken.current,
-            componentRestrictions: countryRestriction
-              ? { country: countryRestriction }
-              : undefined,
-            types,
-          },
-          (predictions, status) => {
-            setIsLoading(false);
+        try {
+          autocompleteService.current.getPlacePredictions(
+            {
+              input,
+              sessionToken: sessionToken.current,
+              componentRestrictions: countryRestriction
+                ? { country: countryRestriction }
+                : undefined,
+              types,
+            },
+            (predictions, status) => {
+              setIsLoading(false);
 
-            if (
-              status === google.maps.places.PlacesServiceStatus.OK &&
-              predictions
-            ) {
-              setPredictions(predictions);
-            } else if (
-              status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS
-            ) {
-              setPredictions([]);
-            } else {
-              console.warn(`Places prediction error: ${status}`);
-              setPredictions([]);
-              if (
-                status ===
-                  google.maps.places.PlacesServiceStatus.OVER_QUERY_LIMIT ||
-                status === google.maps.places.PlacesServiceStatus.REQUEST_DENIED
-              ) {
-                if (onError)
-                  onError(
-                    "Location search temporarily unavailable. Please try again later.",
-                  );
+              if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
+                setPredictions(predictions);
+              } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+                setPredictions([]);
+              } else {
+                console.warn(`Places prediction error: ${status}`);
+                setPredictions([]);
+                if (
+                  status === google.maps.places.PlacesServiceStatus.OVER_QUERY_LIMIT ||
+                  status === google.maps.places.PlacesServiceStatus.REQUEST_DENIED
+                ) {
+                  if (onError)
+                    onError("Location search temporarily unavailable. Please try again later.");
+                }
               }
             }
-          },
-        );
-      } catch (error) {
-        console.error("Error fetching place predictions:", error);
-        setIsLoading(false);
-        setPredictions([]);
-        if (onError) onError("Location search failed. Please try again.");
-      }
-    }, 300),
-    [countryRestriction, types, onError],
+          );
+        } catch (error) {
+          console.error("Error fetching place predictions:", error);
+          setIsLoading(false);
+          setPredictions([]);
+          if (onError) onError("Location search failed. Please try again.");
+        }
+      }, 300),
+    [countryRestriction, types, onError]
   );
 
   // Get place details
@@ -190,29 +171,22 @@ export function CustomPlacesAutocomplete({
           (place, status) => {
             setIsLoading(false);
 
-            sessionToken.current =
-              new google.maps.places.AutocompleteSessionToken();
+            sessionToken.current = new google.maps.places.AutocompleteSessionToken();
 
-            if (
-              status !== google.maps.places.PlacesServiceStatus.OK ||
-              !place
-            ) {
+            if (status !== google.maps.places.PlacesServiceStatus.OK || !place) {
               if (onError) onError("Error fetching place details");
               return;
             }
 
             if (!place.geometry?.location) {
-              if (onError)
-                onError(
-                  "Location error: Could not get coordinates for this location",
-                );
+              if (onError) onError("Location error: Could not get coordinates for this location");
               return;
             }
 
             if (!place.geometry.viewport) {
               if (onError)
                 onError(
-                  "This location doesn't have defined boundaries. Please try a different location.",
+                  "This location doesn't have defined boundaries. Please try a different location."
                 );
               return;
             }
@@ -240,16 +214,15 @@ export function CustomPlacesAutocomplete({
             setInputValue(place.formatted_address || "");
             setPredictions([]);
             onPlaceSelected(locationData);
-          },
+          }
         );
       } catch (error) {
         console.error("Error fetching place details:", error);
         setIsLoading(false);
-        if (onError)
-          onError("Failed to fetch location details. Please try again.");
+        if (onError) onError("Failed to fetch location details. Please try again.");
       }
     },
-    [onError, onPlaceSelected],
+    [onError, onPlaceSelected]
   );
 
   // Event handlers
@@ -266,14 +239,14 @@ export function CustomPlacesAutocomplete({
         clearSelectedPlace();
       }
     },
-    [fetchPredictions, clearSelectedPlace],
+    [fetchPredictions, clearSelectedPlace]
   );
 
   const handlePredictionSelect = useCallback(
     (prediction: google.maps.places.AutocompletePrediction) => {
       getPlaceDetails(prediction.place_id);
     },
-    [getPlaceDetails],
+    [getPlaceDetails]
   );
 
   const handleKeyDown = useCallback(
@@ -283,7 +256,7 @@ export function CustomPlacesAutocomplete({
         handlePredictionSelect(predictions[0]);
       }
     },
-    [isOpen, predictions, handlePredictionSelect],
+    [isOpen, predictions, handlePredictionSelect]
   );
 
   if (!isReady) {

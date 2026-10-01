@@ -87,18 +87,7 @@ export class PaymentService {
     return payment;
   }
 
-  /**
-   * Get payment by ID
-   */
-  async getPaymentById(id: string): Promise<Payment | null> {
-    const [payment] = await db
-      .select()
-      .from(payments)
-      .where(eq(payments.id, id))
-      .limit(1);
 
-    return payment ?? null;
-  }
 
   /**
    * Get all payments for a payable entity (e.g., all payments for a booking)
@@ -191,14 +180,7 @@ export class PaymentService {
     });
   }
 
-  /**
-   * Mark a payment as failed
-   */
-  async markPaymentFailed(id: string): Promise<Payment> {
-    return this.updatePayment(id, {
-      status: 'FAILED',
-    });
-  }
+
 
   /**
    * Mark a payment as refunded
@@ -245,33 +227,11 @@ export class PaymentService {
     return payment ?? null;
   }
 
-  /**
-   * Calculate total paid for a payable entity (sum of SUCCEEDED payments)
-   */
-  async getTotalPaidCents(payableType: PayableType, payableId: string): Promise<Cents> {
-    const payments = await this.getPaymentsForPayable(payableType, payableId);
-    
-    return payments
-      .filter(p => p.status === 'SUCCEEDED')
-      .reduce((sum, p) => sum + Number(p.amountCents), 0);
-  }
 
-  /**
-   * Check if a booking has been fully paid
-   * Compares total succeeded payments against expected total
-   */
-  async isBookingFullyPaid(bookingId: string, expectedTotalCents: Cents): Promise<boolean> {
-    const totalPaid = await this.getTotalPaidCents('BOOKING', bookingId);
-    return totalPaid >= expectedTotalCents;
-  }
 
-  /**
-   * Get remaining balance for a booking
-   */
-  async getBookingBalanceCents(bookingId: string, expectedTotalCents: Cents): Promise<Cents> {
-    const totalPaid = await this.getTotalPaidCents('BOOKING', bookingId);
-    return Math.max(0, expectedTotalCents - totalPaid);
-  }
+
+
+
 
   /**
    * Create a refund payment (negative amount conceptually, but stored as positive with REFUND type)

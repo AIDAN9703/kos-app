@@ -1,25 +1,32 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { Button } from "@/shared/components/ui/button";
-import { X } from "lucide-react";
+
+const CONSENT_KEY = "cookie-consent";
+
+function subscribeToStorage(onChange: () => void) {
+  window.addEventListener("storage", onChange);
+  return () => window.removeEventListener("storage", onChange);
+}
+
 
 export default function CookiesConsent() {
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    const savedConsent = localStorage.getItem("cookie-consent");
-    if (!savedConsent) {
-      setVisible(true);
-    }
-  }, []);
+  // Read consent straight from storage; the server snapshot hides the banner
+  // so it never flashes before hydration.
+  const hasConsent = useSyncExternalStore(
+    subscribeToStorage,
+    () => localStorage.getItem(CONSENT_KEY) !== null,
+    () => true
+  );
+  const [dismissed, setDismissed] = useState(false);
 
   const handleClose = () => {
-    localStorage.setItem("cookie-consent", "accepted");
-    setVisible(false);
+    localStorage.setItem(CONSENT_KEY, "accepted");
+    setDismissed(true);
   };
 
-  if (!visible) return null;
+  if (hasConsent || dismissed) return null;
 
   return (
     <div className="fixed bottom-0 left-0 right-0 rounded-tr-2xl rounded-tl-2xl  bg-white/95 backdrop-blur-lg border-t border-primary/10 shadow-2xl z-50">

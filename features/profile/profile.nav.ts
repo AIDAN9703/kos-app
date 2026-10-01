@@ -1,4 +1,11 @@
-import { Anchor, CalendarDays, LayoutDashboard, Settings, Ship, type LucideIcon } from "lucide-react";
+import {
+  Anchor,
+  CalendarDays,
+  LayoutDashboard,
+  Settings,
+  Ship,
+  type LucideIcon,
+} from "lucide-react";
 
 /**
  * The profile section's own navigation — rendered as a stacked list beside the
@@ -22,8 +29,9 @@ export const PROFILE_NAV_ITEMS: ProfileNavItem[] = [
 /** Extra pages that only exist for owners and captains. */
 export function roleNavItems(roles: { isOwner: boolean; isCaptain: boolean }): ProfileNavItem[] {
   const items: ProfileNavItem[] = [];
-  if (roles.isOwner) items.push({ href: "/profile/owner", label: "Owner dashboard", icon: Ship });
-  if (roles.isCaptain) items.push({ href: "/profile/captain", label: "Captain dashboard", icon: Anchor });
+  if (roles.isOwner) items.push({ href: "/owner", label: "Owner portal", icon: Ship });
+  if (roles.isCaptain)
+    items.push({ href: "/profile/captain", label: "Captain dashboard", icon: Anchor });
   return items;
 }
 

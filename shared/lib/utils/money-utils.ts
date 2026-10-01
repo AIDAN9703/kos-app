@@ -112,8 +112,3 @@ export function parseDollarsToCents(input: string): number {
  */
 export type Cents = number;
 
-/**
- * Type for monetary values in dollars
- * Use this to make it clear a value is in dollars (display only)
- */
-export type Dollars = number;

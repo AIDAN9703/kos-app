@@ -88,8 +88,6 @@ export default function SalesPage() {
           answer: "Absolutely. We partner with several marine lending specialists who offer competitive rates and can guide you through the marine financing process."
         }
       ]}
-      ctaText="Start Your Journey"
-      ctaLink="/contact?service=sales"
     />
   )
 } 

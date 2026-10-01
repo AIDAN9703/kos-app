@@ -103,7 +103,7 @@ export default async function TermChartersPage() {
             Term Charter Services
           </h2>
           <p className="text-gray-600 max-w-3xl text-lg font-light leading-relaxed">
-            When you choose our term charter services, you're choosing
+            When you choose our term charter services, you&apos;re choosing
             excellence at every step with extended luxury voyages and
             professional crew support.
           </p>

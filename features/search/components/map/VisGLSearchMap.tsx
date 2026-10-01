@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { APIProvider, Map, useMap } from "@vis.gl/react-google-maps";
 import { BoatLocation } from "@/shared/lib/types/types";
-import { Loader2, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { useRouter, useSearchParams } from "next/navigation";
 import BoatMapMarker from "./MapMarker";

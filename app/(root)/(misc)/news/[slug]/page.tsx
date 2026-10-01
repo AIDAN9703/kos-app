@@ -4,7 +4,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import { Calendar, User, ArrowLeft, Clock, Tag, Eye } from "lucide-react";
-import { Button } from "@/shared/components/ui/button";
+
 import { Badge } from "@/shared/components/ui/badge";
 import {
   getBlogPostBySlug,

@@ -1,8 +1,7 @@
 import { db } from "@/database/db";
 import { boats, boatPricingTiers } from "@/database/schema";
-import { eq, and, inArray, desc, asc } from "drizzle-orm";
+import { eq, and, inArray, asc } from "drizzle-orm";
 import { ActionResponse } from "@/shared/lib/types/types";
-import { Boat } from "@/database/types";
 import { cachedFetch } from '@/shared/lib/utils/general-utils';
 import { BoatWithTiers } from "@/features/boats/boat.types";
 

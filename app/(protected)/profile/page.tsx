@@ -1,87 +1,64 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Button } from "@/shared/components/ui/button";
 import { requireAuth } from "@/shared/lib/utils/auth-utils";
-import { getPublishedBlogPosts } from "@/features/blog/actions/admin-blog-actions";
 import { PageHeader } from "@/features/profile/components/PageHeader";
-import { NextTripCard } from "@/features/profile/components/overview/NextTripCard";
-import { ResourcesStrip } from "@/features/profile/components/overview/ResourcesStrip";
+import { ConciergeSection } from "@/features/profile/components/overview/ConciergeSection";
+import { LoyaltyCard } from "@/features/profile/components/overview/LoyaltyCard";
+import { MemberStats } from "@/features/profile/components/overview/MemberStats";
+import { ProfileCompletion } from "@/features/profile/components/overview/ProfileCompletion";
 import { TodoCards } from "@/features/profile/components/overview/TodoCards";
-import { PlanCharterCard } from "@/features/profile/components/trips/PlanCharterCard";
-import { PastTripTile } from "@/features/profile/components/trips/PastTripTile";
-import { UpcomingTripCard } from "@/features/profile/components/trips/UpcomingTripCard";
+import { UpcomingSection } from "@/features/profile/components/overview/UpcomingSection";
+import { summarizeLoyalty } from "@/features/profile/loyalty";
 import { getAccount, getTrips } from "@/features/profile/profile.queries";
-import { buildOverview, splitTrips } from "@/features/profile/trip-presentation";
-
-export const dynamic = "force-dynamic";
+import { buildOverview, profileCompletion } from "@/features/profile/trip-presentation";
 
 export default async function ProfileOverviewPage() {
   const session = await requireAuth();
-  const [account, trips, posts] = await Promise.all([
+  const [account, trips] = await Promise.all([
     getAccount(session.user.id),
     getTrips(session.user.id),
-    getPublishedBlogPosts({ limit: 3 }),
   ]);
   if (!account) redirect("/sign-in");
 
-  const overview = buildOverview(trips, account);
-  const { upcoming } = splitTrips(trips);
-  // Everything ahead except the one already shown as "your next trip".
-  const moreUpcoming = upcoming.filter((t) => t.id !== overview.nextTrip?.id).slice(0, 3);
-  const { counts } = overview;
-  const summary =
-    counts.upcoming === 0
-      ? "Nothing on the calendar yet — let's find your next day on the water."
-      : counts.upcoming === 1
-        ? "You have one trip coming up."
-        : `You have ${counts.upcoming} trips coming up.`;
+  const overview = buildOverview(trips);
+  const loyalty = summarizeLoyalty(trips);
+  const completion = profileCompletion(account);
+  const profileIncomplete = completion.some((item) => !item.done);
+  const hasPastTrips =
+    overview.stats.tripsCompleted > 0 || trips.some((t) => t.status === "CANCELLED");
 
   return (
-    <div className="space-y-12">
-      <PageHeader title={`Welcome back${account.firstName ? `, ${account.firstName}` : ""}`} description={summary} />
+    <div className="space-y-10">
+      <PageHeader
+        title={`Welcome back${account.firstName ? `, ${account.firstName}` : ""}`}
+        action={
+          <Button asChild className="rounded-full px-5">
+            <Link href="/#request-to-book">Book a charter</Link>
+          </Button>
+        }
+      />
+
+      <div
+        className={
+          profileIncomplete ? "grid gap-4 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]" : ""
+        }
+      >
+        <LoyaltyCard loyalty={loyalty} />
+        <ProfileCompletion items={completion} />
+      </div>
+
+      <MemberStats stats={overview.stats} />
 
       <TodoCards items={overview.attention} />
 
-      {overview.nextTrip ? <NextTripCard trip={overview.nextTrip} /> : null}
-
-      {moreUpcoming.length > 0 ? (
-        <section aria-labelledby="ahead-heading">
-          <h2 id="ahead-heading" className="text-xl font-semibold tracking-tight text-primary">
-            Upcoming trips
-          </h2>
-          <div className="mt-4 space-y-4">
-            {moreUpcoming.map((trip) => (
-              <UpcomingTripCard key={trip.id} trip={trip} />
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      {overview.recentTrips.length > 0 ? (
-        <section aria-labelledby="recent-heading">
-          <div className="flex items-baseline justify-between">
-            <h2 id="recent-heading" className="text-xl font-semibold tracking-tight text-primary">
-              My trips
-            </h2>
-            <Link href="/profile/bookings" className="text-sm font-semibold text-primary underline-offset-4 hover:underline">
-              All trips
-            </Link>
-          </div>
-          <ul className="mt-4 grid gap-5 sm:grid-cols-2">
-            {overview.recentTrips.map((trip) => (
-              <li key={trip.id}>
-                <PastTripTile trip={trip} />
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-
-      <PlanCharterCard
-        title="Plan your next charter"
-        body="Browse the fleet, pick a date, and we'll take care of the rest — captain, crew and all."
+      <UpcomingSection
+        nextTrip={overview.nextTrip}
+        moreUpcoming={overview.moreUpcoming}
+        hasPastTrips={hasPastTrips}
       />
 
-      <ResourcesStrip posts={posts ?? []} />
+      <ConciergeSection />
     </div>
   );
 }

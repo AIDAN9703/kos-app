@@ -41,16 +41,15 @@ export function DealContactBand({
     if (editing) setForm({ name: name ?? "", email: email ?? "", phone: phone ?? "" });
   }
 
-  const saveRef = useRef<() => Promise<{ ok: boolean; changed: boolean }>>(async () => ({
+  const saveRef = useRef<() => Promise<{ ok: boolean }>>(async () => ({
     ok: true,
-    changed: false,
   }));
   useEffect(() => {
     if (!editing) return;
     return registerSaver("contact-details", () => saveRef.current());
   }, [editing, registerSaver]);
 
-  async function handleSave(): Promise<{ ok: boolean; changed: boolean }> {
+  async function handleSave(): Promise<{ ok: boolean }> {
     const next = {
       name: form.name.trim(),
       email: form.email.trim(),
@@ -61,22 +60,21 @@ export function DealContactBand({
     if (next.email && next.email !== (email ?? "")) changes.push({ field: "customerEmail", value: next.email });
     // Phone can be corrected but not blanked — texts and account claiming key off it.
     if (next.phone && next.phone !== (phone ?? "")) changes.push({ field: "customerPhone", value: next.phone });
-    if (changes.length === 0) return { ok: true, changed: false };
+    if (changes.length === 0) return { ok: true };
     if (!/.+@.+\..+/.test(next.email)) {
       toast({ title: "That email doesn't look right", variant: "destructive" });
-      return { ok: false, changed: false };
+      return { ok: false };
     }
     for (const change of changes) {
       const res = await updateBookingSingleField(bookingId, change);
       if (!res.success) {
         toast({ title: "Couldn't save contact details", description: res.error, variant: "destructive" });
-        return { ok: false, changed: false };
+        return { ok: false };
       }
     }
     toast({ title: "Contact details saved" });
     router.refresh();
-    // Contact edits don't change what the proposal says, so no resend nudge.
-    return { ok: true, changed: false };
+    return { ok: true };
   }
   useEffect(() => {
     saveRef.current = handleSave;

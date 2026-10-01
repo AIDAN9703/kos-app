@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, boolean, integer, timestamp, index, json } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, integer, timestamp, index, json } from "drizzle-orm/pg-core";
 import { users } from "@/database/schema/tables";
 import { verificationTypeEnum, verificationChannelEnum, verificationStatusEnum } from "@/database/schema/enums";
 

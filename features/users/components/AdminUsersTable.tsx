@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
+import { createColumnHelper } from "@tanstack/react-table";
 import { Button } from "@/shared/components/ui/button";
 import {
   DropdownMenu,
@@ -11,15 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/shared/components/ui/dropdown-menu";
-import {
-  UserCircle2,
-  Eye,
-  Edit,
-  Trash2,
-  MoreVertical,
-  Anchor,
-  UsersRound,
-} from "lucide-react";
+import { UserCircle2, Eye, Edit, Trash2, MoreVertical, Anchor, UsersRound } from "lucide-react";
 import Link from "next/link";
 import { Avatar, AvatarImage } from "@/shared/components/ui/avatar";
 import { DefaultUserAvatarFallback } from "@/shared/lib/utils/user-utils";
@@ -29,10 +21,7 @@ import { Badge } from "@/shared/components/ui/badge";
 import { formatDate } from "@/shared/lib/utils/general-utils";
 import { useDeleteUser } from "@/features/users/hooks/useUserMutations";
 import { useToast } from "@/shared/lib/hooks/use-toast";
-import {
-  canPromoteToCaptain,
-  canPromoteToCrew,
-} from "@/features/profiles/promote-eligibility";
+import { canPromoteToCaptain, canPromoteToCrew } from "@/features/profiles/promote-eligibility";
 import { PromoteToCaptainModal } from "@/features/profiles/components/PromoteToCaptainModal";
 import { PromoteToCrewModal } from "@/features/profiles/components/PromoteToCrewModal";
 import { AdminDataTable } from "@/shared/admin/components/AdminDataTable";
@@ -52,39 +41,41 @@ function listDisplayName(u: UserListItem) {
 export function AdminUsersTable({ users, loading }: AdminUsersTableProps) {
   const router = useRouter();
   const { toast } = useToast();
-  const deleteUser = useDeleteUser();
-  const [captainModal, setCaptainModal] = useState<{ id: string; name: string } | null>(
-    null
-  );
+  const { mutate: deleteUser } = useDeleteUser();
+  const [captainModal, setCaptainModal] = useState<{ id: string; name: string } | null>(null);
   const [crewModal, setCrewModal] = useState<{ id: string; name: string } | null>(null);
 
-  const handleDelete = (userId: string) => {
-    if (!confirm("Are you sure? This action cannot be undone.")) return;
-    deleteUser.mutate(userId, {
-      onSuccess: (result) => {
-        if (result.success) {
-          router.refresh();
-          toast({ title: "User deleted successfully" });
-        } else {
+  const handleDelete = useCallback(
+    (userId: string) => {
+      if (!confirm("Are you sure? This action cannot be undone.")) return;
+      deleteUser(userId, {
+        onSuccess: (result) => {
+          if (result.success) {
+            router.refresh();
+            toast({ title: "User deleted successfully" });
+          } else {
+            toast({
+              title: "Error",
+              description:
+                typeof result.error === "string" ? result.error : "Failed to delete user",
+              variant: "destructive",
+            });
+          }
+        },
+        onError: () => {
           toast({
             title: "Error",
-            description: typeof result.error === "string" ? result.error : "Failed to delete user",
+            description: "Failed to delete user",
             variant: "destructive",
           });
-        }
-      },
-      onError: () => {
-        toast({
-          title: "Error",
-          description: "Failed to delete user",
-          variant: "destructive",
-        });
-      },
-    });
-  };
+        },
+      });
+    },
+    [deleteUser, router, toast]
+  );
 
   // Define columns - simplified and more compact
-  const columns = useMemo<ColumnDef<UserListItem, any>[]>(
+  const columns = useMemo(
     () => [
       columnHelper.accessor("firstName", {
         id: "user",
@@ -95,23 +86,16 @@ export function AdminUsersTable({ users, loading }: AdminUsersTableProps) {
           return (
             <div className="flex items-center gap-3">
               <Avatar className="h-9 w-9 shrink-0">
-                <AvatarImage
-                  src={user.profileImage || undefined}
-                  alt={listDisplayName(user)}
-                />
+                <AvatarImage src={user.profileImage || undefined} alt={listDisplayName(user)} />
                 <DefaultUserAvatarFallback size="sm" />
               </Avatar>
               <div className="min-w-0">
                 <div className="font-medium text-foreground text-sm truncate">
                   {user.firstName} {user.lastName}
                 </div>
-                <div className="text-xs text-muted-foreground truncate">
-                  {user.email}
-                </div>
+                <div className="text-xs text-muted-foreground truncate">{user.email}</div>
                 {user.phoneNumber && (
-                  <div className="text-xs text-muted-foreground truncate">
-                    {user.phoneNumber}
-                  </div>
+                  <div className="text-xs text-muted-foreground truncate">{user.phoneNumber}</div>
                 )}
               </div>
             </div>
@@ -138,9 +122,7 @@ export function AdminUsersTable({ users, loading }: AdminUsersTableProps) {
         cell: (info) => {
           const date = info.getValue();
           return (
-            <div className="text-sm text-muted-foreground">
-              {date ? formatDate(date) : "—"}
-            </div>
+            <div className="text-sm text-muted-foreground">{date ? formatDate(date) : "—"}</div>
           );
         },
       }),
@@ -160,19 +142,13 @@ export function AdminUsersTable({ users, loading }: AdminUsersTableProps) {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem asChild>
-                    <Link
-                      href={`/admin/users/${user.id}`}
-                      className="cursor-pointer"
-                    >
+                    <Link href={`/admin/users/${user.id}`} className="cursor-pointer">
                       <Eye className="h-4 w-4 mr-2" />
                       View Details
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link
-                      href={`/admin/users/${user.id}/edit`}
-                      className="cursor-pointer"
-                    >
+                    <Link href={`/admin/users/${user.id}/edit`} className="cursor-pointer">
                       <Edit className="h-4 w-4 mr-2" />
                       Edit User
                     </Link>
@@ -214,7 +190,7 @@ export function AdminUsersTable({ users, loading }: AdminUsersTableProps) {
         },
       }),
     ],
-    []
+    [handleDelete]
   );
 
   return (

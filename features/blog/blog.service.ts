@@ -13,8 +13,8 @@ import type {
 export interface BlogFilterInput {
   page?: number;
   limit?: number;
-  status?: string;
-  category?: string;
+  status?: BlogStatus;
+  category?: BlogCategory;
   search?: string;
   featured?: boolean;
 }
@@ -33,10 +33,10 @@ export const blogService = {
     const conditions = [];
 
     if (filters?.status) {
-      conditions.push(eq(blogPosts.status, filters.status as any));
+      conditions.push(eq(blogPosts.status, filters.status));
     }
     if (filters?.category) {
-      conditions.push(eq(blogPosts.category, filters.category as any));
+      conditions.push(eq(blogPosts.category, filters.category));
     }
     if (filters?.featured !== undefined) {
       conditions.push(eq(blogPosts.isFeatured, filters.featured));

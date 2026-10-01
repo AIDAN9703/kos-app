@@ -3,9 +3,10 @@
 import { db } from "@/database/db";
 import { blogPosts } from "@/database/schema";
 import { auth } from "@/auth";
-import { eq, desc, and, or, like, sql } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
+import type { BlogCategory, BlogStatus } from "@/features/blog/blog.types";
+
 
 // Types
 export interface BlogPost {
@@ -14,8 +15,8 @@ export interface BlogPost {
   slug: string;
   excerpt: string;
   content: string;
-  status: "DRAFT" | "PUBLISHED" | "ARCHIVED" | "SCHEDULED";
-  category: "FLEET_NEWS" | "CONSERVATION" | "TIPS_ADVICE" | "CASE_STUDY" | "COMPANY_NEWS" | "SAFETY" | "EVENTS";
+  status: BlogStatus;
+  category: BlogCategory;
   isFeatured: boolean;
   featuredImage?: string | null;
   imageAlt?: string | null;
@@ -34,8 +35,8 @@ export interface CreateBlogPostData {
   slug: string;
   excerpt: string;
   content: string;
-  status: "DRAFT" | "PUBLISHED" | "ARCHIVED" | "SCHEDULED";
-  category: "FLEET_NEWS" | "CONSERVATION" | "TIPS_ADVICE" | "CASE_STUDY" | "COMPANY_NEWS" | "SAFETY" | "EVENTS";
+  status: BlogStatus;
+  category: BlogCategory;
   author: string;
   isFeatured?: boolean;
   featuredImage?: string;
@@ -71,7 +72,7 @@ async function checkAdminPermissions() {
 export async function getPublishedBlogPosts(options: {
   limit?: number;
   featured?: boolean;
-  category?: string;
+  category?: BlogCategory;
 } = {}) {
   try {
     const { limit = 10, featured, category } = options;
@@ -83,7 +84,7 @@ export async function getPublishedBlogPosts(options: {
     }
     
     if (category) {
-      conditions.push(eq(blogPosts.category, category as any));
+      conditions.push(eq(blogPosts.category, category));
     }
 
     const posts = await db
@@ -152,7 +153,7 @@ export async function getBlogPostBySlug(slug: string) {
 // Create new blog post
 export async function createBlogPost(data: CreateBlogPostData) {
   try {
-    const user = await checkAdminPermissions();
+    await checkAdminPermissions();
 
     // Slug is required and provided by user
     const slug = data.slug;
@@ -160,7 +161,8 @@ export async function createBlogPost(data: CreateBlogPostData) {
     const now = new Date();
     const publishedAt = data.status === 'PUBLISHED' ? (data.publishedAt || now) : null;
 
-    const insertData: any = {
+    // Empty optional fields stay unset so the column defaults apply.
+    const insertData: typeof blogPosts.$inferInsert = {
       title: data.title,
       slug,
       excerpt: data.excerpt,
@@ -172,14 +174,12 @@ export async function createBlogPost(data: CreateBlogPostData) {
       publishedAt,
       createdAt: now,
       updatedAt: now,
+      featuredImage: data.featuredImage || undefined,
+      imageAlt: data.imageAlt || undefined,
+      metaTitle: data.metaTitle || undefined,
+      metaDescription: data.metaDescription || undefined,
+      scheduledFor: data.scheduledFor || undefined,
     };
-
-    // Only add optional fields if they have values
-    if (data.featuredImage) insertData.featuredImage = data.featuredImage;
-    if (data.imageAlt) insertData.imageAlt = data.imageAlt;
-    if (data.metaTitle) insertData.metaTitle = data.metaTitle;
-    if (data.metaDescription) insertData.metaDescription = data.metaDescription;
-    if (data.scheduledFor) insertData.scheduledFor = data.scheduledFor;
 
     const [newPost] = await db
       .insert(blogPosts)

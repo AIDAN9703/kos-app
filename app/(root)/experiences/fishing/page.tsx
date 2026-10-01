@@ -1,7 +1,7 @@
 import { Metadata } from "next";
-import Image from "next/image";
+
 import Link from "next/link";
-import { CheckCircle2, Calendar, Users, Navigation, Globe, Fish, Shield, Clock } from "lucide-react";
+import { CheckCircle2, Navigation, Fish, Shield, Clock } from "lucide-react";
 import ExperienceLayout from "@/features/_marketing/experiences/components/ExperienceLayout";
 import { Button } from "@/shared/components/ui/button";
 
@@ -12,24 +12,6 @@ export const metadata: Metadata = {
 
 // Force static generation - this page has no dynamic content
 export const dynamic = 'force-static';
-
-// Related experiences
-const relatedExperiences = [
-  {
-    id: "watersports",
-    title: "Water Sports Adventures",
-    description: "Enjoy thrilling watersports activities for all skill levels.",
-    image: "/images/experiences/tiki.jpg",
-    href: "/experiences/watersports",
-  },
-  {
-    id: "sand-bar",
-    title: "Sand Bar Excursions",
-    description: "Relax and enjoy pristine sandbar locations only accessible by yacht.",
-    image: "/images/experiences/hauloversandbar.jpeg",
-    href: "/experiences/sand-bar",
-  },
-];
 
 // FAQs
 const faqs = [
@@ -112,7 +94,6 @@ export default function FishingPage() {
       description="Experience world-class fishing with our professional guides and premium vessels, perfect for both novice and experienced anglers seeking the ultimate catch."
       heroImage="/images/experiences/fish3.jpg"
       faqs={faqs}
-      relatedExperiences={relatedExperiences}
       buttonText="Book Your Charter"
       buttonLink="/boats/search"
     >
@@ -123,8 +104,8 @@ export default function FishingPage() {
             Fishing Charter Services
           </h2>
           <p className="text-gray-600 max-w-3xl text-lg font-light leading-relaxed">
-            Whether you're an experienced angler or a beginner, our fishing charters provide unforgettable 
-            experiences with expert captains and premium vessels on Miami's pristine waters.
+            Whether you&apos;re an experienced angler or a beginner, our fishing charters provide unforgettable 
+            experiences with expert captains and premium vessels on Miami&apos;s pristine waters.
           </p>
         </div>
         

@@ -1,42 +1,30 @@
 import { db } from "@/database/db";
-import { boatPricingTiers } from "@/database/schema";
+import { boatPricingTiers, boats as boatsTable } from "@/database/schema";
+import type { Boat, BoatPricingTier } from "@/database/types";
 import { BoatWithTiers, BoatLocation } from "@/features/boats/boat.types";
-import { inArray } from "drizzle-orm";
+import { and, inArray, isNotNull, sql } from "drizzle-orm";
 
 /**
  * Service for formatting search results for different display contexts
  */
 export class SearchResultsFormatter {
-  
   /**
-   * Add pricing tiers to boat results
+   * Add pricing tiers to boat results (one query for the whole page).
    */
-  static async addPricingTiers(boats: any[]): Promise<BoatWithTiers[]> {
+  static async addPricingTiers(boats: Boat[]): Promise<BoatWithTiers[]> {
     if (boats.length === 0) return [];
 
-    const boatIds = boats.map(boat => boat.id);
-    let pricingTiersMap: Record<string, any[]> = {};
-
-    // Fetch pricing tiers for all boats in one query
-    const pricingTiers = await db
+    const tiers = await db
       .select()
       .from(boatPricingTiers)
-      .where(inArray(boatPricingTiers.boatId, boatIds));
-    
-    // Group by boat ID for efficient lookup
-    pricingTiersMap = pricingTiers.reduce((acc, tier) => {
-      if (!acc[tier.boatId]) {
-        acc[tier.boatId] = [];
-      }
-      acc[tier.boatId].push(tier);
-      return acc;
-    }, {} as Record<string, any[]>);
+      .where(inArray(boatPricingTiers.boatId, boats.map((boat) => boat.id)));
 
-    // Add pricing tiers to each boat
-    return boats.map(boat => ({
-      ...boat,
-      pricingTiers: pricingTiersMap[boat.id] || []
-    })) as BoatWithTiers[];
+    const tiersByBoat = new Map<string, BoatPricingTier[]>();
+    for (const tier of tiers) {
+      tiersByBoat.set(tier.boatId, [...(tiersByBoat.get(tier.boatId) ?? []), tier]);
+    }
+
+    return boats.map((boat) => ({ ...boat, pricingTiers: tiersByBoat.get(boat.id) ?? [] }));
   }
 
   /**
@@ -46,41 +34,34 @@ export class SearchResultsFormatter {
     if (boats.length === 0) return [];
 
     try {
-      const idList = boats.map(boat => `'${boat.id}'`).join(',');
-      
-      const query = `
-        SELECT 
-          id, 
-          name, 
-          category, 
-          main_image as image_url,
-          ST_Y(location::geometry) as latitude, 
-          ST_X(location::geometry) as longitude
-        FROM boat 
-        WHERE id IN (${idList})
-          AND location IS NOT NULL
-      `;
-      
-      const locationResults = await db.execute(query);
-      
-      return (locationResults.rows as any[]).map(row => {
-        // Find the corresponding boat with pricing data
-        const boatWithPricing = boats.find(b => b.id === row.id);
-        // Get default price from pricing tiers or use 0
-        const price = boatWithPricing?.pricingTiers?.length 
-          ? boatWithPricing.pricingTiers[0].price
-          : 0;
-        
-        return {
-          id: row.id,
-          name: row.name,
-          latitude: parseFloat(row.latitude),
-          longitude: parseFloat(row.longitude),
-          category: row.category || "OTHER",
-          price: price,
-          imageUrl: row.image_url
-        };
-      });
+      const rows = await db
+        .select({
+          id: boatsTable.id,
+          name: boatsTable.name,
+          category: boatsTable.category,
+          imageUrl: boatsTable.mainImage,
+          latitude: sql<number>`ST_Y(${boatsTable.location}::geometry)`,
+          longitude: sql<number>`ST_X(${boatsTable.location}::geometry)`,
+        })
+        .from(boatsTable)
+        .where(
+          and(
+            inArray(boatsTable.id, boats.map((boat) => boat.id)),
+            isNotNull(boatsTable.location)
+          )
+        );
+
+      const boatsById = new Map(boats.map((boat) => [boat.id, boat]));
+      return rows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        latitude: Number(row.latitude),
+        longitude: Number(row.longitude),
+        category: row.category || "OTHER",
+        // The first tier's price is the "from" price on the map pin.
+        price: boatsById.get(row.id)?.pricingTiers[0]?.price ?? 0,
+        imageUrl: row.imageUrl ?? undefined,
+      }));
     } catch (error) {
       console.error("Error formatting boats for map:", error);
       return [];
@@ -100,7 +81,7 @@ export class SearchResultsFormatter {
    * Format complete search results with all necessary data
    */
   static async formatSearchResults(
-    boats: any[],
+    boats: Boat[],
     totalCount: number,
     limit: number
   ): Promise<{

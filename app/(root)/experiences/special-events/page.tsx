@@ -1,14 +1,7 @@
 import { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import {
-  CheckCircle2,
-  Star,
-  Calendar,
-  Users,
-  Navigation,
-  Globe,
-} from "lucide-react";
+import { CheckCircle2, Calendar, Users, Navigation, Globe } from "lucide-react";
 import ExperienceLayout from "@/features/_marketing/experiences/components/ExperienceLayout";
 import { Button } from "@/shared/components/ui/button";
 

@@ -14,10 +14,7 @@ import { bookingPricing } from '@/database/schema';
 import { eq } from 'drizzle-orm';
 import type { BookingPricing } from '@/database/types';
 import type { Cents } from '@/shared/lib/utils/money-utils';
-import { 
-  calculateBookingPriceCents, 
-  type BookingPriceBreakdownCents 
-} from '@/shared/lib/utils/pricing-utils';
+import { calculateBookingPriceCents } from '@/shared/lib/utils/pricing-utils';
 import { getAppSettings } from '@/features/app-settings/app-settings.service';
 
 // ============================================================================
@@ -144,44 +141,16 @@ export class BookingPricingService {
   }
 
   /**
-   * Get pricing for a booking
-   */
-  async getPricingByBookingId(bookingId: string): Promise<BookingPricing | null> {
-    const [pricing] = await db
-      .select()
-      .from(bookingPricing)
-      .where(eq(bookingPricing.bookingId, bookingId))
-      .limit(1);
-    
-    return pricing ?? null;
-  }
-
-  /**
    * Update pricing for a booking
    */
   async updatePricing(
     bookingId: string,
     updates: UpdateBookingPricingInput
   ): Promise<BookingPricing> {
-    const updateData: Record<string, any> = {
-      updatedAt: new Date(),
-    };
-
-    if (updates.basePriceCents !== undefined) updateData.basePriceCents = updates.basePriceCents;
-    if (updates.captainFeeCents !== undefined) updateData.captainFeeCents = updates.captainFeeCents;
-    if (updates.cleaningFeeCents !== undefined) updateData.cleaningFeeCents = updates.cleaningFeeCents;
-    if (updates.serviceFeeCents !== undefined) updateData.serviceFeeCents = updates.serviceFeeCents;
-    if (updates.taxAmountCents !== undefined) updateData.taxAmountCents = updates.taxAmountCents;
-    if (updates.discountAmountCents !== undefined) updateData.discountAmountCents = updates.discountAmountCents;
-    if (updates.discountCode !== undefined) updateData.discountCode = updates.discountCode;
-    if (updates.depositAmountCents !== undefined) updateData.depositAmountCents = updates.depositAmountCents;
-    if (updates.totalAmountCents !== undefined) updateData.totalAmountCents = updates.totalAmountCents;
-    if (updates.depositDueDate !== undefined) updateData.depositDueDate = updates.depositDueDate;
-    if (updates.remainderDueDate !== undefined) updateData.remainderDueDate = updates.remainderDueDate;
-
     const [updated] = await db
       .update(bookingPricing)
-      .set(updateData)
+      // Drizzle skips undefined keys, so only the fields passed are written.
+      .set({ ...updates, updatedAt: new Date() })
       .where(eq(bookingPricing.bookingId, bookingId))
       .returning();
 
@@ -190,67 +159,6 @@ export class BookingPricingService {
     }
 
     return updated;
-  }
-
-  /**
-   * Update pricing with automatic recalculation
-   * Call this when base price or fees change
-   */
-  async recalculatePricing(
-    bookingId: string,
-    input: SimplePricingInput
-  ): Promise<BookingPricing> {
-    const { serviceFeeRate } = await getAppSettings();
-    const breakdown = calculateBookingPriceCents(
-      input.basePriceCents,
-      input.cleaningFeeCents ?? 0,
-      input.captainFeeCents ?? 0,
-      input.addOnsCents ?? 0,
-      serviceFeeRate
-    );
-
-    const taxCents = input.taxAmountCents ?? 0;
-    const discountCents = input.discountAmountCents ?? 0;
-    const finalTotalCents = breakdown.totalPriceCents + taxCents - discountCents;
-
-    return this.updatePricing(bookingId, {
-      basePriceCents: breakdown.basePriceCents,
-      captainFeeCents: breakdown.captainFeeCents || null,
-      cleaningFeeCents: breakdown.cleaningFeeCents || null,
-      serviceFeeCents: breakdown.serviceFeeCents,
-      taxAmountCents: taxCents || null,
-      discountAmountCents: discountCents || null,
-      discountCode: input.discountCode,
-      depositAmountCents: input.depositAmountCents,
-      totalAmountCents: finalTotalCents,
-      depositDueDate: input.depositDueDate,
-      remainderDueDate: input.remainderDueDate,
-    });
-  }
-
-  /**
-   * Delete pricing for a booking (cascades from booking delete usually)
-   */
-  async deletePricing(bookingId: string): Promise<void> {
-    await db
-      .delete(bookingPricing)
-      .where(eq(bookingPricing.bookingId, bookingId));
-  }
-
-  /**
-   * Get price breakdown for display purposes
-   */
-  getPriceBreakdown(pricing: BookingPricing): BookingPriceBreakdownCents {
-    return {
-      basePriceCents: Number(pricing.basePriceCents),
-      captainFeeCents: Number(pricing.captainFeeCents ?? 0),
-      cleaningFeeCents: Number(pricing.cleaningFeeCents ?? 0),
-      serviceFeeCents: Number(pricing.serviceFeeCents ?? 0),
-      subtotalCents: Number(pricing.basePriceCents) + 
-                     Number(pricing.captainFeeCents ?? 0) + 
-                     Number(pricing.cleaningFeeCents ?? 0),
-      totalPriceCents: Number(pricing.totalAmountCents),
-    };
   }
 }
 

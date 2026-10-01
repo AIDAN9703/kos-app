@@ -56,7 +56,7 @@ export async function requireAdmin(): Promise<Session> {
 /**
  * Require owner role
  *
- * Use this in owner-specific pages (e.g., /profile/owner).
+ * Use this in owner-specific pages (the /owner portal).
  * Redirects to /profile if user is not an owner.
  *
  * @returns Authenticated owner session

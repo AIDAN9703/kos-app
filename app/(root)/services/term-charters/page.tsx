@@ -92,8 +92,6 @@ export default function TermChartersPage() {
           answer: "We require comprehensive charter insurance which we can help arrange. This protects both you and your guests, and often costs less than you'd expect. We work with marine insurance specialists to get competitive rates."
         }
       ]}
-      ctaText="Partner With KOS"
-      ctaLink="/contact?service=charter-your-yacht"
     />
   )
 } 

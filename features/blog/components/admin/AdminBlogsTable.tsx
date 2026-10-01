@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
-import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
+import { useCallback, useMemo } from "react";
+import { createColumnHelper } from "@tanstack/react-table";
 import { Button } from "@/shared/components/ui/button";
 import {
   DropdownMenu,
@@ -39,33 +39,36 @@ const columnHelper = createColumnHelper<BlogListItem>();
 
 export function AdminBlogsTable({ posts, loading }: AdminBlogsTableProps) {
   const { toast } = useToast();
-  const deletePost = useDeleteBlogPost();
+  const { mutate: deletePost } = useDeleteBlogPost();
 
-  const handleDelete = (post: BlogListItem) => {
-    if (!confirm(`Delete "${post.title}"? This cannot be undone.`)) return;
-    deletePost.mutate(post.id, {
-      onSuccess: (result) => {
-        if (result.success) {
-          toast({ title: "Post deleted successfully" });
-        } else {
+  const handleDelete = useCallback(
+    (post: BlogListItem) => {
+      if (!confirm(`Delete "${post.title}"? This cannot be undone.`)) return;
+      deletePost(post.id, {
+        onSuccess: (result) => {
+          if (result.success) {
+            toast({ title: "Post deleted successfully" });
+          } else {
+            toast({
+              title: "Error",
+              description: result.error ?? "Failed to delete post",
+              variant: "destructive",
+            });
+          }
+        },
+        onError: () => {
           toast({
             title: "Error",
-            description: result.error ?? "Failed to delete post",
+            description: "Failed to delete post",
             variant: "destructive",
           });
-        }
-      },
-      onError: () => {
-        toast({
-          title: "Error",
-          description: "Failed to delete post",
-          variant: "destructive",
-        });
-      },
-    });
-  };
+        },
+      });
+    },
+    [deletePost, toast]
+  );
 
-  const columns = useMemo<ColumnDef<BlogListItem, any>[]>(
+  const columns = useMemo(
     () => [
       columnHelper.accessor("title", {
         id: "post",
@@ -98,9 +101,7 @@ export function AdminBlogsTable({ posts, loading }: AdminBlogsTableProps) {
                     <Star className="h-3.5 w-3.5 text-warning fill-current shrink-0" />
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground truncate mt-0.5">
-                  {post.excerpt}
-                </p>
+                <p className="text-xs text-muted-foreground truncate mt-0.5">{post.excerpt}</p>
               </div>
             </div>
           );
@@ -124,9 +125,7 @@ export function AdminBlogsTable({ posts, loading }: AdminBlogsTableProps) {
       columnHelper.accessor("author", {
         header: "Author",
         cell: (info) => (
-          <span className="text-sm text-muted-foreground">
-            {info.getValue() || "—"}
-          </span>
+          <span className="text-sm text-muted-foreground">{info.getValue() || "—"}</span>
         ),
       }),
 
@@ -135,13 +134,9 @@ export function AdminBlogsTable({ posts, loading }: AdminBlogsTableProps) {
         cell: ({ row }) => {
           const post = row.original;
           const date =
-            post.status === "PUBLISHED" && post.publishedAt
-              ? post.publishedAt
-              : post.createdAt;
+            post.status === "PUBLISHED" && post.publishedAt ? post.publishedAt : post.createdAt;
           return (
-            <span className="text-sm text-muted-foreground">
-              {date ? formatDate(date) : "—"}
-            </span>
+            <span className="text-sm text-muted-foreground">{date ? formatDate(date) : "—"}</span>
           );
         },
       }),
@@ -149,9 +144,7 @@ export function AdminBlogsTable({ posts, loading }: AdminBlogsTableProps) {
       columnHelper.accessor("viewCount", {
         header: "Views",
         cell: (info) => (
-          <span className="text-sm text-muted-foreground">
-            {info.getValue() ?? 0}
-          </span>
+          <span className="text-sm text-muted-foreground">{info.getValue() ?? 0}</span>
         ),
       }),
 
@@ -170,10 +163,7 @@ export function AdminBlogsTable({ posts, loading }: AdminBlogsTableProps) {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem asChild>
-                    <Link
-                      href={`/admin/blog/${post.id}/edit`}
-                      className="cursor-pointer"
-                    >
+                    <Link href={`/admin/blog/${post.id}/edit`} className="cursor-pointer">
                       <Edit className="h-4 w-4 mr-2" />
                       Edit
                     </Link>
@@ -206,7 +196,7 @@ export function AdminBlogsTable({ posts, loading }: AdminBlogsTableProps) {
         },
       }),
     ],
-    []
+    [handleDelete]
   );
 
   return (

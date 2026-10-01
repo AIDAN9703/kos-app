@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Calendar, Edit } from "lucide-react";
+import { Calendar, Edit } from "lucide-react";
 import { getBoatById } from "@/features/boats/actions/boat-actions";
 import { AdminBoatProfileHeader } from "@/features/boats/components/AdminBoatProfileHeader";
 import { AdminBoatDetails } from "@/features/boats/components/AdminBoatDetails";

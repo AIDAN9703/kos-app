@@ -83,8 +83,6 @@ export default function DockManagementPage() {
           answer: "Yes, we implement comprehensive security measures including access control systems, surveillance cameras, regular security patrols, and emergency response protocols."
         }
       ]}
-      ctaText="Discuss Dock Management"
-      ctaLink="/contact?service=dock-management"
     />
   )
 } 

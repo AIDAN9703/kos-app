@@ -97,7 +97,6 @@ export function AdminBookingsCalendar() {
   const router = useRouter();
   const { toast } = useToast();
   const calendarRef = useRef<FullCalendar>(null);
-  const openDayMenuRef = useRef<(menu: DayMenuState | null) => void>(() => {});
   const [filters] = useQueryStates(bookingSearchParams, {
     clearOnDefault: true,
     shallow: false,
@@ -107,8 +106,6 @@ export function AdminBookingsCalendar() {
   const [selected, setSelected] = useState<SelectedEvent | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [dayMenu, setDayMenu] = useState<DayMenuState | null>(null);
-
-  openDayMenuRef.current = setDayMenu;
 
   /**
    * Build the events URL. FullCalendar will append `&start=...&end=...` based on
@@ -173,7 +170,7 @@ export function AdminBookingsCalendar() {
       e.stopPropagation();
       e.preventDefault();
       const rect = trigger.getBoundingClientRect();
-      openDayMenuRef.current({
+      setDayMenu({
         dateKey,
         anchor: { top: rect.bottom + 4, left: Math.max(8, rect.right - 168) },
       });

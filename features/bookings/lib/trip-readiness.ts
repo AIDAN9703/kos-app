@@ -37,11 +37,6 @@ export function readinessGaps(trip: ReadinessInput): ReadinessGap[] {
   return gaps;
 }
 
-/** Ready = nothing missing. */
-export function isTripReady(trip: ReadinessInput): boolean {
-  return readinessGaps(trip).length === 0;
-}
-
 /** Urgent = inside the pre-trip window with something still missing. */
 export function isTripUrgent(trip: ReadinessInput, now = new Date()): boolean {
   return isTripImminent(trip.startDateTime, now) && readinessGaps(trip).length > 0;

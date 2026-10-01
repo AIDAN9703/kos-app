@@ -88,8 +88,6 @@ export default function CharterManagementPage() {
           answer: "Our commission structure is competitive and transparent. We are flexible and work closely with each customer to tailor our services according to their needs and boat specifications. We'll provide a detailed breakdown during your consultation."
         }
       ]}
-      ctaText="Become a Charter Owner"
-      ctaLink="/contact?service=charter-management"
     />
   )
 } 

@@ -71,7 +71,7 @@ export default function FAQPage() {
           </h1>
           <p className="text-gray-600 max-w-2xl mx-auto text-lg leading-relaxed font-light">
             Find answers to the most common questions about our yacht charter services. 
-            Can't find what you're looking for? Our team is here to help.
+            Can&apos;t find what you&apos;re looking for? Our team is here to help.
           </p>
         </div>
       </section>
@@ -99,15 +99,15 @@ export default function FAQPage() {
                     <div className="space-y-4">
                       <div>
                         <div className="font-medium text-primary mb-2">1. Choose Your Yacht</div>
-                        <div>Browse our fleet or tell us what you're looking for—we'll help you find the perfect fit for your occasion, group size, and budget.</div>
+                        <div>Browse our fleet or tell us what you&apos;re looking for—we&apos;ll help you find the perfect fit for your occasion, group size, and budget.</div>
                       </div>
                       <div>
                         <div className="font-medium text-primary mb-2">2. Customize & Confirm</div>
-                        <div>Work with our team to tailor your experience. Once details are set, you'll receive a quote and secure your date with a deposit.</div>
+                        <div>Work with our team to tailor your experience. Once details are set, you&apos;ll receive a quote and secure your date with a deposit.</div>
                       </div>
                       <div>
                         <div className="font-medium text-primary mb-2">3. Sail & Enjoy</div>
-                        <div>We'll send all trip info 48 hours prior. Show up, step aboard, and enjoy a seamless luxury experience—our crew handles the rest.</div>
+                        <div>We&apos;ll send all trip info 48 hours prior. Show up, step aboard, and enjoy a seamless luxury experience—our crew handles the rest.</div>
                       </div>
                     </div>
                   ) : (
@@ -130,7 +130,7 @@ export default function FAQPage() {
             </h2>
             <p className="text-gray-600 mb-8 text-lg font-light max-w-2xl mx-auto">
               Our experienced team is here to help you plan the perfect yacht charter experience. 
-              Get in touch and we'll respond within 24 hours.
+              Get in touch and we&apos;ll respond within 24 hours.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">

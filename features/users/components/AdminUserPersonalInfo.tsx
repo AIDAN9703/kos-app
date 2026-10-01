@@ -8,27 +8,9 @@ import {
 } from "@/shared/components/ui/card";
 import { type User as UserType } from "@/database/types";
 import { formatDate } from "@/shared/lib/utils/general-utils";
+import { InfoRow } from "./InfoRow";
 
 export function AdminUserPersonalInfo({ user }: { user: UserType }) {
-  const InfoRow = ({
-    label,
-    value,
-    children,
-  }: {
-    label: string;
-    value?: React.ReactNode;
-    children?: React.ReactNode;
-  }) => (
-    <div className="space-y-1">
-      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-        {label}
-      </p>
-      {children ?? (
-        <p className="text-sm font-medium text-foreground">{value ?? "—"}</p>
-      )}
-    </div>
-  );
-
   return (
     <Card className="overflow-hidden">
       <CardHeader className="pb-4">

@@ -76,7 +76,7 @@ export const signUpAction = async (
     const username = email.split('@')[0] + '_' + Math.floor(Math.random() * 10000);
     
     // Insert the new user
-    const [newUser] = await db.insert(users).values({
+    await db.insert(users).values({
       firstName,
       lastName,
       username, // Auto-generated username
@@ -84,7 +84,7 @@ export const signUpAction = async (
       password: hashedPassword,
       phoneNumber: formattedPhoneNumber,
       // phoneVerified defaults to false in schema - no need to set explicitly
-    }).returning({ id: users.id });
+    });
 
     // Sign in the user immediately after account creation
     await signIn("credentials", {

@@ -33,7 +33,7 @@ export default function SocialShare({ title, url }: SocialShareProps) {
         title: "Link copied!",
         description: "The link has been copied to your clipboard.",
       });
-    } catch (error) {
+    } catch {
       toast({
         title: "Failed to copy",
         description: "Please copy the link manually.",

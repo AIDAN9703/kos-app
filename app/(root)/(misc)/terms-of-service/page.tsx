@@ -1,20 +1,7 @@
 import React from "react";
 import Link from "next/link";
-import { Button } from "@/shared/components/ui/button";
-import {
-  Mail,
-  Phone,
-  Globe,
-  Shield,
-  FileText,
-  Anchor,
-  Users,
-  CreditCard,
-  MessageCircle,
-  Calendar,
-  AlertTriangle,
-  Gavel,
-} from "lucide-react";
+
+import { Mail, Phone, Globe, Shield, FileText, Anchor, Users, CreditCard, MessageCircle, AlertTriangle, Gavel } from "lucide-react";
 
 // Force static generation - this policy page has no dynamic content
 export const dynamic = "force-static";
@@ -46,8 +33,8 @@ export default function TermsOfServicePage() {
                 </p>
               </div>
               <p className="text-gray-600 leading-relaxed font-light">
-                Welcome to Kings of the Sea Management LLC ("KOS Yachts", "we",
-                "us", or "our"). By using our website, booking services, or
+                Welcome to Kings of the Sea Management LLC (&quot;KOS Yachts&quot;, &quot;we&quot;,
+                &quot;us&quot;, or &quot;our&quot;). By using our website, booking services, or
                 engaging with our communications, you agree to the following
                 Terms and Conditions. Please read them carefully before
                 proceeding.
@@ -321,9 +308,9 @@ export default function TermsOfServicePage() {
                       Example Message:
                     </p>
                     <p className="text-sm text-gray-600 italic">
-                      "Hello, this is a friendly reminder of your upcoming
+                      &quot;Hello, this is a friendly reminder of your upcoming
                       charter with KOS Yachts on [Date] at [Time]. Reply STOP to
-                      opt out of SMS messaging at any time."
+                      opt out of SMS messaging at any time.&quot;
                     </p>
                   </div>
                 </div>
@@ -344,7 +331,7 @@ export default function TermsOfServicePage() {
                   </h3>
                   <p className="text-gray-600 font-light">
                     Standard message and data rates may apply depending on your
-                    carrier's pricing plan. Charges may vary for domestic vs.
+                    carrier&apos;s pricing plan. Charges may vary for domestic vs.
                     international messages.
                   </p>
                 </div>

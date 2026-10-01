@@ -105,8 +105,8 @@ export function getStatusBadgeClass(status: string | boolean | undefined | null)
   }
 
   const statusKey = String(status).toUpperCase();
-  const color = (STATUS_COLORS as any)[statusKey] || "gray";
-  return BADGE_STYLES[color as BadgeColor];
+  const color = (STATUS_COLORS as Record<string, BadgeColor>)[statusKey] || "gray";
+  return BADGE_STYLES[color];
 }
 
 /**
@@ -116,8 +116,8 @@ export function getRoleBadgeClass(role: string | undefined | null): string {
   if (!role) return BADGE_STYLES.gray;
 
   const roleKey = role.toUpperCase();
-  const color = (ROLE_COLORS as any)[roleKey] || "blue";
-  return BADGE_STYLES[color as BadgeColor];
+  const color = (ROLE_COLORS as Record<string, BadgeColor>)[roleKey] || "blue";
+  return BADGE_STYLES[color];
 }
 
 /**

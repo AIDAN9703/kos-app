@@ -12,6 +12,16 @@ const eslintConfig = [
   ...nextTypescript,
   prettier,
   {
+    rules: {
+      // `const { omitted, ...rest } = obj` is the idiomatic way to drop keys;
+      // an underscore prefix marks a deliberately unused binding.
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { ignoreRestSiblings: true, argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
+    },
+  },
+  {
     ignores: [".next/**", "node_modules/**", "public/**"],
   },
 ];

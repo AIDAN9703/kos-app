@@ -132,76 +132,55 @@ export class UserService {
       return user || null;
     }
 
-    // Build relations object
-    const withClause: any = {};
-
-    if (options.ownedBoats) {
-      withClause.ownedBoats = {
-          columns: {
-            id: true,
-            name: true,
-            category: true,
-            active: true,
-            featured: true,
-            mainImage: true,
-            createdAt: true,
-          },
-        limit: options.ownedBoats.limit,
-      };
-    }
-
-    if (options.captainProfile) {
-      withClause.captainProfile = {
-          columns: {
-            userId: true,
-            status: true,
-            uscgLicensed: true,
-          },
-      };
-    }
-
-    if (options.crewProfile) {
-      withClause.crewProfile = {
-        columns: {
-          userId: true,
-          status: true,
-        },
-      };
-    }
-
-    if (options.reviewsAsReviewer) {
-      withClause.reviewsAsReviewer = {
-          columns: {
-            id: true,
-            rating: true,
-            createdAt: true,
-          },
-        limit: options.reviewsAsReviewer.limit,
-      };
-    }
-
-    if (options.notifications) {
-      withClause.notifications = {
-          columns: {
-            id: true,
-            type: true,
-            title: true,
-            body: true,
-            status: true,
-            readAt: true,
-            createdAt: true,
-          },
-        limit: options.notifications.limit,
-        orderBy: (notifications: any, { desc }: any) => [desc(notifications.createdAt)],
-        ...(options.notifications.unreadOnly && {
-          where: (notifications: any, { isNull }: any) => isNull(notifications.readAt),
-        }),
-      };
-    }
-
+    // Only the relations asked for are loaded.
     const user = await db.query.users.findFirst({
       where: eq(users.id, id),
-      with: withClause,
+      with: {
+        ...(options.ownedBoats && {
+          ownedBoats: {
+            columns: {
+              id: true,
+              name: true,
+              category: true,
+              active: true,
+              featured: true,
+              mainImage: true,
+              createdAt: true,
+            },
+            limit: options.ownedBoats.limit,
+          },
+        }),
+        ...(options.captainProfile && {
+          captainProfile: { columns: { userId: true, status: true, uscgLicensed: true } },
+        }),
+        ...(options.crewProfile && {
+          crewProfile: { columns: { userId: true, status: true } },
+        }),
+        ...(options.reviewsAsReviewer && {
+          reviewsAsReviewer: {
+            columns: { id: true, rating: true, createdAt: true },
+            limit: options.reviewsAsReviewer.limit,
+          },
+        }),
+        ...(options.notifications && {
+          notifications: {
+            columns: {
+              id: true,
+              type: true,
+              title: true,
+              body: true,
+              status: true,
+              readAt: true,
+              createdAt: true,
+            },
+            limit: options.notifications.limit,
+            orderBy: (n, { desc }) => [desc(n.createdAt)],
+            ...(options.notifications.unreadOnly && {
+              where: (n, { isNull }) => isNull(n.readAt),
+            }),
+          },
+        }),
+      },
     });
 
     if (!user) {

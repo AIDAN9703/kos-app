@@ -4,12 +4,6 @@ import { getImageKit } from '@/shared/lib/services/imagekit-server';
 
 type UploadType = 'profile' | 'boat' | 'misc' | 'blog';
 
-interface UploadOptions {
-  type: UploadType;
-  entityId?: string; // For boat ID, user ID, etc.
-  entityName?: string; // For boat name, etc.
-}
-
 export async function POST(request: Request) {
   try {
     // Check authentication (non-interactive API safe)
@@ -45,7 +39,7 @@ export async function POST(request: Request) {
     
     // Determine folder path based on type and entity
     let folder = '';
-    let tags: string[] = [type];
+    const tags: string[] = [type];
 
     switch (type) {
       case 'profile':

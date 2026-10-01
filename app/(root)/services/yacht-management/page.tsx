@@ -88,8 +88,6 @@ export default function YachtManagementPage() {
           answer: "We provide monthly financial and maintenance reports as standard, with emergency notifications as needed. We can customize reporting frequency and detail to your preferences."
         }
       ]}
-      ctaText="Discuss Yacht Management"
-      ctaLink="/contact?service=yacht-management"
     />
   )
 } 

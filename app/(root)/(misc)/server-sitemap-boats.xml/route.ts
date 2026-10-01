@@ -2,7 +2,7 @@ import { getServerSideSitemap } from 'next-sitemap'
 import { getAllBoatIds } from '@/features/boats/actions/boat-actions'
 import type { ISitemapField } from 'next-sitemap'
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     // Get all active boat IDs
     const boatIds = await getAllBoatIds()

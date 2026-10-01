@@ -13,11 +13,7 @@ export const signUpSchema = z.object({
   rememberMe: z.boolean().optional(),
 });
 
-// New schema for phone verification during sign-up
-export const phoneVerificationSchema = z.object({
-  phoneNumber: phoneRequiredSchema,
-  verificationCode: z.string().length(6, "Verification code must be 6 digits"),
-});
+
 
 export const signInSchema = z.object({
   email: emailSchema,
@@ -79,7 +75,6 @@ export type BookingRequest = z.infer<typeof bookingRequestSchema>;
 export type ProfileFormValues = z.infer<typeof profileUpdateSchema>;
 
 export type SignUpData = z.infer<typeof signUpSchema>;
-export type SignInData = z.infer<typeof signInSchema>;
-export type PhoneVerificationData = z.infer<typeof phoneVerificationSchema>;
+export type SignInData = z.infer<typeof signInSchema>;
 
 

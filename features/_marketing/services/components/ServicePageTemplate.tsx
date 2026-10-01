@@ -4,32 +4,13 @@ import React, { useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/shared/components/ui/button";
-import {
-  ArrowRight,
-  CheckCircle,
-  Phone,
-  Mail,
-  Calendar,
-  Star,
-  Shield,
-  Award,
-  Users,
-  Clock,
-  Globe,
-  Headphones,
-} from "lucide-react";
+import { ArrowRight, CheckCircle, Phone, Calendar, Users, Headphones } from "lucide-react";
 
 export interface ServiceStat {
   value: string;
   label: string;
 }
 
-export interface ServiceTestimonial {
-  quote: string;
-  author: string;
-  role?: string;
-  image?: string;
-}
 
 export interface ServiceFeature {
   title: string;
@@ -51,8 +32,6 @@ export interface ServicePageProps {
   stats?: ServiceStat[];
   steps?: ServiceStep[];
   faqItems?: Array<{ question: string; answer: string }>;
-  ctaText?: string;
-  ctaLink?: string;
 }
 
 const ServicePageTemplate: React.FC<ServicePageProps> = ({
@@ -64,8 +43,6 @@ const ServicePageTemplate: React.FC<ServicePageProps> = ({
   secondaryImage = "/images/default-service.jpg",
   stats = [],
   faqItems = [],
-  ctaText = "Contact Us",
-  ctaLink = "/contact",
 }) => {
   // Display only the first 3 stats
   const displayStats = stats.slice(0, 3);

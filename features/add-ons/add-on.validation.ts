@@ -1,6 +1,5 @@
 import * as z from "zod";
 import { addOnCategoryEnum } from "@/database/schema";
-import { ADMIN_LIST_DEFAULT_PAGE_SIZE } from "@/shared/admin/list-pagination";
 
 /** Catalog add-on base fields. Prices are stored in USD cents. */
 export const addOnBaseSchema = z.object({
@@ -27,5 +26,3 @@ export const addOnFilterSchema = z.object({
 export type CreateAddOnInput = z.infer<typeof createAddOnSchema>;
 export type UpdateAddOnInput = z.infer<typeof updateAddOnSchema>;
 export type AddOnFilterInput = z.infer<typeof addOnFilterSchema>;
-
-export const ADD_ON_LIST_DEFAULT_LIMIT = ADMIN_LIST_DEFAULT_PAGE_SIZE;

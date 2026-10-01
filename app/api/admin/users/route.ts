@@ -1,8 +1,8 @@
 import { NextRequest } from "next/server";
 import { auth } from "@/auth";
 import { userService } from "@/features/users/user.service";
-import { userFilterSchema, createUserSchema } from "@/features/users/user.validation";
-import { apiPaginated, apiSuccess, apiError } from "@/shared/lib/utils/api-helpers";
+import { userFilterSchema } from "@/features/users/user.validation";
+import { apiPaginated, apiError } from "@/shared/lib/utils/api-helpers";
 
 /**
  * GET /api/admin/users
@@ -53,36 +53,3 @@ export async function GET(request: NextRequest) {
   }
 }
 
-/**
- * POST /api/admin/users
- * Create new user
- */
-export async function POST(request: NextRequest) {
-  try {
-    // Admin authentication
-    const session = await auth();
-    if (!session?.user || !session.user.isAdmin) {
-      return apiError("Admin access required", 403);
-    }
-
-    const body = await request.json();
-    
-    // Validate with Zod
-    const validation = createUserSchema.safeParse(body);
-    
-    if (!validation.success) {
-      return apiError(
-        `Invalid user data: ${validation.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')}`,
-        400
-      );
-    }
-
-    const newUser = await userService.createUser(validation.data);
-
-    return apiSuccess(newUser, 201);
-
-  } catch (error) {
-    console.error("Error creating user:", error);
-    return apiError("Failed to create user");
-  }
-}

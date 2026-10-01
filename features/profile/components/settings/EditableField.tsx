@@ -10,7 +10,7 @@ import { useToast } from "@/shared/lib/hooks/use-toast";
 import { cn } from "@/shared/lib/utils/general-utils";
 import type { ActionResult } from "../../profile.types";
 
-export interface EditableFieldSpec {
+interface EditableFieldSpec {
   key: string;
   label: string;
   type?: "text" | "email" | "tel" | "textarea";
@@ -114,7 +114,9 @@ export function EditableField({
             </p>
             {aside}
           </div>
-          {description ? <p className="mt-1 text-xs leading-5 text-slate-500">{description}</p> : null}
+          {description ? (
+            <p className="mt-1 text-xs leading-5 text-slate-500">{description}</p>
+          ) : null}
         </div>
         <button
           type="button"
@@ -151,7 +153,10 @@ export function EditableField({
       <p className="text-sm font-medium text-primary">{label}</p>
       <div className="mt-3 space-y-3">
         {rows.map((row) => (
-          <div key={row.map((f) => f.key).join("+")} className={cn(row.length > 1 && "grid gap-3 sm:grid-cols-2")}>
+          <div
+            key={row.map((f) => f.key).join("+")}
+            className={cn(row.length > 1 && "grid gap-3 sm:grid-cols-2")}
+          >
             {row.map((field) => {
               const id = `field-${field.key}`;
               const fieldError = fieldErrors[field.key]?.[0];
@@ -173,12 +178,20 @@ export function EditableField({
                   </Label>
                   <div className="mt-1">
                     {field.type === "textarea" ? (
-                      <Textarea {...shared} className={cn("min-h-[110px] rounded-xl", fieldError && "border-destructive")} />
+                      <Textarea
+                        {...shared}
+                        className={cn(
+                          "min-h-[110px] rounded-xl",
+                          fieldError && "border-destructive"
+                        )}
+                      />
                     ) : (
                       <Input {...shared} type={field.type ?? "text"} />
                     )}
                   </div>
-                  {fieldError ? <p className="mt-1 text-xs text-destructive">{fieldError}</p> : null}
+                  {fieldError ? (
+                    <p className="mt-1 text-xs text-destructive">{fieldError}</p>
+                  ) : null}
                 </div>
               );
             })}

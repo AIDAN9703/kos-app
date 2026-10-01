@@ -83,20 +83,3 @@ export interface BoatLocation {
   groupedBoats?: BoatLocation[];
 }
 
-/**
- * Pricing tier type - re-export from database types
- */
-export type PricingTier = BoatPricingTier;
-
-/**
- * Public boat view - safe for frontend display
- */
-export type PublicBoat = Omit<
-  Boat,
-  | 'ownerNotes'
-  | 'insuranceInfo'
-  | 'insuranceExpiry'
-  | 'maintenanceNotes'
-  | 'lastMaintenanceDate'
-  | 'nextMaintenanceDate'
->;

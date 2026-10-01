@@ -367,7 +367,6 @@ export default function FilterModal({ isOpen, onClose }: FilterModalProps) {
 
   useEffect(() => {
     let mounted = true;
-    setLoadingCats(true);
     getSearchCategories()
       .then((cats) => {
         if (mounted) {

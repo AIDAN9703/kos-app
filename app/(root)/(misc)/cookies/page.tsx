@@ -1,7 +1,7 @@
 import React from 'react'
 import Link from 'next/link'
-import { Button } from '@/shared/components/ui/button'
-import { Mail, Phone, Globe, Shield, Cookie, Settings, Eye, Users, BarChart, MapPin, Calendar, Monitor } from 'lucide-react'
+
+import { Mail, Phone, Globe, Cookie, Settings, Eye, Users, Calendar, Monitor } from 'lucide-react';
 
 // Force static generation - this policy page has no dynamic content
 export const dynamic = 'force-static';
@@ -34,7 +34,7 @@ export default function CookiesPage() {
                 </p>
               </div>
               <p className="text-gray-600 leading-relaxed font-light">
-                Kings of the Sea Management LLC ("KOS Yachts", "we", "us", or "our") uses cookies and similar tracking 
+                Kings of the Sea Management LLC (&quot;KOS Yachts&quot;, &quot;we&quot;, &quot;us&quot;, or &quot;our&quot;) uses cookies and similar tracking 
                 technologies on our website to enhance your browsing experience, analyze website traffic, and provide 
                 personalized content. This Cookies Policy explains what cookies are, how we use them, and your choices 
                 regarding their use.
@@ -271,7 +271,7 @@ export default function CookiesPage() {
                 <div>
                   <h3 className="text-lg font-medium text-primary mb-3">Cookie Banner</h3>
                   <p className="text-gray-600 font-light">
-                    When you first visit our website, you'll see a cookie banner where you can accept or decline 
+                    When you first visit our website, you&apos;ll see a cookie banner where you can accept or decline 
                     non-essential cookies. You can change your preferences at any time by clicking the cookie 
                     settings link in our website footer.
                   </p>
@@ -351,7 +351,7 @@ export default function CookiesPage() {
               <p className="text-gray-600 font-light">
                 We may update this Cookies Policy from time to time to reflect changes in our practices, 
                 technology, or legal requirements. We will notify you of any significant changes by updating 
-                the "Last Updated" date at the top of this policy and, where required, by other means such 
+                the &quot;Last Updated&quot; date at the top of this policy and, where required, by other means such 
                 as email notification or website banners.
               </p>
             </div>

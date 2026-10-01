@@ -5,11 +5,6 @@ import { boats, users, boatCategoryEnum } from '@/database/schema';
 import { eq } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 
-// Helper function to get a random item from an array
-function getRandomItem<T>(array: readonly T[]): T {
-  return array[Math.floor(Math.random() * array.length)];
-}
-
 // Helper function to get a random number between min and max
 function getRandomNumber(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;

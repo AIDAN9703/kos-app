@@ -13,7 +13,6 @@
  * - Display layer converts to dollars using money-utils
  */
 
-import type { PricingTier } from "@/shared/lib/types/types";
 import type { Cents } from "@/shared/lib/utils/money-utils";
 import type { PaymentDisplayStatus } from "@/shared/lib/utils/payment-display";
 import type {
@@ -142,96 +141,17 @@ export interface BookingActivityEventEntry {
   newState?: Record<string, unknown> | null;
   createdAt: Date;
   actorName: string;
-}
-
-/**
- * Complete booking with all related data
- * This is the new "full" booking type with nested relations
- */
-export interface BookingWithRelations {
-  // Core booking info
-  id: string;
-  bookingType: BookingType;
-  bookingStatus: BookingStatus;
-  source: BookingSource | null;
-
-  // Customer info
-  userId: string | null;
-  customerName: string;
-  customerEmail: string;
-  customerPhone: string | null;
-
-  // Booking details — trip fields null while the deal is an INQUIRY
-  boatId: string | null;
-  pricingTierId: string | null;
-  startDateTime: Date | null;
-  endDateTime: Date | null;
-  numberOfPassengers: number | null;
-  isMultiDay: boolean | null;
-  needsCaptain: boolean | null;
-  pickupLocation: string | null;
-  dropoffLocation: string | null;
-
-  // Admin assignment
-  assignedAdminId: string | null;
-
-  // Cancellation info
-  cancelledAt: Date | null;
-  cancellationReason: string | null;
-  cancelledBy: string | null;
-
-  // Timestamps
-  createdAt: Date;
-  updatedAt: Date;
-  expiresAt: Date | null;
-
-  // Payment configuration
-  paymentType: string | null;
-
-  // Add-ons (from booking.add_ons JSON)
-  addOns?: Array<{
-    name: string;
-    description?: string | null;
-    unitPrice: number;
-    quantity: number;
-    total: number;
-  }> | null;
-
-  // Related data (from new tables)
-  pricing: BookingPricingData | null;
-  payments: BookingPaymentData[];
-  statusHistory: BookingStatusHistoryEntry[];
-  adminNotes: BookingAdminNoteEntry[];
-  /** Append-only activity log (status, notes, contacts, Stripe, …) */
-  activityEvents: BookingActivityEventEntry[];
-
-  // Joined boat info — null while the deal has no boat chosen (INQUIRY phase)
-  boat?: {
-    id: string | null;
-    name: string;
-    category: string | null;
-    mainImage: string | null;
-    capacity: number | null;
-    timezone: string | null;
-    ownerId: string | null;
-  } | null;
-
-  // Joined user info (customer)
-  user?: {
-    id: string;
-    firstName: string | null;
-    lastName: string | null;
-    email: string;
-    profileImage: string | null;
-  } | null;
-
-  // Assigned admin info
-  assignedAdmin?: {
-    id: string;
-    firstName: string | null;
-    lastName: string | null;
-    email: string;
-  } | null;
+  /** Set on entries built from a completed payment row, not a booking_event. */
+  payment?: {
+    /** "Payment", "Deposit", "Refund", "Additional charge". */
+    label: string;
+    amountText: string;
+    isRefund: boolean;
+    /** "Card", "Zelle", … */
+    method: string;
+    /** Stripe dashboard link for card payments. */
+    href: string | null;
+  };
 }
 
 // ============================================================================
@@ -407,34 +327,6 @@ export interface PaginatedBookingsResponse {
   totalPages: number;
 }
 
-// ============================================================================
-// FORM TYPES (User input - dates are always strings from form inputs)
-// ============================================================================
-
-/**
- * Base booking form data - what the customer fills out
- * Dates are ISO strings because HTML inputs produce strings
- */
-export interface BookingFormData {
-  startDateTime: string;
-  numberOfPassengers: number;
-  needsCaptain: boolean;
-  pricingTierId: string;
-}
-
-/**
- * Complete booking data with boat and pricing info
- * Used during checkout flow
- */
-export interface BookingWithDetails {
-  startDateTime: string;
-  numberOfPassengers: number;
-  needsCaptain: boolean;
-  boatId: string;
-  boat: SafeBoatData;
-  selectedTier: PricingTier;
-}
-
 /**
  * Safe boat data for booking contexts (minimal boat info)
  * Used in checkout and booking forms
@@ -485,32 +377,3 @@ export interface BookingCalendarEvent {
   };
 }
 
-
-// ============================================================================
-// API RESPONSE TYPES
-// ============================================================================
-
-/**
- * Generic API response wrapper
- */
-export interface BookingApiResponse<T> {
-  success: boolean;
-  data?: T;
-  error?: string;
-}
-
-/**
- * Paginated API response with meta
- */
-export interface PaginatedBookingApiResponse<T> {
-  success: boolean;
-  data: T[];
-  meta: {
-    pagination: {
-      page: number;
-      limit: number;
-      totalCount: number;
-      totalPages: number;
-    };
-  };
-}

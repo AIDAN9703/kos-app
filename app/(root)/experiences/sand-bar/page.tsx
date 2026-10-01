@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import Image from "next/image";
-import Link from "next/link";
+
 import {
   CheckCircle2,
   MapPin,
@@ -10,7 +10,7 @@ import {
   Globe,
 } from "lucide-react";
 import ExperienceLayout from "@/features/_marketing/experiences/components/ExperienceLayout";
-import { Button } from "@/shared/components/ui/button";
+
 
 export const metadata: Metadata = {
   title: "Sand Bar Excursions | KOSyachts",
@@ -20,26 +20,6 @@ export const metadata: Metadata = {
 
 // Force static generation - this page has no dynamic content
 export const dynamic = "force-static";
-
-// Related experiences
-const relatedExperiences = [
-  {
-    id: "watersports",
-    title: "Water Sports Adventures",
-    description:
-      "Get your adrenaline pumping with exciting water sports activities.",
-    image: "/images/experiences/tiki.jpg",
-    href: "/experiences/watersports",
-  },
-  {
-    id: "celebrations",
-    title: "Celebrations & Events",
-    description:
-      "Host your special occasions on the water for unforgettable memories.",
-    image: "/images/experiences/yachtparty.jpg",
-    href: "/experiences/special-events",
-  },
-];
 
 // FAQs
 const faqs = [
@@ -137,7 +117,6 @@ export default function SandBarPage() {
       description="Discover paradise on our sandbar excursions, where pristine white sands meet crystal clear waters, accessible only by boat."
       heroImage="/images/experiences/whaleharbor.jpg"
       faqs={faqs}
-      relatedExperiences={relatedExperiences}
       buttonText="Book Now"
       buttonLink="/contact"
     >
@@ -148,7 +127,7 @@ export default function SandBarPage() {
             Sand Bar Excursion Services
           </h2>
           <p className="text-gray-600 max-w-3xl text-lg font-light leading-relaxed">
-            Discover the magic of Florida's hidden sandbars - natural white sand
+            Discover the magic of Florida&apos;s hidden sandbars - natural white sand
             islands that emerge in shallow waters, creating perfect oases for
             relaxation and fun accessible only by boat.
           </p>

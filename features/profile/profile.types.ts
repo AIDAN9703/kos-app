@@ -45,49 +45,34 @@ export interface TripDetail extends TripSummary {
   currency: string;
 }
 
-/** Something on the overview page the customer should act on. */
+/** A trip the customer needs to act on, shown as a to-do card on the overview. */
 export type AttentionItem =
   | { kind: "proposal"; trip: TripSummary }
-  | { kind: "balance"; trip: TripSummary }
-  | { kind: "phone" }
-  | { kind: "photo" };
+  | { kind: "balance"; trip: TripSummary };
 
 export interface ProfileOverview {
   /** The soonest booked trip with a date, if any. */
   nextTrip: TripSummary | null;
+  /** Every other upcoming trip, soonest first. */
+  moreUpcoming: TripSummary[];
   attention: AttentionItem[];
-  /** Past trips, newest first, capped for the overview. */
-  recentTrips: TripSummary[];
-  counts: TripCounts;
+  stats: TripStats;
 }
 
-export interface TripCounts {
-  upcoming: number;
-  completed: number;
-  /** Proposals sent and still awaiting the customer's answer. */
-  proposals: number;
+/** Lifetime numbers from completed charters, for the overview stat tiles. */
+export interface TripStats {
+  tripsCompleted: number;
+  hoursOnWater: number;
+  guestsHosted: number;
+  boatsSailed: number;
 }
 
-/** A boat this user owns, as listed on the owner page. */
-export interface OwnedBoat {
-  id: string;
-  name: string;
-  displayTitle: string | null;
-  category: string;
-  active: boolean;
-  mainImage: string | null;
-  locationLabel: string | null;
-  capacity: number;
-}
-
-/** An upcoming booked charter on one of the owner's boats (no customer details). */
-export interface OwnerCharter {
-  id: string;
-  boatName: string;
-  startsAt: Date | null;
-  endsAt: Date | null;
-  timezone: string | null;
-  guests: number | null;
+export interface ProfileCompletionItem {
+  key: "photo" | "phone" | "city" | "bio";
+  label: string;
+  done: boolean;
+  /** Settings anchor that fixes it. */
+  href: string;
 }
 
 /** A booked trip this captain is assigned to. */
@@ -105,7 +90,12 @@ export interface CaptainAssignment {
 export interface CaptainSummary {
   profile: Pick<
     CaptainProfile,
-    "status" | "uscgLicensed" | "licenseType" | "licenseExpiry" | "totalTripsCompleted" | "yearsExperience"
+    | "status"
+    | "uscgLicensed"
+    | "licenseType"
+    | "licenseExpiry"
+    | "totalTripsCompleted"
+    | "yearsExperience"
   >;
   upcoming: CaptainAssignment[];
   completedCount: number;

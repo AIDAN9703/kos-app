@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/shared/components/ui/button";
@@ -40,27 +40,43 @@ interface AddOnFormModalProps {
 const CATEGORIES = addOnCategoryEnum.enumValues as readonly AddOnCategory[];
 
 export function AddOnFormModal({ open, onOpenChange, addOn }: AddOnFormModalProps) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="admin-theme sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{addOn ? "Edit add-on" : "New add-on"}</DialogTitle>
+          <DialogDescription>
+            Catalog add-ons are reusable across boats. Each boat chooses which to offer and can
+            override the price.
+          </DialogDescription>
+        </DialogHeader>
+        {/* Dialog content unmounts when closed, so the form starts from the
+            add-on's current values every time it opens. */}
+        <AddOnForm
+          key={addOn?.id ?? "new"}
+          addOn={addOn ?? null}
+          onClose={() => onOpenChange(false)}
+        />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function AddOnForm({ addOn, onClose }: { addOn: AddOnListItem | null; onClose: () => void }) {
   const router = useRouter();
   const { toast } = useToast();
   const isEdit = !!addOn;
 
-  const [name, setName] = useState("");
-  const [category, setCategory] = useState<AddOnCategory>("OTHER");
-  const [description, setDescription] = useState("");
-  const [priceDollars, setPriceDollars] = useState("");
-  const [isActive, setIsActive] = useState(true);
+  const [name, setName] = useState(addOn?.name ?? "");
+  const [category, setCategory] = useState<AddOnCategory>(
+    (addOn?.category as AddOnCategory) ?? "OTHER"
+  );
+  const [description, setDescription] = useState(addOn?.description ?? "");
+  const [priceDollars, setPriceDollars] = useState(
+    addOn?.defaultPriceCents != null ? String(centsToDollars(addOn.defaultPriceCents)) : ""
+  );
+  const [isActive, setIsActive] = useState(addOn?.isActive ?? true);
   const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (!open) return;
-    setName(addOn?.name ?? "");
-    setCategory((addOn?.category as AddOnCategory) ?? "OTHER");
-    setDescription(addOn?.description ?? "");
-    setPriceDollars(
-      addOn?.defaultPriceCents != null ? String(centsToDollars(addOn.defaultPriceCents)) : ""
-    );
-    setIsActive(addOn?.isActive ?? true);
-  }, [open, addOn]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,12 +96,12 @@ export function AddOnFormModal({ open, onOpenChange, addOn }: AddOnFormModalProp
     };
 
     setSubmitting(true);
-    const result = isEdit ? await updateAddOn(addOn!.id, payload) : await createAddOn(payload);
+    const result = isEdit ? await updateAddOn(addOn.id, payload) : await createAddOn(payload);
     setSubmitting(false);
 
     if (result.success) {
       toast({ title: isEdit ? "Add-on updated." : "Add-on created." });
-      onOpenChange(false);
+      onClose();
       router.refresh();
     } else {
       toast({ title: "Error", description: result.error, variant: "destructive" });
@@ -93,93 +109,76 @@ export function AddOnFormModal({ open, onOpenChange, addOn }: AddOnFormModalProp
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="admin-theme sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit add-on" : "New add-on"}</DialogTitle>
-          <DialogDescription>
-            Catalog add-ons are reusable across boats. Each boat chooses which to offer and can
-            override the price.
-          </DialogDescription>
-        </DialogHeader>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="addon-name">Name</Label>
+        <Input
+          id="addon-name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="e.g. Cooler with ice"
+        />
+      </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="addon-name">Name</Label>
-            <Input
-              id="addon-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Cooler with ice"
-            />
-          </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <Label>Category</Label>
+          <Select value={category} onValueChange={(v) => setCategory(v as AddOnCategory)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {CATEGORIES.map((c) => (
+                <SelectItem key={c} value={c}>
+                  {ADD_ON_CATEGORY_LABELS[c]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="addon-price">Suggested price ($)</Label>
+          <Input
+            id="addon-price"
+            type="number"
+            min="0"
+            step="0.01"
+            value={priceDollars}
+            onChange={(e) => setPriceDollars(e.target.value)}
+            placeholder="Optional"
+          />
+        </div>
+      </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label>Category</Label>
-              <Select value={category} onValueChange={(v) => setCategory(v as AddOnCategory)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {CATEGORIES.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {ADD_ON_CATEGORY_LABELS[c]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="addon-price">Suggested price ($)</Label>
-              <Input
-                id="addon-price"
-                type="number"
-                min="0"
-                step="0.01"
-                value={priceDollars}
-                onChange={(e) => setPriceDollars(e.target.value)}
-                placeholder="Optional"
-              />
-            </div>
-          </div>
+      <div className="space-y-2">
+        <Label htmlFor="addon-desc">Description</Label>
+        <Textarea
+          id="addon-desc"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Shown to guests at checkout"
+          rows={2}
+        />
+      </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="addon-desc">Description</Label>
-            <Textarea
-              id="addon-desc"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Shown to guests at checkout"
-              rows={2}
-            />
-          </div>
+      <div className="flex items-center justify-between rounded-lg border border-border p-3">
+        <div>
+          <p className="text-sm font-medium text-foreground">Active</p>
+          <p className="text-xs text-muted-foreground">
+            Inactive add-ons can&apos;t be offered on boats.
+          </p>
+        </div>
+        <Switch checked={isActive} onCheckedChange={setIsActive} />
+      </div>
 
-          <div className="flex items-center justify-between rounded-lg border border-border p-3">
-            <div>
-              <p className="text-sm font-medium text-foreground">Active</p>
-              <p className="text-xs text-muted-foreground">
-                Inactive add-ons can&apos;t be offered on boats.
-              </p>
-            </div>
-            <Switch checked={isActive} onCheckedChange={setIsActive} />
-          </div>
-
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={() => onOpenChange(false)}
-              disabled={submitting}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={submitting}>
-              {submitting ? "Saving…" : isEdit ? "Save changes" : "Create add-on"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+      <DialogFooter className="gap-2 sm:gap-0">
+        <Button type="button" variant="destructive" onClick={onClose} disabled={submitting}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={submitting}>
+          {submitting ? "Saving…" : isEdit ? "Save changes" : "Create add-on"}
+        </Button>
+      </DialogFooter>
+    </form>
   );
 }

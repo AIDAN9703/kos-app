@@ -66,7 +66,7 @@ export function useAuth<T>() {
         
         return { success: false, error: result.error };
       }
-    } catch (error) {
+    } catch {
       toast({
         title: "Something went wrong",
         description: "Please try again later.",

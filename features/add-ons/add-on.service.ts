@@ -86,11 +86,6 @@ export const addOnService = {
     return rows as AddOnListItem[];
   },
 
-  async getAddOnById(id: string): Promise<AddOn | null> {
-    const [row] = await db.select().from(addOns).where(eq(addOns.id, id)).limit(1);
-    return row ?? null;
-  },
-
   async createAddOn(input: CreateAddOnInput): Promise<AddOn> {
     const [row] = await db
       .insert(addOns)

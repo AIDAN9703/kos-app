@@ -22,16 +22,14 @@ interface ProfileNavProps {
  */
 export function ProfileNav({ roles }: ProfileNavProps) {
   const pathname = usePathname();
-  const items = PROFILE_NAV_ITEMS;
   const roleItems = roleNavItems(roles);
-  const all = [...items, ...roleItems];
 
   return (
     <>
       {/* Desktop — stacked */}
-      <nav aria-label="Profile" className="hidden lg:block">
+      <nav aria-label="Profile" className="hidden border-t border-gray-200 pt-6 lg:block">
         <ul className="space-y-0.5">
-          {items.map((item) => (
+          {PROFILE_NAV_ITEMS.map((item) => (
             <li key={item.href}>
               <RailLink item={item} active={isProfileNavItemActive(item, pathname)} />
             </li>
@@ -54,9 +52,12 @@ export function ProfileNav({ roles }: ProfileNavProps) {
       </nav>
 
       {/* Phone / tablet — tab strip */}
-      <nav aria-label="Profile" className="-mx-4 border-b border-gray-200 px-4 sm:-mx-8 sm:px-8 lg:hidden">
+      <nav
+        aria-label="Profile"
+        className="-mx-4 border-b border-gray-200 px-4 sm:-mx-8 sm:px-8 lg:hidden"
+      >
         <ul className="hide-scrollbar flex gap-6 overflow-x-auto">
-          {all.map((item) => {
+          {[...PROFILE_NAV_ITEMS, ...roleItems].map((item) => {
             const active = isProfileNavItemActive(item, pathname);
             return (
               <li key={item.href} className="shrink-0">
@@ -90,8 +91,8 @@ function RailLink({ item, active }: { item: ProfileNavItem; active: boolean }) {
       className={cn(
         "flex items-center gap-3 rounded-xl px-3 py-2.5 text-[15px] transition-colors",
         active
-          ? "bg-primary-soft font-semibold text-primary"
-          : "text-slate-600 hover:bg-muted/60 hover:text-primary"
+          ? "bg-slate-100 font-semibold text-primary"
+          : "text-slate-600 hover:bg-slate-50 hover:text-primary"
       )}
     >
       <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={active ? 2.25 : 1.75} />

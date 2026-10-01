@@ -116,11 +116,21 @@ export function PasswordSection({ signsInWithGoogle }: { signsInWithGoogle: bool
       </p>
       {error ? <p className="mt-3 text-sm text-destructive">{error}</p> : null}
       <div className="mt-4 flex items-center gap-2">
-        <Button type="submit" size="sm" disabled={saving || !form.currentPassword || !form.newPassword}>
+        <Button
+          type="submit"
+          size="sm"
+          disabled={saving || !form.currentPassword || !form.newPassword}
+        >
           {saving ? <Loader2 className="animate-spin" /> : null}
           {saving ? "Updating…" : "Update password"}
         </Button>
-        <Button type="button" size="sm" variant="ghost" onClick={() => setEditing(false)} disabled={saving}>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          onClick={() => setEditing(false)}
+          disabled={saving}
+        >
           Cancel
         </Button>
       </div>

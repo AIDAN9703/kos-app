@@ -1,16 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
-import { Input } from "@/shared/components/ui/input";
-import { Label } from "@/shared/components/ui/label";
-import { Switch } from "@/shared/components/ui/switch";
-import { updateBookingSingleField } from "@/features/bookings/booking.mutations";
-import { shiftCharterPartyWindows } from "@/features/bookings/actions/admin-booking.actions";
-import { BoatSelect } from "@/features/boats/components/BoatSelect";
 import { useBookingEditMode } from "@/features/bookings/components/admin/view-booking/BookingEditMode";
 import {
   OpsCaptainAssignment,
@@ -21,12 +13,8 @@ import {
   type CrewAssignmentMember,
   type CrewAssignmentOption,
 } from "@/features/bookings/components/admin/OpsCrewAssignment";
-import { useToast } from "@/shared/lib/hooks/use-toast";
-import {
-  bookingInstantToDatetimeLocalInput,
-  datetimeLocalInputToUtcISO,
-  formatBoatLocal,
-} from "@/shared/lib/utils/date-helpers";
+import { formatBoatLocal } from "@/shared/lib/utils/date-helpers";
+import { TripEditor, type TripEditorPricing } from "./TripEditor";
 
 export interface BookingTripDetailsSnapshot {
   /** Trip fields are null while the deal is an INQUIRY without a set trip. */
@@ -64,6 +52,10 @@ interface BookingTripCardProps {
   captainOptions: CaptainAssignmentOption[];
   bookingCrew: CrewAssignmentMember[];
   crewOptions: CrewAssignmentOption[];
+  /** Null when there is no price to edit. */
+  pricing: TripEditorPricing | null;
+  /** Proposed or booked — more boats can join the party. */
+  canAddBoat: boolean;
 }
 
 function formatTripDateTime(iso: string | null, timezone: string | null): string {
@@ -76,9 +68,9 @@ function formatTripDateTime(iso: string | null, timezone: string | null): string
 /**
  * The trip, most important first: which boat and who runs it on the top
  * row (captain/crew assignment is live in both modes — it's a control, not a
- * field), then when, then the rest. Read-only until the page-level Edit mode
- * is on — then the trip fields become one form with one Save. Money lives in
- * Finances / Commission, so nothing here is repeated elsewhere on the page.
+ * field), then when, then the rest. In the page's edit mode the card becomes
+ * the whole trip form — trip, pricing, add-ons, more boats — so everything an
+ * admin changes sits on the left and Finances stays a read-only breakdown.
  */
 export function BookingTripCard({
   bookingId,
@@ -91,116 +83,10 @@ export function BookingTripCard({
   captainOptions,
   bookingCrew,
   crewOptions,
+  pricing,
+  canAddBoat,
 }: BookingTripCardProps) {
-  const { editing, registerSaver } = useBookingEditMode();
-  const router = useRouter();
-  const { toast } = useToast();
-
-  // Edited in the BOAT's local time — an admin in another timezone must not
-  // silently shift the trip by their own offset.
-  const tz = trip.boatTimezone;
-  const toInput = (iso: string | null) => bookingInstantToDatetimeLocalInput(iso, tz);
-  const [start, setStart] = useState(() => toInput(trip.startDateTime));
-  const [end, setEnd] = useState(() => toInput(trip.endDateTime));
-  const [passengers, setPassengers] = useState(trip.numberOfPassengers);
-  const [needsCaptain, setNeedsCaptain] = useState(Boolean(trip.needsCaptain));
-  const [pickup, setPickup] = useState(trip.pickupLocation ?? "");
-  const [dropoff, setDropoff] = useState(trip.dropoffLocation ?? "");
-  const [moveParty, setMoveParty] = useState(true);
-  const [boatId, setBoatId] = useState(trip.boatId ?? "");
-
-  // "Done updating" calls the latest save via ref — state closures go stale
-  // in a registry, refs don't.
-  const saveRef = useRef<() => Promise<{ ok: boolean; changed: boolean }>>(async () => ({
-    ok: true,
-    changed: false,
-  }));
-  useEffect(() => {
-    if (!editing) return;
-    return registerSaver("trip-details", () => saveRef.current());
-  }, [editing, registerSaver]);
-
-  // Runs when the admin clicks "Done updating" (registered below). Returns
-  // false on failure so edit mode stays open and nothing is silently lost.
-  async function handleSave(): Promise<{ ok: boolean; changed: boolean }> {
-      const updates: Array<{ field: string; value: unknown }> = [];
-      // Boat first: swapping reprices the booking, and the window below then
-      // availability-checks against the NEW boat's calendar.
-      if (boatId && boatId !== (trip.boatId ?? "")) {
-        updates.push({ field: "boatId", value: boatId });
-      }
-      // Dates save as ONE atomic window — sending start and end separately
-      // let the DB see end-before-start mid-save and reject the edit.
-      const startChanged = start !== toInput(trip.startDateTime);
-      const endChanged = end !== toInput(trip.endDateTime);
-      if (startChanged || endChanged) {
-        const isoStart = datetimeLocalInputToUtcISO(start, tz);
-        if (!isoStart) {
-          toast({ title: "Invalid start date", variant: "destructive" });
-          return { ok: false, changed: false };
-        }
-        updates.push({
-          field: "tripWindow",
-          value: { startDateTime: isoStart, endDateTime: datetimeLocalInputToUtcISO(end, tz) },
-        });
-      }
-      if (passengers !== trip.numberOfPassengers) {
-        updates.push({ field: "numberOfPassengers", value: passengers });
-      }
-      if (needsCaptain !== Boolean(trip.needsCaptain)) {
-        updates.push({ field: "needsCaptain", value: needsCaptain });
-      }
-      if (pickup !== (trip.pickupLocation ?? "")) {
-        updates.push({ field: "pickupLocation", value: pickup.trim() || null });
-      }
-      if (dropoff !== (trip.dropoffLocation ?? "")) {
-        updates.push({ field: "dropoffLocation", value: dropoff.trim() || null });
-      }
-
-      if (updates.length === 0) return { ok: true, changed: false };
-      for (const update of updates) {
-        const res = await updateBookingSingleField(bookingId, update);
-        if (!res.success) {
-          toast({
-            title: "Couldn't save trip details",
-            description: res.error,
-            variant: "destructive",
-          });
-          return { ok: false, changed: true };
-        }
-      }
-
-      // Charter party: apply the same start/end deltas to the sibling boats
-      // so a 4-boat change is one edit, not four. Start and end propagate
-      // independently — an end-time-only edit moves every boat's end time.
-      if ((startChanged || endChanged) && moveParty && partySize > 1) {
-        const deltaOf = (oldIso: string | null, input: string): number => {
-          const oldMs = oldIso ? new Date(oldIso).getTime() : null;
-          const newIso = datetimeLocalInputToUtcISO(input, tz);
-          if (oldMs == null || !newIso) return 0;
-          return new Date(newIso).getTime() - oldMs;
-        };
-        const deltaStartMs = startChanged ? deltaOf(trip.startDateTime, start) : 0;
-        const deltaEndMs = endChanged ? deltaOf(trip.endDateTime, end) : 0;
-        const shifted = await shiftCharterPartyWindows(bookingId, deltaStartMs, deltaEndMs);
-        if (!shifted.success) {
-          toast({
-            title: "Party didn't fully move",
-            description: shifted.error,
-            variant: "destructive",
-          });
-          router.refresh();
-          return { ok: false, changed: true };
-        }
-      }
-
-      toast({ title: "Trip details saved" });
-      router.refresh();
-      return { ok: true, changed: true };
-  }
-  useEffect(() => {
-    saveRef.current = handleSave;
-  });
+  const { editing } = useBookingEditMode();
 
   return (
     <Card className="rounded-2xl border-border/60">
@@ -208,20 +94,23 @@ export function BookingTripCard({
         <CardTitle className="text-lg">Trip details</CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
-        {/* Row 1 — the boat and who runs it. Live controls in both modes. */}
-        <div className="grid gap-x-8 gap-y-5 sm:grid-cols-3">
-          <Fact label="Boat">
-            {trip.boatId ? (
-              <Link
-                href={`/admin/boats/${trip.boatId}`}
-                className="text-sm font-medium text-primary-strong hover:underline"
-              >
-                {trip.boatName ?? "View boat"}
-              </Link>
-            ) : (
-              <span className="text-sm text-muted-foreground">—</span>
-            )}
-          </Fact>
+        {/* Row 1 — the boat and who runs it. Captain/crew are live controls
+            in both modes; the boat itself is picked in the form while editing. */}
+        <dl className={`grid gap-x-8 gap-y-5 ${editing ? "sm:grid-cols-2" : "sm:grid-cols-3"}`}>
+          {editing ? null : (
+            <Fact label="Boat">
+              {trip.boatId ? (
+                <Link
+                  href={`/admin/boats/${trip.boatId}`}
+                  className="text-sm font-medium text-primary-strong hover:underline"
+                >
+                  {trip.boatName ?? "View boat"}
+                </Link>
+              ) : (
+                <span className="text-sm text-muted-foreground">—</span>
+              )}
+            </Fact>
+          )}
           <Fact label="Captain">
             <OpsCaptainAssignment
               bookingId={bookingId}
@@ -239,78 +128,16 @@ export function BookingTripCard({
               crewOptions={crewOptions}
             />
           </Fact>
-        </div>
+        </dl>
 
         {editing ? (
-          <div className="space-y-4 border-t border-border/50 pt-5">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5 sm:col-span-2">
-                <Label className="text-xs">Boat</Label>
-                <BoatSelect
-                  value={boatId}
-                  selectedBoat={
-                    boatId === trip.boatId && trip.selectedBoat
-                      ? { ...trip.selectedBoat, timezone: trip.boatTimezone }
-                      : null
-                  }
-                  onChange={(id) => setBoatId(id)}
-                  showClearButton={false}
-                  placeholder="Pick a boat"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">From (boat local)</Label>
-                <Input
-                  type="datetime-local"
-                  value={start}
-                  onChange={(e) => setStart(e.target.value)}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">To (boat local)</Label>
-                <Input
-                  type="datetime-local"
-                  value={end}
-                  onChange={(e) => setEnd(e.target.value)}
-                />
-              </div>
-              {partySize > 1 ? (
-                <div className="flex items-center gap-3 pt-1 sm:col-span-2">
-                  <Switch checked={moveParty} onCheckedChange={setMoveParty} />
-                  <Label className="text-sm">Update other bookings in this party</Label>
-                </div>
-              ) : null}
-              <div className="space-y-1.5">
-                <Label className="text-xs">Passengers</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  value={passengers ?? ""}
-                  onChange={(e) => setPassengers(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                />
-              </div>
-              <div className="flex items-center gap-3 pt-5">
-                <Switch checked={needsCaptain} onCheckedChange={setNeedsCaptain} />
-                <Label className="text-sm">Captain needed</Label>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Pickup</Label>
-                <Input
-                  value={pickup}
-                  onChange={(e) => setPickup(e.target.value)}
-                  placeholder="Marina / dock"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Drop-off</Label>
-                <Input
-                  value={dropoff}
-                  onChange={(e) => setDropoff(e.target.value)}
-                  placeholder="Optional"
-                />
-              </div>
-            </div>
-          </div>
+          <TripEditor
+            bookingId={bookingId}
+            trip={trip}
+            pricing={pricing}
+            partySize={partySize}
+            canAddBoat={canAddBoat}
+          />
         ) : (
           <>
             {/* Row 2 — when. */}

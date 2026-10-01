@@ -8,7 +8,6 @@ import { Metadata } from "next";
 import { and, eq } from "drizzle-orm";
 import { boats } from "@/database/schema";
 import { db } from "@/database/db";
-import Link from "next/link";
 
 // ================================
 // ISR CONFIGURATION

@@ -83,7 +83,7 @@ export default function AdminAddUpdateBoatForm({
     images,
     updateFormImages,
     handleUpload,
-    handleDragEnd,
+    handleReorder,
     handleDelete,
   } = useBoatImages(methods, {
     mainImage: boat?.mainImage,
@@ -146,7 +146,7 @@ export default function AdminAddUpdateBoatForm({
         <MediaSection
           images={images}
           onUpload={handleUpload}
-          onDragEnd={handleDragEnd}
+          onReorder={handleReorder}
           onDelete={handleDelete}
           boatId={boatId}
           boatName={methods.getValues("name") || "boat"}

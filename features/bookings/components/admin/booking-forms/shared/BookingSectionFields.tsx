@@ -24,7 +24,7 @@ import type { BookingSectionData, PricingTierOption } from "../types";
  * typed 8:00 for a Miami boat still means 8:00 after switching to a Chicago
  * one — the instant moves, the clock reading doesn't.
  */
-function reanchorWallTime(
+export function reanchorWallTime(
   iso: string,
   fromTz: string | null,
   toTz: string | null

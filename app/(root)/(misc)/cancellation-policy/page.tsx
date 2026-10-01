@@ -1,17 +1,7 @@
 import React from "react";
 import Link from "next/link";
-import { Button } from "@/shared/components/ui/button";
-import {
-  Mail,
-  Phone,
-  Globe,
-  Shield,
-  Calendar,
-  Clock,
-  AlertTriangle,
-  CreditCard,
-  FileText,
-} from "lucide-react";
+
+import { Mail, Phone, Globe, Shield, Calendar, AlertTriangle, CreditCard, FileText } from "lucide-react";
 
 // Force static generation - this policy page has no dynamic content
 export const dynamic = "force-static";

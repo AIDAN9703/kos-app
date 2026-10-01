@@ -26,7 +26,6 @@ export interface LocationData {
   isValid: boolean;
 }
 
-
 // Define the Pricing Tier type separately for clarity
 export interface PricingTier {
   id: string;
@@ -40,7 +39,6 @@ export interface PricingTier {
   createdAt: Date;
   updatedAt: Date;
 }
-
 
 // Search params type for filtering boats
 export type SearchParamsType = {
@@ -59,7 +57,6 @@ export type SearchParamsType = {
   amenities?: string | string[];
 };
 
-
 // Search results type
 export interface SearchResults {
   boats: BoatWithTiers[];
@@ -68,42 +65,10 @@ export interface SearchResults {
   locations: BoatLocation[]; 
 }
 
-
 export type ActionResponse<T> = {
   success: boolean;
   data?: T;
   error?: string;
 };
 
-// ============================================================================
-// GENERIC PAGINATION TYPES
-// ============================================================================
-
-/**
- * Pagination options for queries
- */
-export interface PaginationOptions {
-  page?: number;
-  limit?: number;
-}
-
-/**
- * Paginated result from repository/service layer
- */
-export interface PaginatedResult<T> {
-  data: T[];
-  totalCount: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
-// ============================================================================
-// GENERIC UPDATE UTILITY TYPES
-// ============================================================================
-
-/**
- * Generic update data type - makes all fields optional except id and createdAt
- * Use for update operations where you want to allow partial updates
- */
-export type UpdateData<T> = Partial<Omit<T, 'id' | 'createdAt'>>; 
+ 

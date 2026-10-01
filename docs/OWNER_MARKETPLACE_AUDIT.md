@@ -39,7 +39,7 @@ Stripe Connect onboarding, an owner write surface, and owner notifications.
   `ownerProfiles`**. Captains and crew have admin "promote" actions
   (`features/users/promote-user.actions.ts`); owners do not.
 - `isOwner` is baked into the JWT (`auth.ts`), so a future promote action must force a
-  token refresh or the owner keeps getting redirected off `/profile/owner`.
+  token refresh or the owner keeps getting redirected off `/owner`.
 
 ### 3.2 No self-serve listing flow at all
 - Every boat write is admin-gated: `features/boats/boat.mutations.ts`, the admin boat form,
@@ -66,8 +66,8 @@ Stripe Connect onboarding, an owner write surface, and owner notifications.
   or auto-decline.
 - Yet `features/listing/components/sub-components/BookingDetails.tsx` renders "Owner
   approval required", `booking-form/v2/BookingForm.tsx` says "sends a booking request to
-  the owner… you'll only be charged if the request is approved", and
-  `BookingRequestSuccess.tsx` says "once it's approved". In reality the request is an
+  the owner… you'll only be charged if the request is approved" (an unused
+  `BookingRequestSuccess.tsx` said the same; deleted 2026-09-30). In reality the request is an
   `INQUIRY` only KOS admins see. This is a correctness bug independent of marketplace work.
 
 ### 3.5 Stripe Connect is schema-only; there is no payout model
@@ -87,7 +87,7 @@ Stripe Connect onboarding, an owner write surface, and owner notifications.
 
 ### 3.6 Owner has no surface and no channel
 - Owners cannot edit a boat, change a price, block dates (`boatBlocking` has readers but
-  **no writer anywhere**), accept a request, or see any money. `/profile/owner` is a
+  **no writer anywhere**), accept a request, or see any money. The owner portal (`/owner`) is a
   read-only fleet list (built 2026-09-16).
 - No owner notification exists. `features/notifications` does not exist; the
   `notifications` table is never written; every alert goes to `ADMIN_ALERT_EMAIL`.

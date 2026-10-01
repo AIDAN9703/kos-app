@@ -91,6 +91,18 @@ Unset boats fall back to America/New_York. Prod's remaining 12: 2 at La Coloma M
   unified booking detail page, dashboard, calendar, boats/users/captains/crew/add-ons/
   blog/settings CRUD.
 - **Auth** — email/password, Google OAuth, phone OTP; guest checkout throughout.
+- **Owner portal (`/owner`, 2026-09-30)** — site look (Montserrat, navy, white `surface`
+  cards; reuses profile `PageHeader`/`Section`/`ArrowLink`), no theme CSS. Light sticky header:
+  logo + "Owner portal", tabs (Overview / My boats / Charters), and a large "Exit owner portal"
+  button back to `/profile`. Overview: 4 stat cards (earnings this year + YoY, outstanding vs
+  paid payouts, charters completed + hours, 30-day occupancy), 12-month navy bar chart
+  (earnings/charters toggle + table view), next 5 charters, per-boat table. My boats: photo
+  cards; boat detail: specs, booked-days calendar, rate card with owner payout per tier,
+  upcoming/past charters. Charters: upcoming/past/cancelled filter. Read-only; owners never
+  see guest details or what the guest paid. Payout figures = OWNER_PAYOUT expense lines +
+  `booking_ops.sent_to_owner_cents` as entered by admins. No payouts/statements yet (Stripe
+  Connect not built). Demo data: `scripts/seed-demo-owner.sql` /
+  `scripts/cleanup-demo-owner.sql` (dev only).
 - **Customer profile (`/profile`, rebuilt 2026-09-16)** — site header + left rail (identity
   card, stacked nav, owner/captain entries by role). Overview: to-do cards (proposal to
   review, payment due, missing phone/photo), next-trip hero with countdown, other upcoming
@@ -255,15 +267,26 @@ with the warning note + team alert instead of the retired PENDING.
 
 **Booking page layout (2026-09-04, round 4):** `/admin/bookings/[id]` is one template
 for every stage. Left column: header (booking number, name + colored kind chip, a
-"Created X ago" line, [primary verb][Edit trip][⋯] + Resend on the right, stage-aware
+"Created X ago" line, [primary verb][Edit trip][⋯] on the right, stage-aware
 headline money, and a full-width, left-flush contact row underneath: Email · Phone ·
 **Assigned to** on one line),
 then ONE Trip details card (row 1 Boat · Captain · Crew with live assignment controls;
 row 2 From · To; row 3 Passengers · Captain needed · Pickup · Drop-off), then
 Commission (charter value · expenses · commission split · KOS keeps), then Charter
-party when applicable. Right column: Finances (customer line items → total / paid /
-balance, compact payment rows that open in Stripe; Add expense + Record payment in its
-header) above the sticky Activity rail. "Edit trip" turns the trip fields AND the
-header's contact row into forms; "Done" saves both. Inquiries show the same header
+party when applicable. Right column: Breakdown, read-only (Charter lines → Add-ons →
+subtotal / card fee / total → paid / balance → deposit option; Add expense + Record
+payment in its header) with "Send to customer" at its bottom: online-payment switch,
+Email / Text checkboxes, Send proposal / Send update / Resend payment link, Copy link,
+and an "N changes not sent yet" note after edits. No proposal dialog anymore. It sits
+above the sticky Activity rail. Completed payments
+(SUCCEEDED only, refunds included) are merged into Activity as "Payment $X" / "Deposit
+$X" with a Stripe link for card payments; pending/failed attempts are not shown. "Edit
+trip" (2026-09-30) turns the Trip details card into the whole form, laid out like the
+new-booking form (`TripEditor`): boat & time, guests & logistics, pricing (tier or
+custom, captain, cleaning, deposit), add-ons, live total, then a full-width "Add boat"
+button that adds charter-party boats inline (the ⋯ menu no longer has it). The
+header's contact row also becomes inputs; "Done" saves everything in one order: boat
+swap → trip fields → pricing → party shift → new boats, then the admin sends from the
+Breakdown. Inquiries show the same header
 ("Edit contact"), "Trip details · Requested", and Finances with the estimate. No status
 stepper or status chip on the page, by Aidan's call.

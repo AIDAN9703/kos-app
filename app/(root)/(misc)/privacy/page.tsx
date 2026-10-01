@@ -1,6 +1,6 @@
 import React from 'react'
 import Link from 'next/link'
-import { Button } from '@/shared/components/ui/button'
+
 import { Mail, Phone, Globe, Shield, Eye, Lock, Users, MessageCircle } from 'lucide-react'
 
 // Force static generation - this policy page has no dynamic content
@@ -29,7 +29,7 @@ export default function PrivacyPage() {
             {/* Introduction */}
             <div className="p-8 border-b border-gray-200">
               <p className="text-gray-600 leading-relaxed font-light">
-                Kings of the Sea Management LLC ("KOS Yachts," "we," "us," or "our") is committed to protecting your privacy. 
+                Kings of the Sea Management LLC (&quot;KOS Yachts,&quot; &quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) is committed to protecting your privacy. 
                 This Privacy Policy outlines how we collect, use, disclose, and safeguard your information when you interact 
                 with our website, services, and communications.
               </p>

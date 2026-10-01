@@ -144,7 +144,7 @@ export function OwnerSelect({
               )}
               {!loading && owners.length === 0 && searchQuery.length >= 2 && (
                 <CommandEmpty className="py-6 text-center text-sm">
-                  No owners found for "{searchQuery}"
+                  No owners found for &quot;{searchQuery}&quot;
                 </CommandEmpty>
               )}
               {!loading && owners.length > 0 && (

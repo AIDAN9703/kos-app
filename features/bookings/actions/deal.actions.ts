@@ -45,44 +45,6 @@ async function getDeal(bookingId: string) {
   return deal ?? null;
 }
 
-/** One-click "this lead is mine" — assigns the deal to the calling admin. */
-export async function claimDeal(bookingId: string): Promise<DealActionResult> {
-  try {
-    const adminAuth = await getAdminSession();
-    if (adminAuth.error !== undefined) return { success: false, error: adminAuth.error };
-    const session = adminAuth.session;
-
-    const deal = await getDeal(bookingId);
-    if (!deal) return { success: false, error: "Deal not found" };
-    // Claim ≠ steal: if someone already owns it, reassignment must go through
-    // the explicit Assign menu, not a silent last-write-wins.
-    if (deal.assignedAdminId && deal.assignedAdminId !== session.user.id) {
-      return { success: false, error: "Already claimed by another admin — use Assign to reassign it" };
-    }
-
-    await db
-      .update(bookings)
-      .set({ assignedAdminId: session.user.id, updatedAt: new Date() })
-      .where(eq(bookings.id, bookingId));
-
-    await bookingEventsService.logEvent({
-      bookingId,
-      eventType: "booking.assigned_admin_changed",
-      actorType: "admin",
-      actorId: session.user.id,
-      channel: "admin_portal",
-      displayMessage: `Claimed by ${session.user.name || session.user.email || "admin"}`,
-      metadata: { assignedTo: session.user.id, claimed: true },
-    });
-
-    revalidateDeal(bookingId);
-    return { success: true, message: "Lead claimed — it's yours" };
-  } catch (error) {
-    console.error("Error claiming deal:", error);
-    return { success: false, error: "Failed to claim deal" };
-  }
-}
-
 /**
  * Log a contact attempt. The first one marks the deal "Contacted" on the
  * pipeline (firstContactedAt) — automation, no manual stage clicks.

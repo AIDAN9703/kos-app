@@ -45,8 +45,8 @@ export default auth((req) => {
     }
   }
 
-  // Profile — require auth
-  if (pathname.startsWith("/profile")) {
+  // Customer profile and owner portal — require auth (role checks happen in the layouts)
+  if (pathname.startsWith("/profile") || pathname === "/owner" || pathname.startsWith("/owner/")) {
     if (!isLoggedIn) {
       const signInUrl = new URL("/sign-in", req.url);
       signInUrl.searchParams.set("callbackUrl", callbackUrlFromRequest(req));

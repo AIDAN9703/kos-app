@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { createColumnHelper, type ColumnDef } from "@tanstack/react-table";
+import { createColumnHelper } from "@tanstack/react-table";
 import { Button } from "@/shared/components/ui/button";
 import {
   DropdownMenu,
@@ -31,34 +31,38 @@ const columnHelper = createColumnHelper<BoatListItem>();
 export function AdminBoatsTable({ boats, loading }: AdminBoatsTableProps) {
   const router = useRouter();
   const { toast } = useToast();
-  const deleteBoat = useDeleteBoat();
+  const { mutate: deleteBoat } = useDeleteBoat();
 
-  const handleDelete = (boatId: string) => {
-    if (!confirm("Are you sure? This action cannot be undone.")) return;
-    deleteBoat.mutate(boatId, {
-      onSuccess: (result) => {
-        if (result.success) {
-          router.refresh();
-          toast({ title: "Boat deleted successfully" });
-        } else {
+  const handleDelete = useCallback(
+    (boatId: string) => {
+      if (!confirm("Are you sure? This action cannot be undone.")) return;
+      deleteBoat(boatId, {
+        onSuccess: (result) => {
+          if (result.success) {
+            router.refresh();
+            toast({ title: "Boat deleted successfully" });
+          } else {
+            toast({
+              title: "Error",
+              description:
+                typeof result.error === "string" ? result.error : "Failed to delete boat",
+              variant: "destructive",
+            });
+          }
+        },
+        onError: () => {
           toast({
             title: "Error",
-            description: typeof result.error === "string" ? result.error : "Failed to delete boat",
+            description: "Failed to delete boat",
             variant: "destructive",
           });
-        }
-      },
-      onError: () => {
-        toast({
-          title: "Error",
-          description: "Failed to delete boat",
-          variant: "destructive",
-        });
-      },
-    });
-  };
+        },
+      });
+    },
+    [deleteBoat, router, toast]
+  );
 
-  const columns = useMemo<ColumnDef<BoatListItem, any>[]>(
+  const columns = useMemo(
     () => [
       columnHelper.accessor("name", {
         id: "boat",
@@ -81,9 +85,7 @@ export function AdminBoatsTable({ boats, loading }: AdminBoatsTableProps) {
                 )}
               </div>
               <div className="min-w-0">
-                <div className="font-medium text-foreground text-sm truncate">
-                  {boat.name}
-                </div>
+                <div className="font-medium text-foreground text-sm truncate">{boat.name}</div>
                 <div className="text-xs text-muted-foreground truncate">
                   {boat.lengthFt ? `${boat.lengthFt}ft` : "—"} •{" "}
                   {boat.capacity ? `${boat.capacity} guests` : "—"}
@@ -104,20 +106,14 @@ export function AdminBoatsTable({ boats, loading }: AdminBoatsTableProps) {
       columnHelper.accessor("ownerName", {
         header: "Owner",
         cell: (info) => (
-          <span className="text-sm text-muted-foreground">
-            {info.getValue() || "—"}
-          </span>
+          <span className="text-sm text-muted-foreground">{info.getValue() || "—"}</span>
         ),
       }),
       columnHelper.accessor("basePrice", {
         header: "Base Price",
         cell: (info) => {
           const price = info.getValue();
-          return (
-            <span className="text-sm font-medium">
-              {price ? formatCurrency(price) : "—"}
-            </span>
-          );
+          return <span className="text-sm font-medium">{price ? formatCurrency(price) : "—"}</span>;
         },
       }),
       columnHelper.accessor("active", {
@@ -148,19 +144,13 @@ export function AdminBoatsTable({ boats, loading }: AdminBoatsTableProps) {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem asChild>
-                    <Link
-                      href={`/admin/boats/${boat.id}`}
-                      className="cursor-pointer"
-                    >
+                    <Link href={`/admin/boats/${boat.id}`} className="cursor-pointer">
                       <Eye className="h-4 w-4 mr-2" />
                       View Details
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link
-                      href={`/admin/boats/${boat.id}/edit`}
-                      className="cursor-pointer"
-                    >
+                    <Link href={`/admin/boats/${boat.id}/edit`} className="cursor-pointer">
                       <Edit className="h-4 w-4 mr-2" />
                       Edit Boat
                     </Link>
@@ -182,7 +172,7 @@ export function AdminBoatsTable({ boats, loading }: AdminBoatsTableProps) {
         },
       }),
     ],
-    []
+    [handleDelete]
   );
 
   return (

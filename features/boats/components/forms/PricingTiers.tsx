@@ -2,20 +2,8 @@
 
 import { useState } from "react";
 import { Button } from "@/shared/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/shared/components/ui/card";
-import {
-  FormControl,
-  FormDescription,
-  FormLabel,
-  FormMessage,
-} from "@/shared/components/ui/form";
+import { Card, CardContent } from "@/shared/components/ui/card";
+import { FormLabel } from "@/shared/components/ui/form";
 import {
   Dialog,
   DialogContent,
@@ -45,7 +33,6 @@ interface PricingTiersProps {
 export function PricingTiers({ tiers = [], onChange, currency = "USD" }: PricingTiersProps) {
   const symbol = getCurrencySymbol(currency);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [currentTier, setCurrentTier] = useState<PricingTierInput | null>(null);
   const [editIndex, setEditIndex] = useState<number | null>(null);
 
   // Form for adding/editing a pricing tier
@@ -72,7 +59,6 @@ export function PricingTiers({ tiers = [], onChange, currency = "USD" }: Pricing
       isActive: true,
       isDefault: false,
     });
-    setCurrentTier(null);
     setEditIndex(null);
     setIsDialogOpen(true);
   };
@@ -82,7 +68,6 @@ export function PricingTiers({ tiers = [], onChange, currency = "USD" }: Pricing
     e.preventDefault(); // Prevent form submission
     e.stopPropagation(); // Prevent event bubbling
     tierForm.reset(tier);
-    setCurrentTier(tier);
     setEditIndex(index);
     setIsDialogOpen(true);
   };
@@ -244,12 +229,7 @@ export function PricingTiers({ tiers = [], onChange, currency = "USD" }: Pricing
                   min="1"
                   placeholder="Duration in hours"
                   {...tierForm.register("hours", {
-                    setValueAs: (v) => v === "" ? undefined : parseInt(v) || 1,
-                    onChange: (e) => {
-                      // Allow empty string during typing
-                      const value = e.target.value;
-                      tierForm.setValue("hours", value === "" ? "" as any : parseInt(value) || 1);
-                    }
+                    setValueAs: (v) => v === "" ? undefined : parseInt(v) || 1
                   })}
                   onBlur={(e) => {
                     // On blur, ensure we have a valid number
@@ -273,12 +253,7 @@ export function PricingTiers({ tiers = [], onChange, currency = "USD" }: Pricing
                   step="0.01"
                   placeholder={`Price in ${currency.toUpperCase()}`}
                   {...tierForm.register("price", {
-                    setValueAs: (v) => v === "" ? undefined : parseFloat(v) || 0,
-                    onChange: (e) => {
-                      // Allow empty string during typing
-                      const value = e.target.value;
-                      tierForm.setValue("price", value === "" ? "" as any : parseFloat(value) || 0);
-                    }
+                    setValueAs: (v) => v === "" ? undefined : parseFloat(v) || 0
                   })}
                   onBlur={(e) => {
                     // On blur, ensure we have a valid number

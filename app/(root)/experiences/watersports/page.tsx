@@ -1,9 +1,9 @@
 import { Metadata } from "next";
 import Image from "next/image";
-import Link from "next/link";
-import { CheckCircle2, Calendar, Users, Navigation, Globe } from "lucide-react";
+
+import { Calendar, Users, Navigation, Globe } from "lucide-react";
 import ExperienceLayout from "@/features/_marketing/experiences/components/ExperienceLayout";
-import { Button } from "@/shared/components/ui/button";
+
 
 export const metadata: Metadata = {
   title: "Water Sports Adventures | KOSyachts",
@@ -13,26 +13,6 @@ export const metadata: Metadata = {
 
 // Force static generation - this page has no dynamic content
 export const dynamic = "force-static";
-
-// Related experiences
-const relatedExperiences = [
-  {
-    id: "fishing",
-    title: "Fishing Charters",
-    description:
-      "Experience the thrill of deep-sea fishing with professional guides.",
-    image: "/images/experiences/fishing.jpg",
-    href: "/experiences/fishing",
-  },
-  {
-    id: "sand-bar",
-    title: "Sand Bar Excursions",
-    description:
-      "Relax and enjoy pristine sandbar locations only accessible by boat.",
-    image: "/images/experiences/hauloversandbar.jpeg",
-    href: "/experiences/sand-bar",
-  },
-];
 
 // FAQs
 const faqs = [
@@ -134,7 +114,6 @@ export default function WatersportsPage() {
       description="Get your adrenaline pumping with exciting water sports activities. From jet skis to wakeboarding, there's something for everyone."
       heroImage="/images/experiences/wakeboarding.jpg"
       faqs={faqs}
-      relatedExperiences={relatedExperiences}
       buttonText="Book Now"
       buttonLink="/contact"
     >
@@ -145,7 +124,7 @@ export default function WatersportsPage() {
             Water Sports Services
           </h2>
           <p className="text-gray-600 max-w-3xl text-lg font-light leading-relaxed">
-            Whether you're seeking an adrenaline rush or a fun family activity,
+            Whether you&apos;re seeking an adrenaline rush or a fun family activity,
             our water sports charters offer something for everyone with
             professional instructors and premium equipment.
           </p>

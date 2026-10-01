@@ -31,7 +31,7 @@ export function useBoatImages<TFormValues extends Record<string, unknown>>(
     });
   }, [updateFormImages]);
 
-  // Modern reorder handler for @dnd-kit or direct index swapping
+  // Move one image from oldIndex to newIndex (the drag grid calls this).
   const handleReorder = useCallback((oldIndex: number, newIndex: number) => {
     if (oldIndex === newIndex) return;
     setImages(prev => {
@@ -42,12 +42,6 @@ export function useBoatImages<TFormValues extends Record<string, unknown>>(
       return next;
     });
   }, [updateFormImages]);
-
-  // Legacy handler for backward compatibility (converts old format to new)
-  const handleDragEnd = useCallback((result: { source: { index: number }; destination?: { index: number } | null }) => {
-    if (!result.destination) return;
-    handleReorder(result.source.index, result.destination.index);
-  }, [handleReorder]);
 
   const handleDelete = useCallback((index: number) => {
     setImages(prev => {
@@ -61,8 +55,7 @@ export function useBoatImages<TFormValues extends Record<string, unknown>>(
     images, 
     updateFormImages, 
     handleUpload, 
-    handleReorder,  // New modern handler
-    handleDragEnd,  // Legacy compatibility
+    handleReorder,
     handleDelete 
   };
 }

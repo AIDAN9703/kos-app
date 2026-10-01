@@ -84,38 +84,43 @@ function useGlobalSearchActions() {
   const { searchQuery } = useKBar((state) => ({
     searchQuery: state.searchQuery
   }));
-  const [actions, setActions] = useState<KBarAction[]>([]);
+  const query = searchQuery?.trim() ?? "";
+  // Results are tagged with the query they answer, so a short or changed query
+  // reads as "no results" without clearing state inside the effect.
+  const [results, setResults] = useState<{ query: string; actions: KBarAction[] }>({
+    query: "",
+    actions: [],
+  });
 
   useEffect(() => {
-    if (!searchQuery || searchQuery.trim().length < 2) {
-      setActions([]);
-      return;
-    }
+    if (query.length < 2) return;
 
     const controller = new AbortController();
 
     const fetchResults = async () => {
       try {
         const response = await fetch(
-          `/api/admin/search?q=${encodeURIComponent(searchQuery)}`,
+          `/api/admin/search?q=${encodeURIComponent(query)}`,
           { signal: controller.signal }
         );
         if (!response.ok) {
-          setActions([]);
+          setResults({ query, actions: [] });
           return;
         }
         const data: { results: SearchResult[] } = await response.json();
-        const searchActions = data.results.map((result) => ({
-          id: `search-${result.type}-${result.id}`,
-          name: result.title,
-          subtitle: result.subtitle,
-          section: 'Search',
-          perform: () => router.push(result.url)
-        }));
-        setActions(searchActions);
+        setResults({
+          query,
+          actions: data.results.map((result) => ({
+            id: `search-${result.type}-${result.id}`,
+            name: result.title,
+            subtitle: result.subtitle,
+            section: "Search",
+            perform: () => router.push(result.url),
+          })),
+        });
       } catch (error) {
-        if ((error as Error).name !== 'AbortError') {
-          setActions([]);
+        if ((error as Error).name !== "AbortError") {
+          setResults({ query, actions: [] });
         }
       }
     };
@@ -123,8 +128,9 @@ function useGlobalSearchActions() {
     fetchResults();
 
     return () => controller.abort();
-  }, [router, searchQuery]);
+  }, [router, query]);
 
+  const actions = query.length >= 2 && results.query === query ? results.actions : [];
   useRegisterActions(actions, [actions]);
 }
 

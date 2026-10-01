@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -31,10 +31,12 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ navigationData, use
   const { isActive } = useActiveRoute();
   const pathname = usePathname();
 
-  // Close sheet when route changes
-  useEffect(() => {
+  // Close the sheet when the route changes (reset during render, no effect).
+  const [openedOn, setOpenedOn] = useState(pathname);
+  if (openedOn !== pathname) {
+    setOpenedOn(pathname);
     setOpen(false);
-  }, [pathname]);
+  }
 
   const toggleExpanded = useCallback((href: string) => {
     setExpandedItems((prev) =>

@@ -1,16 +1,7 @@
-import { PricingTier } from "../types/types";
 import { formatCurrency } from "./general-utils";
 
 import { dollarsToCents, type Cents } from "./money-utils";
 import { BoatWithTiers } from "@/features/boats/boat.types";
-/**
- * Minimal boat type for pricing functions - only requires fields actually used
- */
-type BoatForPricing = {
-  pricingTiers?: PricingTier[] | null;
-  hourlyRate?: number | null;
-};
-
 /**
  * Compute the lowest price-per-hour across active tiers for "from $X+/hr" display
  */

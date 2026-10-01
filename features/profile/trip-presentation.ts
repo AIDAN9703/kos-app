@@ -1,5 +1,11 @@
 import { formatBoatLocal } from "@/shared/lib/utils/date-helpers";
-import type { AccountUser, AttentionItem, ProfileOverview, TripCounts, TripSummary } from "./profile.types";
+import type {
+  AccountUser,
+  AttentionItem,
+  ProfileCompletionItem,
+  ProfileOverview,
+  TripSummary,
+} from "./profile.types";
 
 /**
  * Customer-facing words and colours for a trip. The stored status vocabulary
@@ -40,7 +46,7 @@ export function tripStatus(trip: TripSummary): { label: string; tone: TripTone }
 }
 
 /** Open deals (not completed or cancelled) whose date, if set, hasn't passed. */
-export function isUpcoming(trip: TripSummary, now: Date = new Date()): boolean {
+function isUpcoming(trip: TripSummary, now: Date = new Date()): boolean {
   if (trip.status === "COMPLETED" || trip.status === "CANCELLED") return false;
   return trip.startsAt === null || trip.startsAt >= now;
 }
@@ -61,7 +67,10 @@ export function tripTimeRange(trip: Pick<TripSummary, "startsAt" | "endsAt" | "t
 }
 
 /** "Today", "Tomorrow", "In 9 days" — the countdown Airbnb-style trip cards lead with. */
-export function relativeDeparture(trip: Pick<TripSummary, "startsAt">, now: Date = new Date()): string | null {
+export function relativeDeparture(
+  trip: Pick<TripSummary, "startsAt">,
+  now: Date = new Date()
+): string | null {
   if (!trip.startsAt) return null;
   const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
   const days = Math.round((startOfDay(trip.startsAt) - startOfDay(now)) / 864e5);
@@ -98,34 +107,61 @@ export function splitTrips(trips: TripSummary[], now: Date = new Date()) {
   return { upcoming, past };
 }
 
-export function countTrips(trips: TripSummary[], now: Date = new Date()): TripCounts {
-  return {
-    upcoming: trips.filter((t) => isUpcoming(t, now)).length,
-    completed: trips.filter((t) => t.status === "COMPLETED").length,
-    proposals: trips.filter((t) => t.status === "PROPOSED" && isUpcoming(t, now)).length,
-  };
-}
-
-/** Pure: everything the overview page shows, derived from the trip list and account. */
-export function buildOverview(
-  trips: TripSummary[],
-  account: Pick<AccountUser, "phoneNumber" | "profileImage">,
-  now: Date = new Date()
-): ProfileOverview {
+/** Pure: everything the overview page shows, derived from the trip list. */
+export function buildOverview(trips: TripSummary[], now: Date = new Date()): ProfileOverview {
   const { upcoming, past } = splitTrips(trips, now);
 
   const attention: AttentionItem[] = [];
   for (const trip of upcoming) {
     if (trip.status === "PROPOSED" && trip.publicToken) attention.push({ kind: "proposal", trip });
-    else if (trip.status === "BOOKED" && trip.balanceCents > 0) attention.push({ kind: "balance", trip });
+    else if (trip.status === "BOOKED" && trip.balanceCents > 0)
+      attention.push({ kind: "balance", trip });
   }
-  if (!account.phoneNumber) attention.push({ kind: "phone" });
-  if (!account.profileImage) attention.push({ kind: "photo" });
+
+  const nextTrip = upcoming.find((t) => t.status === "BOOKED" && t.startsAt !== null) ?? null;
+  const completed = past.filter((t) => t.status === "COMPLETED");
 
   return {
-    nextTrip: upcoming.find((t) => t.status === "BOOKED" && t.startsAt !== null) ?? null,
+    nextTrip,
+    moreUpcoming: upcoming.filter((t) => t.id !== nextTrip?.id),
     attention,
-    recentTrips: past.slice(0, 3),
-    counts: countTrips(trips, now),
+    stats: {
+      tripsCompleted: completed.length,
+      hoursOnWater: completed.reduce((sum, t) => sum + (tripDurationHours(t) ?? 0), 0),
+      guestsHosted: completed.reduce((sum, t) => sum + (t.guests ?? 0), 0),
+      boatsSailed: new Set(completed.map((t) => t.boatId).filter(Boolean)).size,
+    },
   };
+}
+
+/** The account details that make a profile feel finished, in display order. */
+export function profileCompletion(
+  account: Pick<AccountUser, "profileImage" | "phoneNumber" | "city" | "bio">
+): ProfileCompletionItem[] {
+  return [
+    {
+      key: "photo",
+      label: "Add a profile photo",
+      done: Boolean(account.profileImage),
+      href: "/profile/settings#photo",
+    },
+    {
+      key: "phone",
+      label: "Add a phone number",
+      done: Boolean(account.phoneNumber),
+      href: "/profile/settings#personal",
+    },
+    {
+      key: "city",
+      label: "Add your home city",
+      done: Boolean(account.city),
+      href: "/profile/settings#address",
+    },
+    {
+      key: "bio",
+      label: "Tell the crew about you",
+      done: Boolean(account.bio),
+      href: "/profile/settings#personal",
+    },
+  ];
 }

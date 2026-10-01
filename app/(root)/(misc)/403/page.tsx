@@ -15,7 +15,7 @@ export default function ForbiddenPage() {
           Access Denied
         </h2>
         <p className="text-gray-600 mb-8">
-          You don't have permission to access this resource. Please contact an
+          You don&apos;t have permission to access this resource. Please contact an
           administrator if you believe this is an error.
         </p>
 

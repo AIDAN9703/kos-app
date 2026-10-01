@@ -1,6 +1,5 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
 import { formatCentsAsCurrency } from "@/shared/lib/utils/money-utils";
 import {
   TRIP_FALLBACK_IMAGE,
@@ -10,6 +9,7 @@ import {
   tripTimeRange,
 } from "../../trip-presentation";
 import type { TripSummary } from "../../profile.types";
+import { ArrowLink } from "../ArrowLink";
 import { surfaceInteractive } from "../surface";
 import { TripStatusBadge } from "./TripStatusBadge";
 
@@ -45,7 +45,9 @@ export function UpcomingTripCard({ trip }: { trip: TripSummary }) {
 
       <div className="flex flex-1 flex-col p-5 sm:p-6">
         <div className="flex items-center gap-2">
-          {countdown ? <span className="text-sm font-semibold text-primary">{countdown}</span> : null}
+          {countdown ? (
+            <span className="text-sm font-semibold text-primary">{countdown}</span>
+          ) : null}
           <TripStatusBadge trip={trip} />
         </div>
 
@@ -69,26 +71,22 @@ export function UpcomingTripCard({ trip }: { trip: TripSummary }) {
           {trip.pickupLocation ? ` · ${trip.pickupLocation}` : ""}
         </p>
 
-        <div className="mt-auto flex items-center justify-between gap-4 pt-5">
+        <div className="mt-auto flex items-center gap-4 pt-5">
           {trip.totalCents > 0 ? (
             <p className="text-sm text-slate-500">
-              <span className="font-semibold tabular-nums text-primary">{formatCentsAsCurrency(trip.totalCents)}</span>
+              <span className="font-semibold tabular-nums text-primary">
+                {formatCentsAsCurrency(trip.totalCents)}
+              </span>
               {trip.balanceCents > 0 && trip.paidCents > 0
                 ? ` · ${formatCentsAsCurrency(trip.balanceCents)} remaining`
                 : trip.balanceCents === 0
                   ? " · paid"
                   : ""}
             </p>
-          ) : (
-            <span />
-          )}
-          <Link
-            href={action.href}
-            className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap text-sm font-semibold text-primary underline-offset-4 hover:underline"
-          >
+          ) : null}
+          <ArrowLink href={action.href} className="ml-auto">
             {action.label}
-            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-          </Link>
+          </ArrowLink>
         </div>
       </div>
     </article>

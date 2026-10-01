@@ -1,20 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import {
-  Save,
-  Eye,
-  Upload,
-  X,
-  Calendar,
-  Star,
-  FileText,
-  Image as ImageIcon,
-} from "lucide-react";
+import { Save, Upload, X, Star, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Textarea } from "@/shared/components/ui/textarea";
@@ -122,7 +113,6 @@ export default function BlogForm({ mode, initialData }: BlogFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
-  const [previewMode, setPreviewMode] = useState(false);
 
   const form = useForm<BlogFormData>({
     resolver: zodResolver(blogFormSchema),
@@ -174,7 +164,7 @@ export default function BlogForm({ mode, initialData }: BlogFormProps) {
         title: "Success",
         description: "Image uploaded successfully",
       });
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to upload image. Please try again.",
@@ -227,7 +217,7 @@ export default function BlogForm({ mode, initialData }: BlogFormProps) {
       } else {
         throw new Error(result.error);
       }
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: `Failed to ${mode} blog post. Please try again.`,

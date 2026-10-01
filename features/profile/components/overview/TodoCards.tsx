@@ -4,20 +4,18 @@ import { cn } from "@/shared/lib/utils/general-utils";
 import { formatCentsAsCurrency } from "@/shared/lib/utils/money-utils";
 import { TRIP_TONE_CLASSES, tripDate, type TripTone } from "../../trip-presentation";
 import type { AttentionItem } from "../../profile.types";
+import { Section } from "../Section";
 import { surfaceInteractive } from "../surface";
 
 /**
- * Things waiting on the customer, as a row of small cards — a proposal to
- * answer, a payment, a gap in the account. Hidden when there's nothing to do.
+ * Trips waiting on the customer, as a row of small cards — a proposal to
+ * answer or a payment due. Hidden when there's nothing to do.
  */
 export function TodoCards({ items }: { items: AttentionItem[] }) {
   if (items.length === 0) return null;
   return (
-    <section aria-labelledby="todo-heading">
-      <h2 id="todo-heading" className="text-xl font-semibold tracking-tight text-primary">
-        To do
-      </h2>
-      <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+    <Section id="to-do" title="To do">
+      <ul className="grid gap-3 sm:grid-cols-2">
         {items.map((item) => {
           const card = describe(item);
           return (
@@ -45,7 +43,7 @@ export function TodoCards({ items }: { items: AttentionItem[] }) {
           );
         })}
       </ul>
-    </section>
+    </Section>
   );
 }
 
@@ -81,26 +79,6 @@ function describe(item: AttentionItem): {
             : `${tripDate(item.trip)} · Pay to lock in your date.`,
         cta: "View trip",
         href: `/profile/bookings/${item.trip.id}`,
-      };
-    case "phone":
-      return {
-        key: "phone",
-        chip: "Your account",
-        tone: "neutral",
-        title: "Add a phone number",
-        detail: "Your captain and our team use it for day-of updates.",
-        cta: "Add phone",
-        href: "/profile/settings#personal",
-      };
-    case "photo":
-      return {
-        key: "photo",
-        chip: "Your account",
-        tone: "neutral",
-        title: "Add a profile photo",
-        detail: "Helps the crew recognise you at the dock.",
-        cta: "Add photo",
-        href: "/profile/settings#photo",
       };
   }
 }

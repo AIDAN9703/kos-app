@@ -1,9 +1,7 @@
-import type { addOns, boatAddOns, addOnCategoryEnum } from "@/database/schema";
+import type { addOns, addOnCategoryEnum } from "@/database/schema";
 
 export type AddOnCategory = (typeof addOnCategoryEnum.enumValues)[number];
 export type AddOn = typeof addOns.$inferSelect;
-export type NewAddOn = typeof addOns.$inferInsert;
-export type BoatAddOnRow = typeof boatAddOns.$inferSelect;
 
 /** Catalog row as shown in the admin list. */
 export interface AddOnListItem {

@@ -1,4 +1,4 @@
-import { pgTable, text, integer, boolean, doublePrecision, uuid, timestamp, index } from "drizzle-orm/pg-core";
+import { pgTable, text, boolean, uuid, timestamp, index } from "drizzle-orm/pg-core";
 import { userStatusEnum, notificationPreferenceEnum, authProviderEnum } from "@/database/schema/enums";
 
 

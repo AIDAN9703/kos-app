@@ -26,10 +26,4 @@ export interface BookingListItemShared {
   createdAt: Date;
 }
 
-/**
- * Booking list item for user contexts (profile pages, user detail pages)
- * Extends shared type with user-specific fields
- */
-export interface UserBookingListItem extends BookingListItemShared {
-  // Additional fields can be added here if needed for user contexts
-}
+

@@ -20,7 +20,9 @@ export function SettingsSection({ id, title, description, children }: SettingsSe
         <h2 id={`${id}-heading`} className="text-lg font-bold text-primary">
           {title}
         </h2>
-        {description ? <p className="mt-1 text-sm leading-6 text-slate-500">{description}</p> : null}
+        {description ? (
+          <p className="mt-1 text-sm leading-6 text-slate-500">{description}</p>
+        ) : null}
       </div>
       <div className="min-w-0">{children}</div>
     </section>

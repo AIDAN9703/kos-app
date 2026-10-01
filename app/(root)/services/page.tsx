@@ -1,15 +1,7 @@
 import { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import {
-  ArrowRight,
-  CheckCircle,
-  Shield,
-  Award,
-  Anchor,
-  Users,
-  Star,
-} from "lucide-react";
+import { ArrowRight, Shield, Users, Star } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 
 export const metadata: Metadata = {
@@ -141,7 +133,7 @@ export default function ServicesPage() {
 
           {/* Services Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {services.map((service, index) => (
+            {services.map((service) => (
               <Link
                 key={service.id}
                 href={service.href}

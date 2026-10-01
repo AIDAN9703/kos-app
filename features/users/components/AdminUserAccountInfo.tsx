@@ -9,34 +9,9 @@ import {
 } from "@/shared/components/ui/card";
 import { type User } from "@/database/types";
 import { formatDate } from "@/shared/lib/utils/general-utils";
+import { InfoRow, YesNo } from "./InfoRow";
 
 export function AdminUserAccountInfo({ user }: { user: User }) {
-  const BooleanStatus = ({ value }: { value: boolean }) =>
-    value ? (
-      <span className="text-sm font-medium text-foreground">Yes</span>
-    ) : (
-      <span className="text-sm font-medium text-muted-foreground">No</span>
-    );
-
-  const InfoRow = ({
-    label,
-    value,
-    children,
-  }: {
-    label: string;
-    value?: React.ReactNode;
-    children?: React.ReactNode;
-  }) => (
-    <div className="space-y-1">
-      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-        {label}
-      </p>
-      {children ?? (
-        <p className="text-sm font-medium text-foreground">{value ?? "—"}</p>
-      )}
-    </div>
-  );
-
   return (
     <Card className="overflow-hidden">
       <CardHeader className="pb-4">
@@ -64,7 +39,7 @@ export function AdminUserAccountInfo({ user }: { user: User }) {
             </Badge>
           </InfoRow>
           <InfoRow label="Admin Access">
-            <BooleanStatus value={Boolean(user.isAdmin)} />
+            <YesNo value={Boolean(user.isAdmin)} />
           </InfoRow>
           <InfoRow label="Joined" value={formatDate(user.createdAt)} />
           <InfoRow label="Auth Provider">
@@ -73,13 +48,13 @@ export function AdminUserAccountInfo({ user }: { user: User }) {
             </Badge>
           </InfoRow>
           <InfoRow label="Email Verified">
-            <BooleanStatus value={Boolean(user.emailVerified)} />
+            <YesNo value={Boolean(user.emailVerified)} />
           </InfoRow>
           <InfoRow label="Phone Verified">
-            <BooleanStatus value={Boolean(user.phoneVerified)} />
+            <YesNo value={Boolean(user.phoneVerified)} />
           </InfoRow>
           <InfoRow label="Identity Verified">
-            <BooleanStatus value={Boolean(user.identityVerified)} />
+            <YesNo value={Boolean(user.identityVerified)} />
           </InfoRow>
           {user.identityVerificationType && (
             <InfoRow

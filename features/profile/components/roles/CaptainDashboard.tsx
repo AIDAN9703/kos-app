@@ -4,8 +4,13 @@ import { format } from "date-fns";
 import { cn } from "@/shared/lib/utils/general-utils";
 import { guestsLabel, tripDate, tripTimeRange, TRIP_FALLBACK_IMAGE } from "../../trip-presentation";
 import type { CaptainSummary } from "../../profile.types";
+import { Section } from "../Section";
+import { StatStrip } from "./StatStrip";
 
-const STATUS_COPY: Record<CaptainSummary["profile"]["status"], { label: string; className: string; note?: string }> = {
+const STATUS_COPY: Record<
+  CaptainSummary["profile"]["status"],
+  { label: string; className: string; note?: string }
+> = {
   ACTIVE: { label: "Active", className: "bg-success-soft text-success" },
   PENDING: {
     label: "Under review",
@@ -25,49 +30,43 @@ export function CaptainDashboard({ summary }: { summary: CaptainSummary }) {
 
   return (
     <div className="space-y-10">
-      <div className="flex flex-wrap items-center gap-3">
-        <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-semibold", status.className)}>
-          {status.label}
-        </span>
-        {profile.uscgLicensed ? (
-          <span className="rounded-full bg-gold-soft px-2.5 py-0.5 text-xs font-semibold text-gold-deep">
-            USCG licensed{profile.licenseType ? ` · ${profile.licenseType}` : ""}
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <span
+            className={cn("rounded-full px-2.5 py-0.5 text-xs font-semibold", status.className)}
+          >
+            {status.label}
           </span>
-        ) : null}
-        {profile.licenseExpiry ? (
-          <span className="text-sm text-slate-500">
-            License expires {format(profile.licenseExpiry, "MMM d, yyyy")}
-          </span>
-        ) : null}
+          {profile.uscgLicensed ? (
+            <span className="rounded-full bg-gold-soft px-2.5 py-0.5 text-xs font-semibold text-gold-deep">
+              USCG licensed{profile.licenseType ? ` · ${profile.licenseType}` : ""}
+            </span>
+          ) : null}
+          {profile.licenseExpiry ? (
+            <span className="text-sm text-slate-500">
+              License expires {format(profile.licenseExpiry, "MMM d, yyyy")}
+            </span>
+          ) : null}
+        </div>
+        {status.note ? <p className="text-[15px] leading-7 text-slate-600">{status.note}</p> : null}
       </div>
-      {status.note ? <p className="-mt-6 text-[15px] leading-7 text-slate-600">{status.note}</p> : null}
 
-      <dl className="grid grid-cols-3 divide-x divide-gray-200 border-y border-gray-200">
-        {[
-          { label: "Upcoming trips", value: String(upcoming.length) },
-          { label: "Trips completed", value: String(completed) },
-          { label: "Years experience", value: profile.yearsExperience != null ? String(profile.yearsExperience) : "—" },
-        ].map((stat) => (
-          <div key={stat.label} className="px-4 py-4 first:pl-0 last:pr-0 sm:px-6">
-            <dd className="text-2xl font-bold tabular-nums text-primary sm:text-3xl">{stat.value}</dd>
-            <dt className="mt-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-              {stat.label}
-            </dt>
-          </div>
-        ))}
-      </dl>
+      <StatStrip
+        stats={[
+          { label: "Upcoming trips", value: upcoming.length },
+          { label: "Trips completed", value: completed },
+          { label: "Years experience", value: profile.yearsExperience ?? "—" },
+        ]}
+      />
 
-      <section aria-labelledby="assignments-heading">
-        <h2 id="assignments-heading" className="text-lg font-bold text-primary">
-          Your upcoming trips
-        </h2>
+      <Section id="assignments" title="Your upcoming trips">
         {upcoming.length === 0 ? (
-          <p className="mt-2 text-[15px] leading-7 text-slate-600">
+          <p className="text-[15px] leading-7 text-slate-600">
             No trips assigned yet. When the team puts you on a charter it appears here with the
             departure time and pickup.
           </p>
         ) : (
-          <ul className="mt-4 divide-y divide-gray-200 border-y border-gray-200">
+          <ul className="divide-y divide-gray-200 border-y border-gray-200">
             {upcoming.map((trip) => (
               <li key={trip.id} className="flex items-center gap-4 py-4">
                 <div className="relative h-14 w-20 shrink-0 overflow-hidden rounded-xl bg-muted">
@@ -94,7 +93,7 @@ export function CaptainDashboard({ summary }: { summary: CaptainSummary }) {
             ))}
           </ul>
         )}
-      </section>
+      </Section>
 
       <p className="text-sm leading-6 text-slate-500">
         Need to update your license or availability?{" "}

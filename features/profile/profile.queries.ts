@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, desc, eq, gte, inArray, ne, or, sql } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, ne, or, sql } from "drizzle-orm";
 import { db } from "@/database/db";
 import {
   boats,
@@ -16,8 +16,6 @@ import type {
   AccountUser,
   CaptainAssignment,
   CaptainSummary,
-  OwnedBoat,
-  OwnerCharter,
   TripDetail,
   TripSummary,
 } from "./profile.types";
@@ -34,7 +32,6 @@ export async function getAccount(userId: string): Promise<AccountUser | null> {
   const [row] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
   if (!row) return null;
   // The bcrypt hash must never reach a component, even one that ignores it.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- destructured only to drop it
   const { password, ...account } = row;
   return account;
 }
@@ -160,58 +157,6 @@ export async function getTrip(userId: string, bookingId: string): Promise<TripDe
   };
 }
 
-/** Cheap count for the identity card in the layout. */
-export async function countCompletedTrips(userId: string): Promise<number> {
-  const [row] = await db
-    .select({ count: sql<string>`count(*)` })
-    .from(bookings)
-    .where(and(eq(bookings.userId, userId), eq(bookings.bookingStatus, "COMPLETED")));
-  return Number(row?.count ?? 0);
-}
-
-// ── Owner ──────────────────────────────────────────────────────────────────
-
-export async function getOwnedBoats(userId: string): Promise<OwnedBoat[]> {
-  return db
-    .select({
-      id: boats.id,
-      name: boats.name,
-      displayTitle: boats.displayTitle,
-      category: boats.category,
-      active: boats.active,
-      mainImage: boats.mainImage,
-      locationLabel: boats.locationLabel,
-      capacity: boats.capacity,
-    })
-    .from(boats)
-    .where(eq(boats.ownerId, userId))
-    .orderBy(desc(boats.active), asc(boats.name));
-}
-
-/** Booked charters ahead on the owner's boats. Deliberately no customer fields. */
-export async function getUpcomingOwnerCharters(userId: string): Promise<OwnerCharter[]> {
-  return db
-    .select({
-      id: bookings.id,
-      boatName: boats.name,
-      startsAt: bookings.startDateTime,
-      endsAt: bookings.endDateTime,
-      timezone: boats.timezone,
-      guests: bookings.numberOfPassengers,
-    })
-    .from(bookings)
-    .innerJoin(boats, eq(boats.id, bookings.boatId))
-    .where(
-      and(
-        eq(boats.ownerId, userId),
-        eq(bookings.bookingStatus, "BOOKED"),
-        gte(bookings.startDateTime, new Date())
-      )
-    )
-    .orderBy(asc(bookings.startDateTime))
-    .limit(10);
-}
-
 // ── Captain ────────────────────────────────────────────────────────────────
 
 export async function getCaptainSummary(userId: string): Promise<CaptainSummary | null> {
@@ -251,7 +196,11 @@ export async function getCaptainSummary(userId: string): Promise<CaptainSummary 
       .from(bookings)
       .leftJoin(boats, eq(boats.id, bookings.boatId))
       .where(
-        and(assignedTo, eq(bookings.bookingStatus, "BOOKED"), gte(bookings.startDateTime, new Date()))
+        and(
+          assignedTo,
+          eq(bookings.bookingStatus, "BOOKED"),
+          gte(bookings.startDateTime, new Date())
+        )
       )
       .orderBy(asc(bookings.startDateTime))
       .limit(10),

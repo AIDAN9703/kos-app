@@ -2,9 +2,6 @@ import * as z from "zod";
 import { boatCategoryEnum } from "@/database/schema";
 import { SUPPORTED_CURRENCIES } from "@/shared/lib/constants/currencies";
 
-// URL regex for simple URL validation
-const URL_REGEX = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})([/\w .-]*)*\/?$/;
-
 // Define the pricing tier schema
 export const pricingTierSchema = z.object({
   id: z.string().uuid("Invalid ID format").optional(), // Optional for new tiers
@@ -177,8 +174,7 @@ export const boatFilterSchema = z.object({
   termCharter: z.coerce.boolean().optional(),
 });
 
-// Inferred types from validation schemas - keep validation as source of truth
-export type BaseBoat = z.infer<typeof boatBaseSchema>;
+
 export type CreateBoatInput = z.infer<typeof createBoatSchema>;
 export type UpdateBoatInput = z.infer<typeof updateBoatSchema>;
 export type BoatFilterInput = z.infer<typeof boatFilterSchema>;

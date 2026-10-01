@@ -47,16 +47,6 @@ export const createUserSchema = userBaseSchema.extend({
   password: passwordSchema,
 });
 
-// Minimal schema for quick-create (e.g. from the booking composer)
-export const quickCreateUserSchema = z.object({
-  firstName: z.string().min(1, "First name is required"),
-  lastName: z.string().min(1, "Last name is required"),
-  email: emailSchema,
-  phoneNumber: z.preprocess((v) => (v === "" || v === undefined ? null : v), phoneSchema),
-});
-
-export type QuickCreateUserInput = z.infer<typeof quickCreateUserSchema>;
-
 // Update user schema (password is optional, all other fields are optional)
 export const updateUserSchema = userBaseSchema.partial().extend({
   password: passwordSchema.optional(),

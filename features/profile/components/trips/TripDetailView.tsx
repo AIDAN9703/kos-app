@@ -1,11 +1,18 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, Anchor, CalendarDays, Clock, MapPin, MessageSquareText, Users } from "lucide-react";
+import { Anchor, CalendarDays, Clock, MapPin, MessageSquareText, Users } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/shared/components/ui/button";
 import { formatCentsAsCurrency } from "@/shared/lib/utils/money-utils";
-import { guestsLabel, tripDate, tripDurationHours, tripTimeRange, TRIP_FALLBACK_IMAGE } from "../../trip-presentation";
+import {
+  guestsLabel,
+  tripDate,
+  tripDurationHours,
+  tripTimeRange,
+  TRIP_FALLBACK_IMAGE,
+} from "../../trip-presentation";
 import type { TripDetail } from "../../profile.types";
+import { ArrowLink } from "../ArrowLink";
 import { BillingPortalButton } from "../BillingPortalButton";
 import { surface } from "../surface";
 import { PayTripButton } from "./PayTripButton";
@@ -17,24 +24,32 @@ export function TripDetailView({ trip }: { trip: TripDetail }) {
 
   const facts = [
     { Icon: CalendarDays, label: "Date", value: tripDate(trip) },
-    { Icon: Clock, label: "Time", value: [tripTimeRange(trip), hours ? `${hours} hours` : ""].filter(Boolean).join(" · ") },
-    { Icon: Users, label: "Guests", value: guestsLabel(trip.guests) + (trip.needsCaptain ? " · Captain included" : "") },
+    {
+      Icon: Clock,
+      label: "Time",
+      value: [tripTimeRange(trip), hours ? `${hours} hours` : ""].filter(Boolean).join(" · "),
+    },
+    {
+      Icon: Users,
+      label: "Guests",
+      value: guestsLabel(trip.guests) + (trip.needsCaptain ? " · Captain included" : ""),
+    },
     { Icon: MapPin, label: "Pickup", value: trip.pickupLocation ?? "To be confirmed" },
     trip.dropoffLocation && trip.dropoffLocation !== trip.pickupLocation
       ? { Icon: MapPin, label: "Drop-off", value: trip.dropoffLocation }
       : null,
-    trip.occasionType ? { Icon: MessageSquareText, label: "Occasion", value: trip.occasionType } : null,
-  ].filter((f): f is { Icon: typeof CalendarDays; label: string; value: string } => Boolean(f?.value));
+    trip.occasionType
+      ? { Icon: MessageSquareText, label: "Occasion", value: trip.occasionType }
+      : null,
+  ].filter((f): f is { Icon: typeof CalendarDays; label: string; value: string } =>
+    Boolean(f?.value)
+  );
 
   return (
     <article className="space-y-8">
-      <Link
-        href="/profile/bookings"
-        className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
-      >
-        <ArrowLeft className="h-4 w-4" />
+      <ArrowLink href="/profile/bookings" direction="back">
         All trips
-      </Link>
+      </ArrowLink>
 
       {/* Hero */}
       <div className="relative aspect-[16/9] overflow-hidden rounded-2xl sm:aspect-[21/9]">
@@ -62,7 +77,8 @@ export function TripDetailView({ trip }: { trip: TripDetail }) {
 
       {trip.status === "CANCELLED" ? (
         <p className="rounded-2xl bg-destructive-soft px-5 py-4 text-sm leading-6 text-destructive">
-          This trip was cancelled{trip.cancelledAt ? ` on ${format(trip.cancelledAt, "MMM d, yyyy")}` : ""}.
+          This trip was cancelled
+          {trip.cancelledAt ? ` on ${format(trip.cancelledAt, "MMM d, yyyy")}` : ""}.
           {trip.cancellationReason ? ` ${trip.cancellationReason}` : ""}
         </p>
       ) : null}
@@ -88,7 +104,9 @@ export function TripDetailView({ trip }: { trip: TripDetail }) {
               <h3 className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
                 Your requests
               </h3>
-              <p className="mt-2 whitespace-pre-line text-[15px] leading-7 text-slate-700">{trip.specialRequests}</p>
+              <p className="mt-2 whitespace-pre-line text-[15px] leading-7 text-slate-700">
+                {trip.specialRequests}
+              </p>
             </div>
           ) : null}
 
@@ -108,45 +126,53 @@ export function TripDetailView({ trip }: { trip: TripDetail }) {
         </section>
 
         {/* Money */}
-        <aside className="lg:sticky lg:top-[calc(var(--header-h)+2.5rem)] lg:self-start">
-          <div className={`p-5 sm:p-6 ${surface}`}>
-            <h2 className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">Payment</h2>
-            {trip.totalCents > 0 ? (
-              <dl className="mt-3 space-y-2 text-sm">
-                <MoneyLine label="Total" cents={trip.totalCents} currency={trip.currency} strong />
-                {trip.depositCents ? <MoneyLine label="Deposit" cents={trip.depositCents} currency={trip.currency} /> : null}
-                <MoneyLine label="Paid" cents={trip.paidCents} currency={trip.currency} />
-                <div className="border-t border-gray-200 pt-2">
-                  <MoneyLine label="Balance" cents={trip.balanceCents} currency={trip.currency} strong />
-                </div>
-              </dl>
-            ) : (
-              <p className="mt-3 text-sm leading-6 text-slate-600">
-                Pricing will appear here once your proposal is ready.
-              </p>
-            )}
+        <aside
+          className={`p-5 sm:p-6 lg:sticky lg:top-[calc(var(--header-h)+2.5rem)] lg:self-start ${surface}`}
+        >
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+            Payment
+          </h2>
+          {trip.totalCents > 0 ? (
+            <dl className="mt-3 space-y-2 text-sm">
+              <MoneyLine label="Total" cents={trip.totalCents} currency={trip.currency} strong />
+              {trip.depositCents ? (
+                <MoneyLine label="Deposit" cents={trip.depositCents} currency={trip.currency} />
+              ) : null}
+              <MoneyLine label="Paid" cents={trip.paidCents} currency={trip.currency} />
+              <MoneyLine
+                label="Balance"
+                cents={trip.balanceCents}
+                currency={trip.currency}
+                strong
+                divided
+              />
+            </dl>
+          ) : (
+            <p className="mt-3 text-sm leading-6 text-slate-600">
+              Pricing will appear here once your proposal is ready.
+            </p>
+          )}
 
-            <div className="mt-5 space-y-3">
-              {trip.status === "PROPOSED" && trip.publicToken ? (
-                <Button asChild className="w-full">
-                  <Link href={`/bookings/proposal/${trip.publicToken}`}>Review proposal</Link>
-                </Button>
-              ) : null}
-              {canPayNow ? (
-                <PayTripButton
-                  tripId={trip.id}
-                  totalCents={trip.totalCents}
-                  depositCents={trip.depositCents}
-                  currency={trip.currency}
-                />
-              ) : null}
-              {trip.status === "BOOKED" && trip.paidCents > 0 && trip.balanceCents > 0 ? (
-                <p className="text-sm leading-6 text-slate-600">
-                  Your balance is due before departure — we&apos;ll send a secure payment link.
-                </p>
-              ) : null}
-              {trip.paidCents > 0 ? <BillingPortalButton /> : null}
-            </div>
+          <div className="mt-5 space-y-3">
+            {trip.status === "PROPOSED" && trip.publicToken ? (
+              <Button asChild className="w-full">
+                <Link href={`/bookings/proposal/${trip.publicToken}`}>Review proposal</Link>
+              </Button>
+            ) : null}
+            {canPayNow ? (
+              <PayTripButton
+                tripId={trip.id}
+                totalCents={trip.totalCents}
+                depositCents={trip.depositCents}
+                currency={trip.currency}
+              />
+            ) : null}
+            {trip.status === "BOOKED" && trip.paidCents > 0 && trip.balanceCents > 0 ? (
+              <p className="text-sm leading-6 text-slate-600">
+                Your balance is due before departure — we&apos;ll send a secure payment link.
+              </p>
+            ) : null}
+            {trip.paidCents > 0 ? <BillingPortalButton /> : null}
           </div>
         </aside>
       </div>
@@ -159,14 +185,19 @@ function MoneyLine({
   cents,
   currency,
   strong = false,
+  divided = false,
 }: {
   label: string;
   cents: number;
   currency: string;
   strong?: boolean;
+  /** Hairline above the row — sets the balance apart from the lines it sums. */
+  divided?: boolean;
 }) {
   return (
-    <div className="flex items-baseline justify-between gap-4">
+    <div
+      className={`flex items-baseline justify-between gap-4 ${divided ? "border-t border-gray-200 pt-2" : ""}`}
+    >
       <dt className={strong ? "font-semibold text-primary" : "text-slate-600"}>{label}</dt>
       <dd className={`tabular-nums ${strong ? "font-semibold text-primary" : "text-slate-800"}`}>
         {formatCentsAsCurrency(cents, { currency })}

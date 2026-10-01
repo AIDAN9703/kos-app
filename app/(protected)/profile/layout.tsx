@@ -4,7 +4,7 @@ import Navigation from "@/shared/components/layouts/Navigation";
 import Footer from "@/shared/components/layouts/Footer";
 import { requireAuth } from "@/shared/lib/utils/auth-utils";
 import { ProfileShell } from "@/features/profile/components/ProfileShell";
-import { countCompletedTrips, getAccount } from "@/features/profile/profile.queries";
+import { getAccount } from "@/features/profile/profile.queries";
 
 /**
  * /profile — the customer's own account area. Same site header and footer as
@@ -14,10 +14,7 @@ import { countCompletedTrips, getAccount } from "@/features/profile/profile.quer
  */
 export default async function ProfileLayout({ children }: { children: ReactNode }) {
   const session = await requireAuth();
-  const [account, tripsCompleted] = await Promise.all([
-    getAccount(session.user.id),
-    countCompletedTrips(session.user.id),
-  ]);
+  const account = await getAccount(session.user.id);
   if (!account) redirect("/sign-in");
 
   return (
@@ -30,7 +27,6 @@ export default async function ProfileLayout({ children }: { children: ReactNode 
           isOwner: session.user.isOwner,
           isCaptain: session.user.isCaptain,
         }}
-        tripsCompleted={tripsCompleted}
       >
         {children}
       </ProfileShell>

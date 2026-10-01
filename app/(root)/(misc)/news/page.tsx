@@ -2,13 +2,7 @@ import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/shared/components/ui/button";
-import {
-  Calendar,
-  User,
-  ArrowRight,
-  Instagram,
-  ExternalLink,
-} from "lucide-react";
+import { Calendar, User, ArrowRight, Instagram } from "lucide-react";
 import { getPublishedBlogPosts } from "@/features/blog/actions/admin-blog-actions";
 import { formatDate } from "@/shared/lib/utils/general-utils";
 
@@ -46,7 +40,7 @@ export default async function NewsPage() {
           </h1>
           <p className="text-gray-600 max-w-2xl mx-auto text-lg leading-relaxed font-light">
             Stay updated with the latest news, fleet additions, and insights
-            from Miami's premier yacht charter service.
+            from Miami&apos;s premier yacht charter service.
           </p>
         </div>
       </section>

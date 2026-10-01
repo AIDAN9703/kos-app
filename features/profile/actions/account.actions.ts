@@ -64,7 +64,11 @@ export async function updateAccountDetails(
     ...changes,
   });
   if (!parsed.success) {
-    return { success: false, error: "Please check the highlighted fields.", fieldErrors: zodFieldErrors(parsed.error) };
+    return {
+      success: false,
+      error: "Please check the highlighted fields.",
+      fieldErrors: zodFieldErrors(parsed.error),
+    };
   }
 
   // Only touch what the caller sent; empty strings clear optional columns.
@@ -131,7 +135,7 @@ const changePasswordSchema = z.object({
   newPassword: passwordSchema,
 });
 
-export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 
 /** Email/password accounts only — Google accounts have a placeholder hash and no password to change. */
 export async function changePassword(input: ChangePasswordInput): Promise<ActionResult> {
@@ -140,7 +144,11 @@ export async function changePassword(input: ChangePasswordInput): Promise<Action
 
   const parsed = changePasswordSchema.safeParse(input);
   if (!parsed.success) {
-    return { success: false, error: "Please check the highlighted fields.", fieldErrors: zodFieldErrors(parsed.error) };
+    return {
+      success: false,
+      error: "Please check the highlighted fields.",
+      fieldErrors: zodFieldErrors(parsed.error),
+    };
   }
 
   const [current] = await db

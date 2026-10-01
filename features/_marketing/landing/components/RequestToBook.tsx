@@ -127,7 +127,7 @@ export default function RequestToBook({ source = "HOME_PAGE" }: RequestToBookPro
        mirrors the page shell (max-w-[1200px] px-4 sm:px-8) so content edges
        line up section to section. [color-scheme:dark] keeps native widgets
        (date picker glyph) legible on navy. */
-    <section className="w-full bg-primary py-16 [color-scheme:dark]">
+    <section id="request-to-book" className="w-full scroll-mt-4 bg-primary py-16 [color-scheme:dark]">
       <div className="mx-auto w-full max-w-[1200px] px-4 sm:px-8">
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:items-center lg:gap-0">
           {/* ── The pitch ── */}

@@ -29,8 +29,5 @@ export const BOOKING_EVENT_TYPES = {
   LINKED_TO_ACCOUNT: "booking.linked_to_account",
 } as const;
 
-export type BookingEventType =
-  (typeof BOOKING_EVENT_TYPES)[keyof typeof BOOKING_EVENT_TYPES];
-
 export const BOOKING_ACTOR_TYPES = ["user", "admin", "system"] as const;
 export type BookingActorType = (typeof BOOKING_ACTOR_TYPES)[number];

@@ -6,7 +6,7 @@ import { Button } from "@/shared/components/ui/button";
 import { useToast } from "@/shared/lib/hooks/use-toast";
 
 /** Opens the Stripe customer portal: receipts, invoices, saved cards. */
-export function BillingPortalButton({ label = "Receipts & invoices" }: { label?: string }) {
+export function BillingPortalButton() {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -30,7 +30,7 @@ export function BillingPortalButton({ label = "Receipts & invoices" }: { label?:
   return (
     <Button type="button" variant="outline" size="sm" onClick={open} disabled={loading}>
       {loading ? <Loader2 className="animate-spin" /> : <Receipt />}
-      {label}
+      Receipts &amp; invoices
     </Button>
   );
 }

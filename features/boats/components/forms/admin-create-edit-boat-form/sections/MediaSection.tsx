@@ -19,29 +19,19 @@ const DragDropImageGrid = lazy(() => import("./DragDropImageGrid"));
 export function MediaSection({
   images,
   onUpload,
-  onDragEnd,
+  onReorder,
   onDelete,
   boatId,
   boatName,
 }: {
   images: string[];
   onUpload: (url: string) => void;
-  onDragEnd: (result: any) => void;
+  onReorder: (oldIndex: number, newIndex: number) => void;
   onDelete: (index: number) => void;
   boatId?: string;
   boatName?: string;
 }) {
   const [enableDragDrop, setEnableDragDrop] = useState(false);
-
-  // Convert react-beautiful-dnd result to our reorder function
-  const handleReorder = (oldIndex: number, newIndex: number) => {
-    // Create a mock DropResult for compatibility with existing hook
-    const mockResult = {
-      source: { index: oldIndex },
-      destination: { index: newIndex },
-    };
-    onDragEnd(mockResult);
-  };
 
   return (
     <Card>
@@ -84,7 +74,7 @@ export function MediaSection({
             >
               <DragDropImageGrid
                 images={images}
-                onReorder={handleReorder}
+                onReorder={onReorder}
                 onDelete={onDelete}
               />
             </Suspense>

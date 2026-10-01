@@ -10,7 +10,6 @@ import { type ActionResponse } from "@/shared/lib/types/types";
 import { bookingService } from "@/features/bookings/services/booking.service";
 import { bookingSingleFieldUpdateSchema } from "@/features/bookings/booking-single-field-update";
 import type { BookingDetails } from "@/features/bookings/booking.types";
-import { getOrCreateCheckoutUrl } from "@/features/bookings/actions/stripe-checkout";
 
 /**
  * Admin: update exactly one booking column (validated per-field).
@@ -61,33 +60,3 @@ export async function updateBookingSingleField(
   }
 }
 
-/**
- * Get or create a Checkout Session URL for a booking.
- * Reuses existing sessions if still valid; creates a new one otherwise.
- */
-export async function getOrCreatePaymentLink(
-  bookingId: string
-): Promise<ActionResponse<{ url: string }>> {
-  const session = await auth();
-
-  if (!session?.user) {
-    return { success: false, error: "Authentication required" };
-  }
-
-  if (!session?.user?.isAdmin) {
-    return { success: false, error: "Admin access required" };
-  }
-
-  try {
-    const booking = await bookingService.getBookingById(bookingId);
-    if (!booking) {
-      return { success: false, error: "Booking not found" };
-    }
-
-    const url = await getOrCreateCheckoutUrl(bookingId);
-    return { success: true, data: { url } };
-  } catch (error) {
-    console.error("Error creating checkout session:", error);
-    return { success: false, error: "Failed to create payment session" };
-  }
-}

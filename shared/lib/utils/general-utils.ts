@@ -70,25 +70,25 @@ export function formatTime12Hour(time24: string): string {
  * @param waitFor The time to wait in milliseconds
  * @returns A debounced version of the function with a cancel method
  */
-export function debounce<F extends (...args: any[]) => any>(
-  func: F,
+export function debounce<Args extends unknown[]>(
+  func: (...args: Args) => void,
   waitFor: number
-): F & { cancel: () => void } {
+): ((...args: Args) => void) & { cancel: () => void } {
   let timeout: ReturnType<typeof setTimeout> | null = null;
 
-  const debounced = (...args: Parameters<F>): void => {
+  const debounced = (...args: Args): void => {
     if (timeout !== null) clearTimeout(timeout);
     timeout = setTimeout(() => func(...args), waitFor);
   };
 
-  (debounced as any).cancel = () => {
-    if (timeout !== null) {
-      clearTimeout(timeout);
-      timeout = null;
-    }
-  };
-
-  return debounced as F & { cancel: () => void };
+  return Object.assign(debounced, {
+    cancel: () => {
+      if (timeout !== null) {
+        clearTimeout(timeout);
+        timeout = null;
+      }
+    },
+  });
 }
 
 /**
@@ -102,7 +102,7 @@ export function debounce<F extends (...args: any[]) => any>(
  */
 export function formatPhoneNumberE164(phoneNumber: string, defaultCountryCode: string = '1'): string {
   // Remove all non-digit characters
-  let digits = phoneNumber.replace(/\D/g, '');
+  const digits = phoneNumber.replace(/\D/g, '');
 
   // Check if the number already has a country code (starts with '+')
   if (phoneNumber.startsWith('+')) {

@@ -14,12 +14,12 @@ import {
 } from "@/features/bookings/components/admin/view-booking/BookingTripCard";
 import {
   BookingEditModeProvider,
-  ProposalResendButton,
   BookingPageEditButton,
 } from "@/features/bookings/components/admin/view-booking/BookingEditMode";
 import { CommissionCard } from "@/features/bookings/components/admin/view-booking/CommissionCard";
 import { DealContactBand } from "@/features/bookings/components/admin/view-booking/DealContactBand";
-import { FinancesCard } from "@/features/bookings/components/admin/view-booking/FinancesCard";
+import { BreakdownCard } from "@/features/bookings/components/admin/view-booking/BreakdownCard";
+import type { SendToCustomerData } from "@/features/bookings/components/admin/view-booking/SendToCustomer";
 import { customerMoney, dealEconomics } from "@/features/bookings/lib/booking-money";
 import { DealActionsMenu } from "@/features/bookings/components/admin/view-booking/DealActionsMenu";
 import { CreateProposalModal } from "@/features/bookings/components/admin/view-booking/CreateProposalModal";
@@ -45,6 +45,21 @@ import { userService } from "@/features/users/user.service";
 
 import type { BookingActivityEventEntry } from "@/features/bookings/booking.types";
 
+const PAYMENT_LABELS: Record<string, string> = {
+  DEPOSIT: "Deposit",
+  FULL_PAYMENT: "Payment",
+  PARTIAL: "Payment",
+  ADDITIONAL: "Additional charge",
+  REFUND: "Refund",
+};
+
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  STRIPE_CHECKOUT: "Card",
+  STRIPE_LINK: "Card",
+  STRIPE_INVOICE: "Card (invoice)",
+  MANUAL: "Off-card",
+};
+
 interface BookingDetailsPageProps {
   params: Promise<{ id: string }>;
 }
@@ -53,8 +68,10 @@ interface BookingDetailsPageProps {
  * ONE page for every deal. The same cards in the same places at every stage;
  * a card appears when it has something to show. Inquiry: header, what they
  * asked for, finances (estimate), activity. Booking: header, the trip (with
- * crew), commission, party (if any), finances (full), activity. Nothing is
- * shown twice.
+ * crew), commission, party (if any), finances (read-only breakdown), activity
+ * (with completed payments). Edit trip turns the trip card into the whole
+ * form — trip, pricing, add-ons, more boats — so all editing is on the left.
+ * Nothing is shown twice.
  */
 export default async function BookingDetailsPage({ params }: BookingDetailsPageProps) {
   const { id } = await params;
@@ -86,7 +103,7 @@ export default async function BookingDetailsPage({ params }: BookingDetailsPageP
     userService.getAdmins(),
     auth(),
     // Inquiries get every boat's tiers (Create proposal); priced deals get
-    // their own boat's tiers for the Finances editor.
+    // their own boat's tiers for the Edit trip form.
     booking.bookingStatus === "INQUIRY"
       ? boatService.getAllActivePricingTiers()
       : booking.boatId
@@ -119,8 +136,8 @@ export default async function BookingDetailsPage({ params }: BookingDetailsPageP
         }))
       : [];
 
-  // Proposal freshness: when did the customer last get the link, and how
-  // many admin edits have landed since? Drives the resend dialog's nudge.
+  // Link freshness: when did the customer last get the link, and how many
+  // admin edits have landed since? Drives the Breakdown's "not sent yet" note.
   const SEND_EVENT_TYPES = new Set<string>([
     BOOKING_EVENT_TYPES.PROPOSAL_PUBLISHED,
     BOOKING_EVENT_TYPES.PROPOSAL_UPDATE_SENT,
@@ -155,6 +172,41 @@ export default async function BookingDetailsPage({ params }: BookingDetailsPageP
         ? `${e.actorFirstName || ""} ${e.actorLastName || ""}`.trim()
         : e.actorEmail || (e.actorType === "system" ? "System" : "—"),
   }));
+
+  // Completed payments read as activity ("Payment $2,450 ↗"). Pending and
+  // failed attempts aren't shown anywhere — only money that actually moved.
+  const stripeDashboardBase = process.env.STRIPE_SECRET_KEY?.startsWith("sk_live")
+    ? "https://dashboard.stripe.com"
+    : "https://dashboard.stripe.com/test";
+  const paymentEvents: BookingActivityEventEntry[] = bookingPayments
+    .filter((p) => p.status === "SUCCEEDED")
+    .map((p) => ({
+      id: `payment-${p.id}`,
+      actorType: "system",
+      eventType: BOOKING_EVENT_TYPES.PAYMENT_RECEIVED,
+      channel: null,
+      displayMessage: null,
+      content: null,
+      contactMethod: null,
+      metadata: null,
+      createdAt: p.processedAt ?? p.createdAt,
+      actorName: "—",
+      payment: {
+        label: PAYMENT_LABELS[p.paymentType] ?? "Payment",
+        amountText: formatCentsAsCurrency(Number(p.amountCents), {
+          currency: p.currency ?? booking.currency ?? "USD",
+        }),
+        isRefund: p.paymentType === "REFUND",
+        method:
+          p.paymentMethodDetail ?? PAYMENT_METHOD_LABELS[p.paymentMethodType] ?? "Payment",
+        href: p.stripePaymentIntentId
+          ? `${stripeDashboardBase}/payments/${p.stripePaymentIntentId}`
+          : null,
+      },
+    }));
+  const timeline = [...activityEvents, ...paymentEvents].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
 
   const captainOptions = [...captains];
   if (booking.captainUserId && !captains.some((c) => c.id === booking.captainUserId)) {
@@ -227,7 +279,7 @@ export default async function BookingDetailsPage({ params }: BookingDetailsPageP
       "Admin"
     : null;
 
-  // ONE place for the money math — header, finances, and dialog read these.
+  // ONE place for the money math — the header and Breakdown read these.
   const money = customerMoney({
     totalAmountCents: booking.totalAmountCents,
     serviceFeeCents: booking.serviceFeeCents,
@@ -249,7 +301,7 @@ export default async function BookingDetailsPage({ params }: BookingDetailsPageP
   const currency = booking.currency ?? "USD";
   const fmt = (c: number) => formatCentsAsCurrency(c, { currency });
 
-  // The customer's exact line items — shared by Finances and the resend dialog.
+  // The customer's exact line items, as their link shows them.
   const lines = {
     boatName: booking.boatName,
     basePriceCents: booking.basePriceCents ?? 0,
@@ -258,25 +310,22 @@ export default async function BookingDetailsPage({ params }: BookingDetailsPageP
     addOns: booking.addOns ?? [],
   };
 
-  // One customer link per deal; resendable while it exists and money/decision
-  // is still outstanding. Stage names what the link IS to the customer now.
-  const proposalResend =
+  // One customer link per deal; sendable while it exists and money or a
+  // decision is still outstanding. Stage names what the link IS to them now.
+  const sendToCustomer: SendToCustomerData | null =
     booking.publicToken &&
     !isSettled &&
     (booking.bookingStatus === "PROPOSED" || money.balanceCents > 0)
       ? {
           bookingId: id,
           publicToken: booking.publicToken,
-          stage: (booking.bookingStatus === "PROPOSED" ? "proposal" : "payment") as
-            | "proposal"
-            | "payment",
+          stage: booking.bookingStatus === "PROPOSED" ? "proposal" : "payment",
           customerEmail: booking.customerEmail,
           customerPhone: booking.customerPhone,
+          lastSentAt: lastSentAt ? new Date(lastSentAt).toISOString() : null,
           editsSinceSend: changesSinceLastSend,
           allowPayment: booking.allowPayment,
-          currency,
-          money,
-          lines,
+          serviceFeeWaived: money.serviceFeeWaived,
         }
       : null;
 
@@ -305,13 +354,8 @@ export default async function BookingDetailsPage({ params }: BookingDetailsPageP
   const kind = getDisplayKind(booking);
   const KindIcon = kind.Icon;
 
-  // Stripe deep links follow the key in use, so test payments open in test mode.
-  const stripeDashboardBase = process.env.STRIPE_SECRET_KEY?.startsWith("sk_live")
-    ? "https://dashboard.stripe.com"
-    : "https://dashboard.stripe.com/test";
-
   return (
-    <BookingEditModeProvider proposal={proposalResend}>
+    <BookingEditModeProvider>
       <div className="flex w-full flex-1 flex-col">
         {/* Left: who + the trip + who runs it. Right: the money, then the
             story so far (sticky). Same grid on both faces. */}
@@ -357,31 +401,27 @@ export default async function BookingDetailsPage({ params }: BookingDetailsPageP
                 // Same anatomy for both stages: one primary verb + Edit + the
                 // quiet ⋯ overflow. Inquiry's winning path is the proposal;
                 // its Edit covers contact details only.
-                <div className="flex shrink-0 flex-col gap-2">
-                  <div className="flex items-center gap-2">
-                    {isInquiry ? (
-                      <>
-                        <CreateProposalModal
-                          pricingTiers={pricingTiers}
-                          admins={admins}
-                          dealPrefill={buildDealPrefillForBookingForm(booking)}
-                        />
-                        <BookingPageEditButton label="Edit contact" />
-                      </>
-                    ) : (
-                      <BookingPageEditButton />
-                    )}
-                    <DealActionsMenu
-                      bookingId={id}
-                      bookingStatus={booking.bookingStatus}
-                      isArchived={booking.archivedAt != null}
-                      assignedAdminId={booking.assignedAdminId}
-                      admins={adminOptions}
-                      currentUserId={session?.user?.id ?? null}
-                    />
-                  </div>
-                  {/* Spans the row above — opens the proposal dialog. */}
-                  <ProposalResendButton />
+                <div className="flex shrink-0 items-center gap-2">
+                  {isInquiry ? (
+                    <>
+                      <CreateProposalModal
+                        pricingTiers={pricingTiers}
+                        admins={admins}
+                        dealPrefill={buildDealPrefillForBookingForm(booking)}
+                      />
+                      <BookingPageEditButton label="Edit contact" />
+                    </>
+                  ) : (
+                    <BookingPageEditButton />
+                  )}
+                  <DealActionsMenu
+                    bookingId={id}
+                    bookingStatus={booking.bookingStatus}
+                    isArchived={booking.archivedAt != null}
+                    assignedAdminId={booking.assignedAdminId}
+                    admins={adminOptions}
+                    currentUserId={session?.user?.id ?? null}
+                  />
                 </div>
               }
             />
@@ -401,6 +441,22 @@ export default async function BookingDetailsPage({ params }: BookingDetailsPageP
                   captainOptions={captainOptions}
                   bookingCrew={bookingCrew}
                   crewOptions={crewOptions}
+                  pricing={
+                    isPriced
+                      ? {
+                          editable: !isSettled,
+                          currency,
+                          money,
+                          basePriceCents: lines.basePriceCents,
+                          captainFeeCents: lines.captainFeeCents,
+                          cleaningFeeCents: lines.cleaningFeeCents,
+                          addOns: lines.addOns,
+                          pricingTierId: booking.pricingTierId,
+                          tiers: pricingTiers,
+                        }
+                      : null
+                  }
+                  canAddBoat={["PROPOSED", "BOOKED"].includes(booking.bookingStatus)}
                 />
                 <CommissionCard
                   economics={economics}
@@ -421,15 +477,11 @@ export default async function BookingDetailsPage({ params }: BookingDetailsPageP
           </div>
 
           <div className="flex min-w-0 flex-col gap-6">
-            <FinancesCard
+            <BreakdownCard
               bookingId={id}
               isInquiry={isInquiry}
-              isSettled={isSettled}
               money={money}
               lines={lines}
-              pricingTierId={booking.pricingTierId}
-              pricingTiers={isInquiry ? [] : pricingTiers}
-              payments={bookingPayments}
               expenseLines={expenseLines}
               opsGmvCents={ops?.gmvCents ?? null}
               totalAmountCents={booking.totalAmountCents ?? null}
@@ -437,12 +489,12 @@ export default async function BookingDetailsPage({ params }: BookingDetailsPageP
               currency={currency}
               estimatedValueCents={booking.estimatedValueCents ?? null}
               budgetCents={booking.budgetCents ?? null}
-              stripeDashboardBase={stripeDashboardBase}
+              send={sendToCustomer}
             />
             {/* lg:top-0 — sticky enforces its top value even at rest; any
                 positive offset misaligns the rail. Zero never can. */}
             <BookingActivityTimeline
-              events={activityEvents}
+              events={timeline}
               className="lg:sticky lg:top-0"
               actions={!isSettled ? <ActivityComposer bookingId={id} /> : undefined}
             />

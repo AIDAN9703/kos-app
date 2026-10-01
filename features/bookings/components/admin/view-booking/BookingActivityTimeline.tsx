@@ -8,6 +8,7 @@ import {
   ArrowRight,
   Circle,
   DollarSign,
+  ExternalLink,
   FileText,
   Flag,
   GitBranch,
@@ -121,6 +122,7 @@ const FALLBACK_STYLE: EventStyle = { Icon: Circle, bubble: QUIET };
 /** Resolve the marker style, tinting outcome markers by what happened. */
 function styleForEvent(event: BookingActivityEventEntry): EventStyle {
   const base = EVENT_STYLES[event.eventType] ?? FALLBACK_STYLE;
+  if (event.payment?.isRefund) return { ...base, bubble: "border-destructive/70 text-destructive" };
   if (event.eventType === "lead.outcome_change") {
     const outcome = stateValue(event.newState, TRANSITION_KEYS)?.toUpperCase();
     if (outcome === "WON") return { ...base, bubble: MONEY };
@@ -251,6 +253,35 @@ function buildEventTitle(event: BookingActivityEventEntry): EventTitleResult {
   });
   const to = stateValue(event.newState, TRANSITION_KEYS);
   const T = to?.toUpperCase() ?? null;
+
+  // A completed payment: "Payment $2,450.00 ↗" — the link opens it in Stripe.
+  if (event.payment) {
+    const { label, amountText, isRefund, href } = event.payment;
+    return {
+      node: (
+        <span className="inline-flex flex-wrap items-center gap-1.5">
+          {label}
+          <strong className={cn("font-bold", isRefund ? "text-destructive" : "text-success")}>
+            {isRefund ? "−" : ""}
+            {amountText}
+          </strong>
+          {href ? (
+            <a
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Open in Stripe"
+              aria-label="Open in Stripe"
+              className="rounded p-0.5 text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+          ) : null}
+        </span>
+      ),
+      actorShown: false,
+    };
+  }
 
   switch (event.eventType) {
     case "lead.assigned":
@@ -503,6 +534,12 @@ export function BookingActivityTimeline({
                                   <span className="truncate font-medium text-foreground/70">
                                     {event.actorName}
                                   </span>
+                                </>
+                              ) : null}
+                              {event.payment ? (
+                                <>
+                                  <span aria-hidden>·</span>
+                                  <span>{event.payment.method}</span>
                                 </>
                               ) : null}
                               {event.contactMethod ? (

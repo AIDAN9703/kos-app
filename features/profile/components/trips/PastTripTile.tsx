@@ -8,7 +8,10 @@ import { TripStatusBadge } from "./TripStatusBadge";
 /** Compact past-trip card: square photo, name, date, status when it matters. */
 export function PastTripTile({ trip }: { trip: TripSummary }) {
   return (
-    <Link href={`/profile/bookings/${trip.id}`} className={`group flex items-center gap-4 p-3 ${surfaceInteractive}`}>
+    <Link
+      href={`/profile/bookings/${trip.id}`}
+      className={`group flex items-center gap-4 p-3 ${surfaceInteractive}`}
+    >
       <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-muted sm:h-24 sm:w-24">
         <Image
           src={trip.boatImage || TRIP_FALLBACK_IMAGE}
@@ -19,7 +22,9 @@ export function PastTripTile({ trip }: { trip: TripSummary }) {
         />
       </div>
       <div className="min-w-0 py-1">
-        <p className="line-clamp-2 font-semibold leading-snug text-primary group-hover:underline">{trip.boatName}</p>
+        <p className="line-clamp-2 font-semibold leading-snug text-primary group-hover:underline">
+          {trip.boatName}
+        </p>
         <p className="mt-0.5 text-sm text-slate-500">{tripDate(trip)}</p>
         <TripStatusBadge trip={trip} className="mt-2" />
       </div>

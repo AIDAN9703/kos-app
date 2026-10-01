@@ -60,7 +60,11 @@ export function PayTripButton({ tripId, totalCents, depositCents, currency }: Pa
       ) : null}
       <Button type="button" onClick={pay} disabled={loading} className="w-full">
         {loading ? <Loader2 className="animate-spin" /> : <CreditCard />}
-        {loading ? "Opening checkout…" : chargeType === "deposit" ? `Pay ${fmt(chargeCents)} deposit` : `Pay ${fmt(chargeCents)}`}
+        {loading
+          ? "Opening checkout…"
+          : chargeType === "deposit"
+            ? `Pay ${fmt(chargeCents)} deposit`
+            : `Pay ${fmt(chargeCents)}`}
       </Button>
       {hasDeposit && chargeType === "deposit" ? (
         <p className="text-xs leading-5 text-slate-500">

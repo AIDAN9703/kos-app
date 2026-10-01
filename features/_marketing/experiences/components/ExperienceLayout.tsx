@@ -3,7 +3,7 @@
 import { ReactNode } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, ChevronRight, Calendar } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 
 export interface ExperienceLayoutProps {
@@ -18,13 +18,6 @@ export interface ExperienceLayoutProps {
     question: string;
     answer: string;
   }>;
-  relatedExperiences?: Array<{
-    id: string;
-    title: string;
-    description: string;
-    image: string;
-    href: string;
-  }>;
   children: ReactNode;
 }
 
@@ -36,7 +29,6 @@ export default function ExperienceLayout({
   buttonLink,
   heroAlt = "Experience image",
   faqs = [],
-  relatedExperiences = [],
   children,
 }: ExperienceLayoutProps) {
   return (

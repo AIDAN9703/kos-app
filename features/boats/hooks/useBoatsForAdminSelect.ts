@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { boatsApi } from "../boat.api";
-import type { BoatForAdminSelect } from "../boat.types";
+
 
 /**
  * Fetch boats for admin select (searchable combobox).

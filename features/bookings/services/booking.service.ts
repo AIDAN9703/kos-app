@@ -15,19 +15,7 @@
  */
 
 import { db } from "@/database/db";
-import {
-  bookings,
-  boats,
-  users,
-  bookingPricing,
-  bookingStatusHistory,
-  bookingEvents,
-  bookingAdminNotes,
-  bookingGroups,
-  payments,
-  bookingOps,
-  boatPricingTiers,
-} from "@/database/schema";
+import { bookings, boats, users, bookingPricing, bookingGroups, payments, bookingOps, boatPricingTiers } from "@/database/schema";
 import {
   and,
   count,
@@ -55,13 +43,7 @@ import {
   auditSnapshotForBookingField,
   bookingRowPatchFromSingleFieldUpdate,
 } from "@/features/bookings/booking-single-field-update";
-import {
-  type PaginatedBookingsResponse,
-  type BookingListItem,
-  type BookingDetails,
-  type BookingWithRelations,
-  type BookingAddOn,
-} from "@/features/bookings/booking.types";
+import { type PaginatedBookingsResponse, type BookingListItem, type BookingDetails, type BookingAddOn } from "@/features/bookings/booking.types";
 import { type Booking, type BookingSource, type BookingType } from "@/database/types";
 import {
   calculateBookingPriceCents,
@@ -649,7 +631,6 @@ export class BookingService {
     }
     return { bookingId: proposalBookings[0].id, customerName: proposalBookings[0].customerName };
   }
-
 
   /**
    * Create an instant booking (payment at checkout)
@@ -1331,270 +1312,6 @@ export class BookingService {
     return details;
   }
 
-  /**
-   * Get booking with all related data (pricing, payments, history, notes)
-   */
-  async getBookingWithRelations(id: string): Promise<BookingWithRelations | null> {
-    const assignedAdmin = aliasedTable(users, "assignedAdmin");
-    const noteAdmin = aliasedTable(users, "noteAdmin");
-    const historyUser = aliasedTable(users, "historyUser");
-
-    // Get core booking with boat and user joins
-    const [booking] = await db
-      .select({
-        id: bookings.id,
-        bookingType: bookings.bookingType,
-        bookingStatus: bookings.bookingStatus,
-        source: bookings.source,
-        userId: bookings.userId,
-        customerName: bookings.customerName,
-        customerEmail: bookings.customerEmail,
-        customerPhone: bookings.customerPhone,
-        boatId: bookings.boatId,
-        pricingTierId: bookings.pricingTierId,
-        startDateTime: bookings.startDateTime,
-        endDateTime: bookings.endDateTime,
-        numberOfPassengers: bookings.numberOfPassengers,
-        isMultiDay: bookings.isMultiDay,
-        needsCaptain: bookings.needsCaptain,
-        pickupLocation: bookings.pickupLocation,
-        dropoffLocation: bookings.dropoffLocation,
-        assignedAdminId: bookings.assignedAdminId,
-        cancelledAt: bookings.cancelledAt,
-        cancellationReason: bookings.cancellationReason,
-        cancelledBy: bookings.cancelledBy,
-        createdAt: bookings.createdAt,
-        updatedAt: bookings.updatedAt,
-        expiresAt: bookings.expiresAt,
-        paymentType: bookings.paymentType,
-        addOns: bookings.addOns,
-        // Boat
-        boatName: boats.name,
-        boatCategory: boats.category,
-        boatMainImage: boats.mainImage,
-        boatCapacity: boats.capacity,
-        boatTimezone: boats.timezone,
-        boatOwnerId: boats.ownerId,
-        // User
-        userFirstName: users.firstName,
-        userLastName: users.lastName,
-        userEmail: users.email,
-        userProfileImage: users.profileImage,
-        // Assigned admin
-        assignedAdminFirstName: assignedAdmin.firstName,
-        assignedAdminLastName: assignedAdmin.lastName,
-        assignedAdminEmail: assignedAdmin.email,
-      })
-      .from(bookings)
-      .leftJoin(boats, eq(bookings.boatId, boats.id))
-      .leftJoin(users, eq(bookings.userId, users.id))
-      .leftJoin(assignedAdmin, eq(bookings.assignedAdminId, assignedAdmin.id))
-      .where(eq(bookings.id, id))
-      .limit(1);
-
-    if (!booking) return null;
-
-    // Fetch related data in parallel
-    const eventActor = aliasedTable(users, "eventActor");
-    const [pricingData, paymentsData, historyData, notesData, eventsData] = await Promise.all([
-      db.select().from(bookingPricing).where(eq(bookingPricing.bookingId, id)).limit(1),
-      db
-        .select()
-        .from(payments)
-        .where(and(eq(payments.payableType, "BOOKING"), eq(payments.payableId, id)))
-        .orderBy(desc(payments.createdAt)),
-      db
-        .select({
-          id: bookingStatusHistory.id,
-          fromStatus: bookingStatusHistory.fromStatus,
-          toStatus: bookingStatusHistory.toStatus,
-          changedByUserId: bookingStatusHistory.changedByUserId,
-          reason: bookingStatusHistory.reason,
-          createdAt: bookingStatusHistory.createdAt,
-          changedByFirstName: historyUser.firstName,
-          changedByLastName: historyUser.lastName,
-        })
-        .from(bookingStatusHistory)
-        .leftJoin(historyUser, eq(bookingStatusHistory.changedByUserId, historyUser.id))
-        .where(eq(bookingStatusHistory.bookingId, id))
-        .orderBy(desc(bookingStatusHistory.createdAt)),
-      db
-        .select({
-          id: bookingAdminNotes.id,
-          adminUserId: bookingAdminNotes.adminUserId,
-          noteType: bookingAdminNotes.noteType,
-          content: bookingAdminNotes.content,
-          createdAt: bookingAdminNotes.createdAt,
-          adminFirstName: noteAdmin.firstName,
-          adminLastName: noteAdmin.lastName,
-        })
-        .from(bookingAdminNotes)
-        .leftJoin(noteAdmin, eq(bookingAdminNotes.adminUserId, noteAdmin.id))
-        .where(eq(bookingAdminNotes.bookingId, id))
-        .orderBy(desc(bookingAdminNotes.createdAt)),
-      db
-        .select({
-          id: bookingEvents.id,
-          actorType: bookingEvents.actorType,
-          actorId: bookingEvents.actorId,
-          eventType: bookingEvents.eventType,
-          channel: bookingEvents.channel,
-          displayMessage: bookingEvents.displayMessage,
-          content: bookingEvents.content,
-          contactMethod: bookingEvents.contactMethod,
-          metadata: bookingEvents.metadata,
-          createdAt: bookingEvents.createdAt,
-          actorFirstName: eventActor.firstName,
-          actorLastName: eventActor.lastName,
-          actorEmail: eventActor.email,
-        })
-        .from(bookingEvents)
-        .leftJoin(eventActor, eq(bookingEvents.actorId, eventActor.id))
-        .where(eq(bookingEvents.bookingId, id))
-        .orderBy(desc(bookingEvents.createdAt)),
-    ]);
-
-    const pricing = pricingData[0];
-
-    return {
-      id: booking.id,
-      bookingType: booking.bookingType,
-      bookingStatus: booking.bookingStatus,
-      source: booking.source,
-      userId: booking.userId,
-      customerName: booking.customerName,
-      customerEmail: booking.customerEmail,
-      customerPhone: booking.customerPhone,
-      boatId: booking.boatId,
-      pricingTierId: booking.pricingTierId,
-      startDateTime: booking.startDateTime,
-      endDateTime: booking.endDateTime,
-      numberOfPassengers: booking.numberOfPassengers,
-      isMultiDay: booking.isMultiDay,
-      needsCaptain: booking.needsCaptain,
-      pickupLocation: booking.pickupLocation,
-      dropoffLocation: booking.dropoffLocation,
-      assignedAdminId: booking.assignedAdminId,
-      cancelledAt: booking.cancelledAt,
-      cancellationReason: booking.cancellationReason,
-      cancelledBy: booking.cancelledBy,
-      createdAt: booking.createdAt,
-      updatedAt: booking.updatedAt,
-      expiresAt: booking.expiresAt,
-      paymentType: booking.paymentType,
-      addOns: (booking.addOns ?? null) as Array<{
-        name: string;
-        description?: string | null;
-        unitPrice: number;
-        quantity: number;
-        total: number;
-      }> | null,
-
-      pricing: pricing
-        ? {
-            basePriceCents: Number(pricing.basePriceCents),
-            captainFeeCents: pricing.captainFeeCents ? Number(pricing.captainFeeCents) : null,
-            cleaningFeeCents: pricing.cleaningFeeCents ? Number(pricing.cleaningFeeCents) : null,
-            serviceFeeCents: pricing.serviceFeeCents ? Number(pricing.serviceFeeCents) : null,
-            taxAmountCents: pricing.taxAmountCents ? Number(pricing.taxAmountCents) : null,
-            discountAmountCents: pricing.discountAmountCents
-              ? Number(pricing.discountAmountCents)
-              : null,
-            discountCode: pricing.discountCode,
-            depositAmountCents: pricing.depositAmountCents
-              ? Number(pricing.depositAmountCents)
-              : null,
-            totalAmountCents: Number(pricing.totalAmountCents),
-            currency: pricing.currency,
-            depositDueDate: pricing.depositDueDate,
-            remainderDueDate: pricing.remainderDueDate,
-          }
-        : null,
-
-      payments: paymentsData.map((p) => ({
-        id: p.id,
-        paymentType: p.paymentType,
-        amountCents: Number(p.amountCents),
-        currency: p.currency,
-        status: p.status,
-        paymentMethodType: p.paymentMethodType,
-        paymentMethodDetail: p.paymentMethodDetail,
-        stripePaymentIntentId: p.stripePaymentIntentId,
-        stripePaymentLinkId: p.stripePaymentLinkId,
-        processedAt: p.processedAt,
-        createdAt: p.createdAt,
-      })),
-
-      statusHistory: historyData.map((h) => ({
-        id: h.id,
-        fromStatus: h.fromStatus,
-        toStatus: h.toStatus,
-        changedByUserId: h.changedByUserId,
-        changedByName:
-          h.changedByFirstName && h.changedByLastName
-            ? `${h.changedByFirstName} ${h.changedByLastName}`
-            : null,
-        reason: h.reason,
-        createdAt: h.createdAt,
-      })),
-
-      adminNotes: notesData.map((n) => ({
-        id: n.id,
-        adminUserId: n.adminUserId,
-        adminName:
-          n.adminFirstName && n.adminLastName ? `${n.adminFirstName} ${n.adminLastName}` : null,
-        noteType: n.noteType,
-        content: n.content,
-        createdAt: n.createdAt,
-      })),
-
-      activityEvents: eventsData.map((e) => ({
-        id: e.id,
-        actorType: e.actorType,
-        eventType: e.eventType,
-        channel: e.channel,
-        displayMessage: e.displayMessage,
-        content: e.content,
-        contactMethod: e.contactMethod,
-        metadata: e.metadata as Record<string, unknown> | null,
-        createdAt: e.createdAt,
-        actorName:
-          e.actorFirstName || e.actorLastName
-            ? `${e.actorFirstName || ""} ${e.actorLastName || ""}`.trim()
-            : e.actorEmail || (e.actorType === "system" ? "System" : "—"),
-      })),
-
-      boat: {
-        id: booking.boatId,
-        name: booking.boatName ?? "",
-        category: booking.boatCategory,
-        mainImage: booking.boatMainImage,
-        capacity: booking.boatCapacity,
-        timezone: booking.boatTimezone,
-        ownerId: booking.boatOwnerId,
-      },
-
-      user: booking.userId
-        ? {
-            id: booking.userId,
-            firstName: booking.userFirstName,
-            lastName: booking.userLastName,
-            email: booking.userEmail ?? "",
-            profileImage: booking.userProfileImage,
-          }
-        : null,
-
-      assignedAdmin: booking.assignedAdminId
-        ? {
-            id: booking.assignedAdminId,
-            firstName: booking.assignedAdminFirstName,
-            lastName: booking.assignedAdminLastName,
-            email: booking.assignedAdminEmail ?? "",
-          }
-        : null,
-    };
-  }
-
   // ==========================================================================
   // UPDATE OPERATIONS
   // ==========================================================================
@@ -1938,23 +1655,6 @@ export class BookingService {
     });
   }
 
-  /**
-   * Count bookings for a linked customer account (admin client card).
-   */
-  async countBookingsForUser(userId: string): Promise<number> {
-    const [row] = await db
-      .select({ value: count() })
-      .from(bookings)
-      .where(eq(bookings.userId, userId));
-    return row?.value ?? 0;
-  }
-
-  /**
-   * Delete a booking
-   */
-  async deleteBooking(id: string): Promise<void> {
-    await db.delete(bookings).where(eq(bookings.id, id));
-  }
 }
 
 // Export singleton instance

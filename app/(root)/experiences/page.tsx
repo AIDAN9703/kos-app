@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 
 export const metadata: Metadata = {
@@ -138,7 +138,7 @@ export default function ExperiencesPage() {
 
           {/* Experiences Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {experiences.map((experience, index) => (
+            {experiences.map((experience) => (
               <Link
                 key={experience.id}
                 href={experience.href}

@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/database/db";
-import { bookingPricing, bookings } from "@/database/schema";
+import { bookings } from "@/database/schema";
 import { getAppSettings } from "@/features/app-settings/app-settings.service";
 import { bookingEventsService } from "@/features/bookings/services/booking-events.service";
 import { bookingPricingService } from "@/features/bookings/services/booking-pricing.service";
@@ -40,8 +40,6 @@ const bookingPricingUpdateSchema = z.object({
   depositAmountCents: centsField.nullable(),
   addOns: z.array(addOnInputSchema),
 });
-
-export type BookingPricingUpdateInput = z.infer<typeof bookingPricingUpdateSchema>;
 
 function revalidateBooking(bookingId: string) {
   revalidatePath("/admin/bookings");
@@ -176,7 +174,7 @@ export async function updateBookingPricing(
       totalAmountCents: total,
     });
 
-    // Logged as an UPDATED event so the resend dialog counts it as an edit.
+    // Logged as an UPDATED event so the Breakdown counts it as an unsent change.
     await bookingEventsService.logBookingUpdated({
       bookingId,
       actorId: adminAuth.session.user.id,
@@ -190,54 +188,5 @@ export async function updateBookingPricing(
   } catch (error) {
     console.error("updateBookingPricing failed:", error);
     return { success: false, error: "Couldn't save the pricing. Please try again." };
-  }
-}
-
-/**
- * Set (or clear) the deposit a guest may pay first. This is the ONLY switch
- * for deposits: an amount means the customer's link offers "pay the deposit"
- * next to "pay in full"; blank means full payment only.
- */
-export async function setBookingDeposit(
-  bookingId: string,
-  depositAmountCents: number | null
-): Promise<ActionResult> {
-  const adminAuth = await getAdminSession();
-  if (adminAuth.error !== undefined) return { success: false, error: adminAuth.error };
-
-  const parsed = centsField.nullable().safeParse(depositAmountCents);
-  if (!parsed.success) return { success: false, error: "Enter a valid deposit amount." };
-  const next = parsed.data && parsed.data > 0 ? parsed.data : null;
-
-  try {
-    const booking = await bookingService.getBookingById(bookingId);
-    if (!booking) return { success: false, error: "Booking not found" };
-    const total = booking.serviceFeeWaived
-      ? (booking.totalAmountCents ?? 0) - (booking.serviceFeeCents ?? 0)
-      : (booking.totalAmountCents ?? 0);
-    if (next != null && next >= total) {
-      return { success: false, error: "The deposit has to be less than the total." };
-    }
-    const current = booking.depositAmountCents ?? null;
-    if (next === current) return { success: true };
-
-    await db
-      .update(bookingPricing)
-      .set({ depositAmountCents: next, updatedAt: new Date() })
-      .where(eq(bookingPricing.bookingId, bookingId));
-
-    await bookingEventsService.logBookingUpdated({
-      bookingId,
-      actorId: adminAuth.session.user.id,
-      previousState: { depositAmountCents: current },
-      newState: { depositAmountCents: next },
-      changedFields: ["depositAmountCents"],
-    });
-
-    revalidateBooking(bookingId);
-    return { success: true };
-  } catch (error) {
-    console.error("setBookingDeposit failed:", error);
-    return { success: false, error: "Couldn't update the deposit. Please try again." };
   }
 }

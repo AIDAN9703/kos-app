@@ -13,8 +13,6 @@ import { ProfilePhotoField } from "@/features/profile/components/settings/Profil
 import { SettingsSection } from "@/features/profile/components/settings/SettingsSection";
 import { getAccount } from "@/features/profile/profile.queries";
 
-export const dynamic = "force-dynamic";
-
 export default async function AccountSettingsPage() {
   const session = await requireAuth();
   const account = await getAccount(session.user.id);
@@ -22,14 +20,25 @@ export default async function AccountSettingsPage() {
 
   return (
     <div>
-      <PageHeader title="Account settings" description="Your details, how we reach you, and how you sign in." />
+      <PageHeader
+        title="Account settings"
+        description="Your details, how we reach you, and how you sign in."
+      />
 
       <div className="mt-8">
-        <SettingsSection id="photo" title="Profile photo" description="Shown on your profile and to the crew.">
+        <SettingsSection
+          id="photo"
+          title="Profile photo"
+          description="Shown on your profile and to the crew."
+        >
           <ProfilePhotoField imageUrl={account.profileImage} />
         </SettingsSection>
 
-        <SettingsSection id="personal" title="Personal information" description="How we address you and reach you about trips.">
+        <SettingsSection
+          id="personal"
+          title="Personal information"
+          description="How we address you and reach you about trips."
+        >
           <EditableField
             label="Name"
             fields={[
@@ -49,7 +58,14 @@ export default async function AccountSettingsPage() {
           />
           <EditableField
             label="Phone"
-            fields={[{ key: "phoneNumber", label: "Phone number", type: "tel", placeholder: "(305) 555-0123" }]}
+            fields={[
+              {
+                key: "phoneNumber",
+                label: "Phone number",
+                type: "tel",
+                placeholder: "(305) 555-0123",
+              },
+            ]}
             values={{ phoneNumber: account.phoneNumber }}
             description="Your captain uses this on the day of the trip."
             aside={
@@ -63,7 +79,15 @@ export default async function AccountSettingsPage() {
           />
           <EditableField
             label="About you"
-            fields={[{ key: "bio", label: "Bio", type: "textarea", placeholder: "Anything the crew should know — occasions, favourite spots, how you like to spend a day on the water." }]}
+            fields={[
+              {
+                key: "bio",
+                label: "Bio",
+                type: "textarea",
+                placeholder:
+                  "Anything the crew should know — occasions, favourite spots, how you like to spend a day on the water.",
+              },
+            ]}
             values={{ bio: account.bio }}
             onSave={updateAccountDetails}
           />
@@ -90,7 +114,11 @@ export default async function AccountSettingsPage() {
           />
         </SettingsSection>
 
-        <SettingsSection id="notifications" title="Notifications" description="Choose how much you hear from us, and where.">
+        <SettingsSection
+          id="notifications"
+          title="Notifications"
+          description="Choose how much you hear from us, and where."
+        >
           <NotificationPreferencesForm
             emailNotifications={account.emailNotifications ?? "ALL"}
             smsNotifications={account.smsNotifications ?? "IMPORTANT_ONLY"}
@@ -102,7 +130,11 @@ export default async function AccountSettingsPage() {
           <PasswordSection signsInWithGoogle={account.authProvider === "GOOGLE"} />
         </SettingsSection>
 
-        <SettingsSection id="payments" title="Payments" description="Receipts, invoices and saved cards are handled securely by Stripe.">
+        <SettingsSection
+          id="payments"
+          title="Payments"
+          description="Receipts, invoices and saved cards are handled securely by Stripe."
+        >
           <div className="border-b border-gray-200 py-4">
             <BillingPortalButton />
           </div>
@@ -111,10 +143,16 @@ export default async function AccountSettingsPage() {
         <section className="flex flex-col gap-4 border-t border-gray-200 py-8 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-lg font-bold text-primary">Sign out</h2>
-            <p className="mt-1 text-sm leading-6 text-slate-500">You&apos;ll need your password (or Google) to sign back in.</p>
+            <p className="mt-1 text-sm leading-6 text-slate-500">
+              You&apos;ll need your password (or Google) to sign back in.
+            </p>
           </div>
           <form action={signOutAction}>
-            <Button type="submit" variant="outline" className="border-destructive text-destructive hover:bg-destructive/5">
+            <Button
+              type="submit"
+              variant="outline"
+              className="border-destructive text-destructive hover:bg-destructive/5"
+            >
               <LogOut />
               Sign out
             </Button>
