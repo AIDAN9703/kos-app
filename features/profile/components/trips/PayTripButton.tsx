@@ -4,9 +4,9 @@ import { useState } from "react";
 import { CreditCard, Loader2 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { useToast } from "@/shared/lib/hooks/use-toast";
-import { cn } from "@/shared/lib/utils/general-utils";
 import { formatCentsAsCurrency } from "@/shared/lib/utils/money-utils";
 import { startTripPayment } from "../../actions/trip.actions";
+import { PaymentAmountChoice } from "@/features/bookings/components/PaymentAmountChoice";
 
 interface PayTripButtonProps {
   tripId: string;
@@ -53,20 +53,13 @@ export function PayTripButton({
   return (
     <div className="space-y-3">
       {hasDeposit ? (
-        <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="How much to pay now">
-          <Choice
-            active={chargeType === "deposit"}
-            label="Deposit"
-            detail={`${fmt(depositChargeCents!)} now`}
-            onClick={() => setChoice("deposit")}
-          />
-          <Choice
-            active={chargeType === "full"}
-            label="Pay in full"
-            detail={`${fmt(balanceCents)} now`}
-            onClick={() => setChoice("full")}
-          />
-        </div>
+        <PaymentAmountChoice
+          value={chargeType}
+          onChange={setChoice}
+          depositCents={depositChargeCents!}
+          fullCents={balanceCents}
+          currency={currency}
+        />
       ) : null}
       <Button type="button" onClick={pay} disabled={loading} className="w-full">
         {loading ? <Loader2 className="animate-spin" /> : <CreditCard />}
@@ -78,39 +71,6 @@ export function PayTripButton({
               ? `Pay ${fmt(chargeCents)} deposit`
               : `Pay ${fmt(chargeCents)}`}
       </Button>
-      <p className="text-xs leading-5 text-slate-500">
-        {hasDeposit && chargeType === "deposit"
-          ? `Includes the card processing fee on the deposit. The remaining ${fmt(balanceCents - depositChargeCents!)} is due before the trip.`
-          : "Includes the card processing fee on this payment."}
-      </p>
     </div>
-  );
-}
-
-function Choice({
-  active,
-  label,
-  detail,
-  onClick,
-}: {
-  active: boolean;
-  label: string;
-  detail: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={active}
-      onClick={onClick}
-      className={cn(
-        "rounded-xl px-3 py-2.5 text-left transition-colors",
-        active ? "border-2 border-primary bg-primary/5" : "border border-gray-200 hover:bg-muted/50"
-      )}
-    >
-      <span className="block text-sm font-semibold text-primary">{label}</span>
-      <span className="block text-xs text-slate-500">{detail}</span>
-    </button>
   );
 }

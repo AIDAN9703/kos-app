@@ -6,7 +6,8 @@ import type {
   ProposalData,
   ProposalPaymentOptions,
 } from "@/features/bookings/lib/proposal.types";
-import { feeRateOf, formatFeeRate, planCharge } from "@/features/bookings/lib/charge-plan";
+import { planCharge } from "@/features/bookings/lib/charge-plan";
+import { formatServiceFee } from "@/shared/lib/utils/pricing-utils";
 
 type Props = {
   params: Promise<{ token: string }>;
@@ -58,6 +59,7 @@ function proposalPaymentOptions(
     bookingId: b.id,
     totalCents: b.totalCents,
     serviceFeeCents: b.serviceFeeCents,
+    serviceFee: b.serviceFee,
     serviceFeeWaived: b.serviceFeeWaived,
     depositCents: b.depositCents,
     // The deposit is only offered before anything is paid, so per-boat
@@ -65,7 +67,7 @@ function proposalPaymentOptions(
     paidCents: 0,
   }));
   const deposit = paidCents === 0 && !offCard ? planCharge(boats, "deposit") : null;
-  const rate = boats.length > 0 ? feeRateOf(boats[0]) : 0;
+  const fee = boats[0]?.serviceFee;
   return {
     offCard,
     remainingCents: Math.max(0, totalCents - paidCents),
@@ -77,6 +79,6 @@ function proposalPaymentOptions(
             amountCents: deposit.plan.amountCents,
           }
         : null,
-    feeRateLabel: rate > 0 ? formatFeeRate(rate) : null,
+    feeLabel: fee && (fee.bps > 0 || fee.fixedCents > 0) ? formatServiceFee(fee) : null,
   };
 }

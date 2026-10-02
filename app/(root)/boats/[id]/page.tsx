@@ -144,7 +144,7 @@ export default async function BoatPage({ params }: BoatPageProps) {
 
     // Display rate for the price breakdown (refreshes with ISR). The amount
     // actually charged is always recalculated server-side at checkout.
-    const { serviceFeeRate } = await getAppSettings();
+    const { serviceFee } = await getAppSettings();
 
     return (
       <>
@@ -214,7 +214,7 @@ export default async function BoatPage({ params }: BoatPageProps) {
               {/* Desktop booking form - hidden on mobile, shown on md+ screens */}
               <aside className="hidden md:block lg:-mt-16 xl:-mt-24 relative z-20">
                 <div className="sticky top-24">
-                  <BookingForm boat={boat} serviceFeeRate={serviceFeeRate} />
+                  <BookingForm boat={boat} serviceFee={serviceFee} />
                 </div>
               </aside>
             </div>
@@ -222,7 +222,7 @@ export default async function BoatPage({ params }: BoatPageProps) {
 
           {/* Mobile booking bar - shown on mobile, hidden on md+ screens */}
           <div className="md:hidden">
-            <MobileBookingDrawer boat={boat} serviceFeeRate={serviceFeeRate} />
+            <MobileBookingDrawer boat={boat} serviceFee={serviceFee} />
           </div>
         </main>
       </>

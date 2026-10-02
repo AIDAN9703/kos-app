@@ -35,6 +35,7 @@ import {
   shiftCharterPartyWindows,
 } from "@/features/bookings/actions/admin-booking.actions";
 import { AddOnsFields } from "@/features/bookings/components/admin/booking-forms/shared/AddOnsFields";
+import { formatServiceFee, serviceFeeOn } from "@/shared/lib/utils/pricing-utils";
 import { reanchorWallTime } from "@/features/bookings/components/admin/booking-forms/shared/BookingSectionFields";
 import { useBookingEditMode } from "./BookingEditMode";
 
@@ -179,8 +180,8 @@ export function TripEditor({
 
   const money = pricing?.money;
   const fmt = (c: number) => formatCentsAsCurrency(c, { currency: pricing?.currency ?? "USD" });
-  const feeRate =
-    money && money.subtotalCents > 0 ? money.serviceFeeCents / money.subtotalCents : 0.035;
+  // Re-pricing keeps the fee this booking was quoted with (its snapshot).
+  const fee = money?.serviceFee ?? { bps: 0, fixedCents: 0 };
   const draft = {
     baseCents: parseDollars(base),
     captainCents: parseDollars(captainFee),
@@ -196,7 +197,7 @@ export function TripEditor({
   ].every(Number.isFinite);
   const draftSubtotal =
     draft.baseCents + draft.captainCents + draft.cleaningCents + draft.addOnsCents;
-  const draftFee = Math.round(draftSubtotal * feeRate);
+  const draftFee = serviceFeeOn(draftSubtotal, fee);
   const draftTotal = money?.serviceFeeWaived ? draftSubtotal : draftSubtotal + draftFee;
 
   function pickTier(id: string, list: TierOption[] = tiers) {
@@ -506,7 +507,7 @@ export function TripEditor({
               label={
                 money.serviceFeeWaived
                   ? "Card fee · waived"
-                  : `Card fee (${(feeRate * 100).toFixed(2).replace(/\.?0+$/, "")}%)`
+                  : `Card fee (${formatServiceFee(fee)})`
               }
               value={draftValid ? fmt(draftFee) : "—"}
               muted

@@ -1,5 +1,4 @@
-import {
-  boolean, pgTable, uuid, text, bigint, timestamp } from "drizzle-orm/pg-core";
+import { boolean, integer, pgTable, uuid, text, bigint, timestamp } from "drizzle-orm/pg-core";
 import { bookings } from "./bookings.table";
 
 /**
@@ -26,6 +25,12 @@ export const bookingPricing = pgTable("booking_pricing", {
   captainFeeCents: bigint("captain_fee_cents", { mode: "number" }),
   cleaningFeeCents: bigint("cleaning_fee_cents", { mode: "number" }),
   serviceFeeCents: bigint("service_fee_cents", { mode: "number" }),
+  /** The card fee this booking was priced at (snapshot of app settings):
+      a percentage of every charge (bps, 399 = 3.99%) plus a fixed amount
+      collected once with the first payment. Null bps = priced before the
+      snapshot existed; the rate is then derived from service_fee_cents. */
+  serviceFeeBps: integer("service_fee_bps"),
+  serviceFeeFixedCents: integer("service_fee_fixed_cents").default(0).notNull(),
   /** Card-processing fee waived — set when the balance is paid off-card
       (Zelle / wire / cash). The fee stays stored for the record; the
       effective total drops it. */

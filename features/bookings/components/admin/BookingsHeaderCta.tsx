@@ -5,7 +5,6 @@ import { useQueryStates } from "nuqs";
 import { bookingSearchParams } from "@/features/bookings/searchParams";
 import { NewBookingModal } from "@/features/bookings/components/admin/new-booking-modal";
 import type { PricingTierOption } from "@/features/bookings/components/admin/booking-forms/types";
-import type { AdminOption } from "@/shared/lib/utils/people-display";
 
 /**
  * "Add booking" CTA for the page header — same slot as the inquiries page's
@@ -14,10 +13,8 @@ import type { AdminOption } from "@/shared/lib/utils/people-display";
  */
 export function BookingsHeaderCta({
   pricingTiers,
-  admins,
 }: {
   pricingTiers: PricingTierOption[];
-  admins: AdminOption[];
 }) {
   const [filters, setFilters] = useQueryStates(bookingSearchParams, {
     clearOnDefault: true,
@@ -27,7 +24,6 @@ export function BookingsHeaderCta({
   return (
     <NewBookingModal
       pricingTiers={pricingTiers}
-      admins={admins}
       triggerLabel="Add booking"
       triggerClassName="gap-1.5 rounded-full px-5 shadow-sm"
       defaultOpen={filters.newBooking === true}

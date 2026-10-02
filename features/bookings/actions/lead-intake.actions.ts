@@ -25,7 +25,8 @@ import {
   sendInquiryAcknowledgmentEmail,
 } from "@/shared/lib/services/email.service";
 import { calculateEndDateTime } from "@/shared/lib/utils/date-helpers";
-import { calculateBookingPriceFromDollars } from "@/shared/lib/utils/pricing-utils";
+import { calculateBookingPriceCents } from "@/shared/lib/utils/pricing-utils";
+import { dollarsToCents } from "@/shared/lib/utils/money-utils";
 import { getAppSettings } from "@/features/app-settings/app-settings.service";
 
 /** Event type for all intake events — matches the backfill's `lead.created`. */
@@ -390,12 +391,13 @@ export async function createBoatLead(data: BoatLeadInput) {
     const endDateTime = calculateEndDateTime(startDateTime, pricingTier.hours);
     const needsCaptain = validated.needsCaptain || boat.crewRequired || false;
 
-    const { serviceFeeRate } = await getAppSettings();
-    const priceBreakdown = calculateBookingPriceFromDollars(
-      pricingTier.price,
-      boat.cleaningFee || 0,
+    const { serviceFee } = await getAppSettings();
+    const priceBreakdown = calculateBookingPriceCents(
+      dollarsToCents(pricingTier.price),
+      dollarsToCents(boat.cleaningFee || 0),
       0,
-      serviceFeeRate
+      0,
+      serviceFee
     );
 
     const [deal] = await db

@@ -38,7 +38,7 @@ function BigInt_({ n }: { n: number }) {
 /**
  * The bridge: one instrument panel. Left, the month's charter volume as the
  * headline with a live sparkline of the trailing year glowing beneath it.
- * Right, three readouts — commission, charters, departures — each with a
+ * Right, three readouts — revenue, charters, departures — each with a
  * single line of context that only appears when it means something.
  */
 export function HeroBand({
@@ -57,10 +57,10 @@ export function HeroBand({
   action: ReactNode;
 }) {
   const thisMonth = trend[trend.length - 1];
-  const spark = trend.map((m) => ({ label: m.label, gmv: m.gmvCents / 100, commission: m.commissionCents / 100 }));
+  const spark = trend.map((m) => ({ label: m.label, gmv: m.gmvCents / 100, revenue: m.revenueCents / 100 }));
   const marginPct =
-    thisMonth.gmvCents > 0 && thisMonth.commissionCents > 0
-      ? Math.round((thisMonth.commissionCents / thisMonth.gmvCents) * 100)
+    thisMonth.gmvCents > 0 && thisMonth.revenueCents > 0
+      ? Math.round((thisMonth.revenueCents / thisMonth.gmvCents) * 100)
       : null;
   const avgCents = thisMonth.trips > 0 ? Math.round(thisMonth.gmvCents / thisMonth.trips) : 0;
   const needsPrep = upcomingTrips.filter((t) => readinessGaps(t).length > 0).length;
@@ -126,7 +126,7 @@ export function HeroBand({
                   </defs>
                   <Area
                     type="monotone"
-                    dataKey="commission"
+                    dataKey="revenue"
                     stroke="#38bdf8"
                     strokeOpacity={0.7}
                     strokeWidth={1.5}
@@ -151,7 +151,7 @@ export function HeroBand({
               <span>{trend[0]?.label}</span>
               <span className="flex items-center gap-4">
                 <span><span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-primary align-middle" />volume</span>
-                <span><span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-sky-400 align-middle" />commission</span>
+                <span><span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-sky-400 align-middle" />revenue</span>
                 <span>· trailing {trend.length} months</span>
               </span>
               <span>{thisMonth.label}</span>
@@ -162,8 +162,8 @@ export function HeroBand({
         {/* ── Readouts ── */}
         <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
           <Readout
-            label="KOS commission"
-            value={<BigDollars cents={thisMonth.commissionCents} />}
+            label="KOS revenue"
+            value={<BigDollars cents={thisMonth.revenueCents} />}
             sub={marginPct != null ? `${marginPct}% of volume` : undefined}
             accent="gold"
             delay={0.15}

@@ -23,7 +23,7 @@ export interface StatusTransitionInput {
   changedByUserId?: string | null;
   reason?: string | null;
   metadata?: Record<string, unknown> | null;
-}
+}
 
 // ============================================================================
 // STATUS TRANSITION RULES
@@ -129,8 +129,6 @@ export class BookingStatusService {
     return historyEntry;
   }
 
-
-
   /**
    * Create initial status history entry for a new booking
    * Called when booking is first created
@@ -163,10 +161,6 @@ export class BookingStatusService {
 
     return historyEntry;
   }
-
-
-
-
 
   // ============================================================================
   // CONVENIENCE METHODS FOR COMMON TRANSITIONS
@@ -211,17 +205,15 @@ export class BookingStatusService {
   }
 
   /**
-   * The trip is theirs: PROPOSED → BOOKED. One verb for every road in —
-   * the customer accepting on their link (acceptedAt + note), an admin
-   * marking it booked after a phone yes, or money landing. Availability is
-   * the caller's job; the exclusion constraint is the last line of defense.
+   * The trip is theirs: PROPOSED → BOOKED. One verb for every road in — the
+   * guest's payment landing (confirmPaidBooking), an admin marking it booked
+   * after a phone yes, or a recorded payment. Availability is the caller's
+   * job; the exclusion constraint is the last line of defense.
    */
   async markBooked(
     bookingId: string,
     options?: {
       changedByUserId?: string | null;
-      acceptedAt?: Date;
-      acceptedCustomerNote?: string | null;
       reason?: string;
       actorType?: "user" | "admin" | "system";
       channel?: string;
@@ -232,18 +224,9 @@ export class BookingStatusService {
     if (currentStatus !== "PROPOSED")
       throw new Error(`Only a proposal can be marked booked (status: ${currentStatus})`);
 
-    const now = new Date();
-    const updateData: Record<string, unknown> = {
-      bookingStatus: "BOOKED",
-      updatedAt: now,
-    };
-    if (options?.acceptedAt !== undefined) updateData.acceptedAt = options.acceptedAt;
-    if (options?.acceptedCustomerNote !== undefined)
-      updateData.acceptedCustomerNote = options.acceptedCustomerNote;
-
     await db
       .update(bookings)
-      .set(updateData as Record<string, Date | string | null>)
+      .set({ bookingStatus: "BOOKED", updatedAt: new Date() })
       .where(eq(bookings.id, bookingId));
 
     const reason = options?.reason ?? "Booked";

@@ -13,6 +13,7 @@ import {
 } from "@/database/schema";
 import { effectiveTotalCents } from "@/features/bookings/lib/booking-money";
 import { depositCharge } from "@/features/bookings/lib/charge-plan";
+import { serviceFeeFromSnapshot } from "@/shared/lib/utils/pricing-utils";
 import type {
   AccountUser,
   CaptainAssignment,
@@ -75,6 +76,8 @@ const tripColumns = {
   totalAmountCents: bookingPricing.totalAmountCents,
   serviceFeeCents: bookingPricing.serviceFeeCents,
   serviceFeeWaived: bookingPricing.serviceFeeWaived,
+  serviceFeeBps: bookingPricing.serviceFeeBps,
+  serviceFeeFixedCents: bookingPricing.serviceFeeFixedCents,
   depositAmountCents: bookingPricing.depositAmountCents,
   paidCents: paidByBooking.paidCents,
 };
@@ -101,6 +104,7 @@ function toTripSummary(row: TripRow): TripSummary {
     bookingId: row.id,
     totalCents: Number(row.totalAmountCents ?? 0),
     serviceFeeCents: Number(row.serviceFeeCents ?? 0),
+    serviceFee: serviceFeeFromSnapshot(row),
     serviceFeeWaived: Boolean(row.serviceFeeWaived),
     depositCents: row.depositAmountCents != null ? Number(row.depositAmountCents) : null,
     paidCents,
@@ -141,7 +145,6 @@ export async function getTrip(userId: string, bookingId: string): Promise<TripDe
       dropoffLocation: bookings.dropoffLocation,
       specialRequests: bookings.specialRequests,
       occasionType: bookings.occasionType,
-      acceptedAt: bookings.acceptedAt,
       cancelledAt: bookings.cancelledAt,
       cancellationReason: bookings.cancellationReason,
       currency: bookingPricing.currency,
@@ -159,7 +162,6 @@ export async function getTrip(userId: string, bookingId: string): Promise<TripDe
     dropoffLocation: row.dropoffLocation,
     specialRequests: row.specialRequests,
     occasionType: row.occasionType,
-    acceptedAt: row.acceptedAt,
     cancelledAt: row.cancelledAt,
     cancellationReason: row.cancellationReason,
     currency: row.currency ?? "USD",

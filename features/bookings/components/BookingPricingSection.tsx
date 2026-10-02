@@ -4,8 +4,12 @@ import { Zap } from "lucide-react";
 
 import { formatCurrency } from "@/shared/lib/utils/general-utils";
 import { SafeBoatData, PricingTier } from "@/features/bookings/booking.types";
-import { calculateBookingPrice } from "@/shared/lib/utils/pricing-utils";
-import { formatRateAsPercent } from "@/features/app-settings/app-settings.config";
+import {
+  calculateBookingPriceCents,
+  formatServiceFee,
+  type ServiceFee,
+} from "@/shared/lib/utils/pricing-utils";
+import { dollarsToCents } from "@/shared/lib/utils/money-utils";
 
 export interface PricingSectionAddOn {
   name: string;
@@ -18,8 +22,8 @@ export interface PricingSectionAddOn {
 interface BookingPricingSectionProps {
   boat: SafeBoatData;
   selectedTier: PricingTier;
-  /** Decimal service fee rate (e.g. 0.035) from app settings, passed down from a server component. */
-  serviceFeeRate: number;
+  /** The card fee from app settings (rate + fixed), passed down from the server page. */
+  serviceFee: ServiceFee;
   showHeading?: boolean;
   addOns?: PricingSectionAddOn[];
 }
@@ -27,7 +31,7 @@ interface BookingPricingSectionProps {
 export default function BookingPricingSection({
   boat,
   selectedTier,
-  serviceFeeRate,
+  serviceFee,
   showHeading = true,
   addOns = [],
 }: BookingPricingSectionProps) {
@@ -35,11 +39,12 @@ export default function BookingPricingSection({
     .filter((a) => !a.isComplimentary)
     .reduce((sum, a) => sum + a.total, 0);
   // Fold paid add-ons into the fee base so the service fee + total match the server.
-  const priceBreakdown = calculateBookingPrice(
-    selectedTier.price,
-    (boat.cleaningFee || 0) + paidAddOnsTotal,
+  const priceBreakdown = calculateBookingPriceCents(
+    dollarsToCents(selectedTier.price),
+    dollarsToCents(boat.cleaningFee || 0),
     0,
-    serviceFeeRate
+    dollarsToCents(paidAddOnsTotal),
+    serviceFee
   );
   const currency = boat.currency ?? "USD";
   const fmt = (amount: number) => formatCurrency(amount, currency);
@@ -52,7 +57,7 @@ export default function BookingPricingSection({
     },
     {
       label: "Captain",
-      amount: priceBreakdown.captainFee,
+      amount: 0,
       included: true,
     },
     ...((boat.cleaningFee || 0) > 0
@@ -70,8 +75,8 @@ export default function BookingPricingSection({
       included: !!a.isComplimentary,
     })),
     {
-      label: `Processing (${formatRateAsPercent(serviceFeeRate)}%)`,
-      amount: priceBreakdown.serviceFee,
+      label: `Processing (${formatServiceFee(serviceFee)})`,
+      amount: priceBreakdown.serviceFeeCents / 100,
       included: false,
     },
   ];
@@ -98,7 +103,7 @@ export default function BookingPricingSection({
       <div className="flex items-baseline justify-between gap-4 pt-1">
         <span className="text-base font-semibold text-foreground">Total</span>
         <span className="text-xl font-semibold tabular-nums tracking-tight text-foreground">
-          {fmt(priceBreakdown.totalPrice)}
+          {fmt(priceBreakdown.totalPriceCents / 100)}
         </span>
       </div>
 

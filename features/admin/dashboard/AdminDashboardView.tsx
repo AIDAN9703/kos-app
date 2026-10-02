@@ -12,7 +12,6 @@ import type {
   RevenueMonth,
 } from "@/features/admin/dashboard";
 import type { BookingListItem } from "@/features/bookings/booking.types";
-import type { AdminOption } from "@/shared/lib/utils/people-display";
 
 import { HeroBand } from "./HeroBand";
 import { DeparturesRail } from "./DeparturesRail";
@@ -30,7 +29,6 @@ interface AdminDashboardViewProps {
   leaders: FleetLeader[];
   workload: AdminWorkload[];
   activity: ActivityItem[];
-  admins: AdminOption[];
 }
 
 /**
@@ -49,7 +47,6 @@ export function AdminDashboardView({
   leaders,
   workload,
   activity,
-  admins,
 }: AdminDashboardViewProps) {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
@@ -67,7 +64,6 @@ export function AdminDashboardView({
           action={
             <NewBookingModal
               pricingTiers={pricingTiers}
-              admins={admins}
               triggerLabel="New booking"
               triggerClassName="h-10 gap-1.5 rounded-full px-5 text-sm font-semibold shadow-[0_0_20px_-8px_var(--color-primary)]"
             />

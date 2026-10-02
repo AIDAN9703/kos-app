@@ -12,8 +12,8 @@ import BookingPricingSection from "@/features/bookings/components/BookingPricing
 import KnowBeforeYouGo from "@/features/bookings/components/KnowBeforeYouGo";
 import { useBoat } from "@/features/bookings/components/BoatProvider";
 import { Button } from "@/shared/components/ui/button";
-import { formatCurrency } from "@/shared/lib/utils/general-utils";
-import { calculateBookingPrice } from "@/shared/lib/utils/pricing-utils";
+import { calculateBookingPriceCents, type ServiceFee } from "@/shared/lib/utils/pricing-utils";
+import { dollarsToCents, formatCentsAsCurrency } from "@/shared/lib/utils/money-utils";
 import { toast } from "@/shared/lib/hooks/use-toast";
 import { createBoatLead } from "@/features/bookings/actions/lead-intake.actions";
 import type { BoatMemberInquiryContactFormData } from "@/shared/lib/validation/inquiry";
@@ -54,11 +54,11 @@ function HoldTimer() {
 }
 
 export default function BoatInquiryDetailsClient({
-  serviceFeeRate,
+  serviceFee,
   currentUser,
 }: {
-  /** Decimal service fee rate (e.g. 0.035) from app settings. */
-  serviceFeeRate: number;
+  /** The card fee from app settings (rate + fixed), passed down from the server page. */
+  serviceFee: ServiceFee;
   currentUser: InquiryCurrentUser | null;
 }) {
   const router = useRouter();
@@ -90,8 +90,8 @@ export default function BoatInquiryDetailsClient({
 
   const priceBreakdown = useMemo(() => {
     if (!selectedTier) return null;
-    return calculateBookingPrice(selectedTier.price, boat.cleaningFee || 0, 0, serviceFeeRate);
-  }, [selectedTier, boat.cleaningFee, serviceFeeRate]);
+    return calculateBookingPriceCents(dollarsToCents(selectedTier.price), dollarsToCents(boat.cleaningFee || 0), 0, 0, serviceFee);
+  }, [selectedTier, boat.cleaningFee, serviceFee]);
 
   const safeBoat = useMemo(
     () => ({
@@ -109,7 +109,7 @@ export default function BoatInquiryDetailsClient({
 
   const totalLabel = useMemo(() => {
     if (!priceBreakdown) return "";
-    return formatCurrency(priceBreakdown.totalPrice, safeBoat.currency);
+    return formatCentsAsCurrency(priceBreakdown.totalPriceCents, { currency: safeBoat.currency });
   }, [priceBreakdown, safeBoat.currency]);
 
   const handleContactSubmit = useCallback(
@@ -288,7 +288,7 @@ export default function BoatInquiryDetailsClient({
               <BookingPricingSection
                 boat={safeBoat}
                 selectedTier={selectedTier}
-                serviceFeeRate={serviceFeeRate}
+                serviceFee={serviceFee}
               />
             </div>
           </main>
@@ -299,7 +299,7 @@ export default function BoatInquiryDetailsClient({
               <BookingPricingSection
                 boat={safeBoat}
                 selectedTier={selectedTier}
-                serviceFeeRate={serviceFeeRate}
+                serviceFee={serviceFee}
               />
               {requestButton}
               <p className="px-1 text-center text-[11px] leading-relaxed text-muted-foreground">

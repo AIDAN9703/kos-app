@@ -79,8 +79,13 @@ Unset boats fall back to America/New_York. Prod's remaining 12: 2 at La Coloma M
   branded proposal email → public proposal page → guest pays the deposit or in full
   (no accept step; paying is the yes) → Stripe Checkout → webhook confirms the booking
   → confirmation email → branded success page. After a deposit the same page offers
-  "Pay remaining balance". The card fee is charged on every card payment in proportion:
-  deposit = deposit + deposit × fee rate; balance = total − paid. One planner,
+  "Pay remaining balance". Card fee: 3.99% of every card payment plus $0.99 once per
+  booking (admin Settings; `app_setting.service_fee_bps` / `service_fee_fixed_cents`),
+  snapshotted per booking on `booking_pricing.service_fee_bps` / `_fixed_cents`
+  (migration 0062; older rows backfilled with their derived rate, no fixed part).
+  deposit = deposit + deposit × rate + fixed; balance = total − paid (so the guest
+  never pays more than the proposal total). Shared math in `shared/lib/utils/pricing-utils.ts`
+  (`ServiceFee`, `serviceFeeOn`, `calculateBookingPriceCents`). One planner,
   `features/bookings/lib/charge-plan.ts`, prices checkout, the proposal page, the trip
   page and the Breakdown. Payment confirms through `lib/confirm-paid-booking.ts`: only
   PROPOSED → BOOKED, cancelled deals are never revived, a taken slot is held and the
@@ -208,10 +213,11 @@ customer-supplied text in tool results as untrusted (prompt injection).
 
 **Money model (2026-09-02):** `features/bookings/lib/booking-money.ts` is the ONE
 place for money math — `customerMoney()` (subtotal / card fee / effective total /
-paid / balance / status) and `dealEconomics()` (GMV / expenses / revenue /
-commission). `booking_pricing.service_fee_waived` (migration 0059, applied dev +
+paid / balance / status, plus the booking's fee snapshot) and `dealEconomics()` (GMV /
+expenses / revenue). GMV left empty follows the price (only a manual override is
+stored; 0063 cleared copies that went stale), and the board computes revenue live. `booking_pricing.service_fee_waived` (migration 0059, applied dev +
 prod) marks off-card payments: the fee stays stored, the effective total drops it,
-so a Zelle payer reads "Paid" instead of owing 3.5% forever. Stripe checkout
+so a Zelle payer reads "Paid" instead of owing the card fee forever. Stripe checkout
 refuses a waived booking (collect manually or un-waive). Booking page: the
 ProposalPanel (customer's exact breakdown + online-payment switch + send
 email/text + copy link) sits above Activity; DealEconomicsCard holds GMV/
@@ -272,6 +278,12 @@ proposal/`, actions in `actions/proposal.actions.ts`, email is `sendProposalEmai
 Instant-book overlap holds (paid, but the slot sold during checkout) land as PROPOSED
 with the warning note + team alert instead of the retired PENDING.
 
+**Agent commissions:** built 2026-09-30, then removed before launch (2026-10-02) to be
+redesigned later. Migration 0061 added the columns; 0063 drops them. The four
+spreadsheet-era columns on `booking_ops` (`agent_code`, `commission_agent_cents`,
+`commission_kos_cents`, `commission_cents`) still exist with whatever was imported, are
+read by nothing, and can be dropped once that data is confirmed unneeded.
+
 **Booking page layout (2026-09-04, round 4):** `/admin/bookings/[id]` is one template
 for every stage. Left column: header (booking number, name + colored kind chip, a
 "Created X ago" line, [primary verb][Edit trip][⋯] on the right, stage-aware
@@ -279,10 +291,10 @@ headline money, and a full-width, left-flush contact row underneath: Email · Ph
 **Assigned to** on one line),
 then ONE Trip details card (row 1 Boat · Captain · Crew with live assignment controls;
 row 2 From · To; row 3 Passengers · Captain needed · Pickup · Drop-off), then
-Commission (charter value · expenses · commission split · KOS keeps), then Charter
+Revenue (charter value · expenses · KOS keeps), then Charter
 party when applicable. Right column: Breakdown, read-only (Charter lines → Add-ons →
 subtotal / card fee / total → paid / balance → deposit option; Add expense + Record
-payment in its header) with "Send to customer" at its bottom: online-payment switch,
+payment in its header) with "Send to customer" at its bottom:
 Email / Text checkboxes, Send proposal / Send update / Resend payment link, Copy link,
 and an "N changes not sent yet" note after edits. No proposal dialog anymore. It sits
 above the sticky Activity rail. Completed payments

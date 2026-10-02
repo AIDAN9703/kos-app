@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import type { Session } from "next-auth";
+import type { ServiceFee } from "@/shared/lib/utils/pricing-utils";
 
 const BookingDetailsClient = dynamic(() => import("./BookingDetailsClient"), {
   ssr: false,
@@ -14,10 +15,10 @@ const BookingDetailsClient = dynamic(() => import("./BookingDetailsClient"), {
 
 export default function BookingDetailsClientLoader({
   user,
-  serviceFeeRate,
+  serviceFee,
 }: {
   user: Session["user"] | null;
-  serviceFeeRate: number;
+  serviceFee: ServiceFee;
 }) {
-  return <BookingDetailsClient user={user} serviceFeeRate={serviceFeeRate} />;
+  return <BookingDetailsClient user={user} serviceFee={serviceFee} />;
 }

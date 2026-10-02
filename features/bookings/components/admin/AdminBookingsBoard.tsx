@@ -87,20 +87,19 @@ interface AdminBookingsBoardProps {
  * The master deals table. Fixed-percentage columns (table-fixed + colgroup)
  * so proportions hold at every viewport and zoom. The Type column carries the
  * at-a-glance state as hoverable color-coded emblems; the middle is the money
- * read the owners run on (GMV → expense → revenue → commission); ownership
+ * read the owners run on (GMV → expense → revenue); ownership
  * meta (admin, source) sits on the right edge. Widths are sized to content so
  * spare screen width flows into the readable columns (customer, boat, date),
  * not into padding around badges.
  */
 const COLUMNS: { key: string; width: string }[] = [
   { key: "type", width: "12%" },
-  { key: "customer", width: "15%" },
-  { key: "boat", width: "12%" },
-  { key: "datetime", width: "10%" },
+  { key: "customer", width: "18%" },
+  { key: "boat", width: "15%" },
+  { key: "datetime", width: "13%" },
   { key: "gmv", width: "8%" },
   { key: "expense", width: "7%" },
   { key: "revenue", width: "7%" },
-  { key: "commission", width: "9%" },
   { key: "admin", width: "6%" },
   { key: "source", width: "9%" },
   { key: "actions", width: "5%" },
@@ -217,8 +216,7 @@ export function AdminBookingsBoard({
                 <SortableHead label="Date &amp; time" column="date" />
                 <SortableHead label="GMV" column="gmv" align="right" />
                 <TableHead className={cn(HEAD_CLASS, "text-right")}>Expense</TableHead>
-                <TableHead className={cn(HEAD_CLASS, "text-right")}>Revenue</TableHead>
-                <TableHead className={cn(HEAD_CLASS, "pr-6 text-right")}>Comm.</TableHead>
+                <TableHead className={cn(HEAD_CLASS, "pr-6 text-right")}>Revenue</TableHead>
                 <TableHead className={cn(HEAD_CLASS, "px-2 text-center")}>Admin</TableHead>
                 <TableHead className={cn(HEAD_CLASS, "pl-4")}>Source</TableHead>
                 <TableHead className="pr-3" aria-label="Actions" />
@@ -508,20 +506,7 @@ function BookingRow({
     ? (booking.estimatedValueCents ?? booking.budgetCents)
     : booking.opsGmvCents && booking.opsGmvCents > 0
       ? booking.opsGmvCents
-      : booking.totalAmountCents;
-  const commissionSplit =
-    booking.opsCommissionAgentCents || booking.opsCommissionKosCents
-      ? [
-          booking.opsCommissionAgentCents
-            ? `A ${formatCentsAsCurrency(booking.opsCommissionAgentCents, { currency })}`
-            : null,
-          booking.opsCommissionKosCents
-            ? `K ${formatCentsAsCurrency(booking.opsCommissionKosCents, { currency })}`
-            : null,
-        ]
-          .filter(Boolean)
-          .join(" · ")
-      : null;
+      : booking.totalAmountCents - (booking.serviceFeeCents ?? 0);
 
   const customerName = booking.customerName || booking.userEmail || "Unknown";
   const adminName = booking.assignedAdminId
@@ -623,14 +608,14 @@ function BookingRow({
         )}
       </TableCell>
 
-      {/* Money: GMV → expense → revenue (the headline number) → commission */}
+      {/* Money: GMV → expense → revenue (the headline number) */}
       <MoneyCell cents={gmvCents} currency={currency} estimate={isInquiry} />
       <ExpenseCell booking={booking} currency={currency} />
-      <MoneyCell cents={booking.opsRevenueCents} currency={currency} strong signed />
       <MoneyCell
-        cents={booking.opsCommissionCents}
+        cents={booking.opsRevenueCents}
         currency={currency}
-        sub={commissionSplit}
+        strong
+        signed
         className="pr-6"
       />
 

@@ -140,31 +140,31 @@ export const assistantTools = {
 
   revenue_summary: tool({
     description:
-      "Monthly charter volume (GMV), KOS commission, and trip counts for the trailing N months (current month last). Use for any 'how did we do' / revenue / money-over-time question.",
+      "Monthly charter volume (GMV), KOS revenue (GMV minus expenses), and trip counts for the trailing N months (current month last). Use for any 'how did we do' / revenue / money-over-time question.",
     inputSchema: z.object({ months: z.number().int().min(1).max(24).default(6) }),
     execute: async ({ months }) => {
       const trend = await getRevenueTrend(months);
       const totals = trend.reduce(
         (a, m) => ({
           gmvCents: a.gmvCents + m.gmvCents,
-          commissionCents: a.commissionCents + m.commissionCents,
+          revenueCents: a.revenueCents + m.revenueCents,
           trips: a.trips + m.trips,
         }),
-        { gmvCents: 0, commissionCents: 0, trips: 0 }
+        { gmvCents: 0, revenueCents: 0, trips: 0 }
       );
       return {
         months: trend.map((m) => ({
           month: m.monthName,
           gmv: money(m.gmvCents),
-          commission: money(m.commissionCents),
+          revenue: money(m.revenueCents),
           trips: m.trips,
         })),
         totals: {
           gmv: money(totals.gmvCents),
-          commission: money(totals.commissionCents),
+          revenue: money(totals.revenueCents),
           trips: totals.trips,
         },
-        note: "GMV excludes the card-processing fee; commission comes from the ops sheet per booking.",
+        note: "GMV excludes the card-processing fee. Revenue is GMV minus each booking's expense lines.",
       };
     },
   }),

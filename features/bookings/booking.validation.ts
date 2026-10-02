@@ -180,7 +180,6 @@ export const createBookingFullSchema = z.object({
   // GMV is NOT accepted from the client — it's derived per boat from that
   // boat's own pricing (charter gross = total − card fee).
   source: z.string().nullable().optional(),
-  agentCode: z.string().nullable().optional(),
   // Send options
   sendProposalEmail: z.boolean().optional().default(false),
   sendProposalSms: z.boolean().optional().default(false),

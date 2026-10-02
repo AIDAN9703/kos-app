@@ -47,7 +47,8 @@ import { type PaginatedBookingsResponse, type BookingListItem, type BookingDetai
 import { type Booking, type BookingSource, type BookingType } from "@/database/types";
 import {
   calculateBookingPriceCents,
-  calculateBookingPriceFromDollars,
+  serviceFeeFromSnapshot,
+  type ServiceFee,
 } from "@/shared/lib/utils/pricing-utils";
 import { dollarsToCents } from "@/shared/lib/utils/money-utils";
 import { calculateEndDateTime } from "@/shared/lib/utils/date-helpers";
@@ -424,6 +425,7 @@ export class BookingService {
         const serviceFeeCents = pricing ? Number(pricing.serviceFeeCents ?? 0) : 0;
         const totalCents = pricing ? Number(pricing.totalAmountCents) : 0;
         const serviceFeeWaived = Boolean(pricing?.serviceFeeWaived);
+        const serviceFee = serviceFeeFromSnapshot(pricing ?? {});
         return {
           id: b.id,
           boatId: b.boatId,
@@ -436,6 +438,7 @@ export class BookingService {
           captainFeeCents,
           cleaningFeeCents,
           serviceFeeCents,
+          serviceFee,
           serviceFeeWaived,
           totalCents,
           depositCents,
@@ -583,6 +586,8 @@ export class BookingService {
       serviceFeeCents: number;
       totalPriceCents: number;
       depositAmountCents?: number;
+      /** The fee the checkout was priced with (snapshot). */
+      serviceFee: ServiceFee;
     };
     /**
      * The paid-but-conflicting escape hatch: the customer's money is already
@@ -603,23 +608,25 @@ export class BookingService {
     };
     let depositAmountCents: number;
     let resolvedEndDateTime: Date | null;
+    let serviceFee: ServiceFee;
 
     if (input.pricingOverrideCents) {
       priceBreakdown = input.pricingOverrideCents;
       depositAmountCents = input.pricingOverrideCents.depositAmountCents ?? 0;
+      serviceFee = input.pricingOverrideCents.serviceFee;
       resolvedEndDateTime = input.endDateTime;
     } else {
       if (!tier) throw new Error("pricingTierId or pricingOverrideCents required");
       resolvedEndDateTime =
         input.endDateTime ?? calculateEndDateTime(input.startDateTime, tier.hours);
-      const { serviceFeeRate } = await getAppSettings();
-      const calc = calculateBookingPriceFromDollars(
-        tier.price,
-        boat.cleaningFee ?? 0,
+      serviceFee = (await getAppSettings()).serviceFee;
+      priceBreakdown = calculateBookingPriceCents(
+        dollarsToCents(tier.price),
+        dollarsToCents(boat.cleaningFee ?? 0),
         0,
-        serviceFeeRate
+        0,
+        serviceFee
       );
-      priceBreakdown = calc;
       depositAmountCents = dollarsToCents(boat.depositAmount ?? 0);
     }
 
@@ -661,6 +668,7 @@ export class BookingService {
       captainFeeCents: priceBreakdown.captainFeeCents || null,
       cleaningFeeCents: priceBreakdown.cleaningFeeCents || null,
       serviceFeeCents: priceBreakdown.serviceFeeCents,
+      serviceFee,
       depositAmountCents: depositAmountCents || null,
       totalAmountCents: priceBreakdown.totalPriceCents,
       currency: bookingCurrency,
@@ -889,6 +897,8 @@ export class BookingService {
       totalAmountCents: bookingPricing.totalAmountCents,
       serviceFeeCents: bookingPricing.serviceFeeCents,
       serviceFeeWaived: bookingPricing.serviceFeeWaived,
+      serviceFeeBps: bookingPricing.serviceFeeBps,
+      serviceFeeFixedCents: bookingPricing.serviceFeeFixedCents,
       currency: bookingPricing.currency,
       // stripePaymentLinkId removed - stored in payments table
       needsCaptain: bookings.needsCaptain,
@@ -930,7 +940,13 @@ export class BookingService {
       // Ops fields (from booking_ops - Excel workflow tracking)
       opsExpenseCents: bookingOps.expenseCents,
       opsGmvCents: bookingOps.gmvCents,
-      opsRevenueCents: bookingOps.revenueCents,
+      // Live, never the stored cache: GMV (override, else the price minus the
+      // card fee) minus expenses — so price edits show up immediately.
+      opsRevenueCents: sql<number | null>`CASE
+        WHEN ${bookingOps.gmvCents} IS NULL AND ${bookingPricing.totalAmountCents} IS NULL THEN NULL
+        ELSE COALESCE(${bookingOps.gmvCents}, ${bookingPricing.totalAmountCents} - COALESCE(${bookingPricing.serviceFeeCents}, 0))
+          - COALESCE(${bookingOps.expenseCents}, 0)
+      END`,
       opsPaidCents: bookingOps.paidCents,
       opsSentToOwnerCents: bookingOps.sentToOwnerCents,
       opsBalanceOwnerCents: bookingOps.balanceOwnerCents,
@@ -941,10 +957,6 @@ export class BookingService {
       opsCaptainPaid: bookingOps.captainPaid,
       opsAllPaid: bookingOps.allPaid,
       opsSheetsSent: bookingOps.sheetsSent,
-      opsAgentCode: bookingOps.agentCode,
-      opsCommissionAgentCents: bookingOps.commissionAgentCents,
-      opsCommissionKosCents: bookingOps.commissionKosCents,
-      opsCommissionCents: bookingOps.commissionCents,
       opsSourceOverride: bookingOps.sourceOverride,
     };
 
@@ -1138,6 +1150,8 @@ export class BookingService {
         cleaningFeeCents: bookingPricing.cleaningFeeCents,
         serviceFeeCents: bookingPricing.serviceFeeCents,
         serviceFeeWaived: bookingPricing.serviceFeeWaived,
+        serviceFeeBps: bookingPricing.serviceFeeBps,
+        serviceFeeFixedCents: bookingPricing.serviceFeeFixedCents,
         taxAmountCents: bookingPricing.taxAmountCents,
         discountAmountCents: bookingPricing.discountAmountCents,
         totalAmountCents: bookingPricing.totalAmountCents,
@@ -1410,13 +1424,14 @@ export class BookingService {
     const addOnsCents = dollarsToCents(
       (before.addOns ?? []).reduce((sum, a) => sum + (Number(a.total) || 0), 0)
     );
-    const { serviceFeeRate } = await getAppSettings();
+    // The customer keeps the fee they were quoted, even on another boat.
+    const serviceFee = serviceFeeFromSnapshot(before);
     const breakdown = calculateBookingPriceCents(
       dollarsToCents(basePriceDollars),
       dollarsToCents(cleaningFeeDollars),
       dollarsToCents(captainFeeDollars),
       addOnsCents,
-      serviceFeeRate
+      serviceFee
     );
 
     await db
@@ -1435,6 +1450,8 @@ export class BookingService {
         cleaningFeeCents: breakdown.cleaningFeeCents || null,
         captainFeeCents: breakdown.captainFeeCents || null,
         serviceFeeCents: breakdown.serviceFeeCents,
+        serviceFeeBps: serviceFee.bps,
+        serviceFeeFixedCents: serviceFee.fixedCents,
         totalAmountCents: breakdown.totalPriceCents,
         depositAmountCents: dollarsToCents(boat.depositAmount ?? 0) || null,
         currency: boat.currency ?? "USD",

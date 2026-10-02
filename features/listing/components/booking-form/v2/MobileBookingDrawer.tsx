@@ -17,6 +17,7 @@ import { cn } from "@/shared/lib/utils/general-utils";
 
 import { BookingForm } from "./BookingForm";
 import type { BookingBoat } from "./useBookingForm";
+import type { ServiceFee } from "@/shared/lib/utils/pricing-utils";
 
 /**
  * Mobile booking entry point: a sticky price/CTA bar that opens a Vaul drawer
@@ -24,11 +25,11 @@ import type { BookingBoat } from "./useBookingForm";
  */
 export function MobileBookingDrawer({
   boat,
-  serviceFeeRate,
+  serviceFee,
 }: {
   boat: BookingBoat;
-  /** Decimal service fee rate (e.g. 0.035) from app settings, fetched by the server page. */
-  serviceFeeRate: number;
+  /** The card fee from app settings (rate + fixed), passed down from the server page. */
+  serviceFee: ServiceFee;
 }) {
   const [open, setOpen] = useState(false);
   const startingHourly = getBoatStartingHourlyLabel(boat as BoatWithTiers);
@@ -88,7 +89,7 @@ export function MobileBookingDrawer({
             role="region"
             aria-label="Booking form"
           >
-            <BookingForm boat={boat} serviceFeeRate={serviceFeeRate} layout="inline" bare />
+            <BookingForm boat={boat} serviceFee={serviceFee} layout="inline" bare />
           </div>
         </DrawerContent>
       </Drawer>

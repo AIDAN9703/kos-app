@@ -1,6 +1,5 @@
 import { auth } from "@/auth";
 import { boatService } from "@/features/boats/boat.service";
-import { userService } from "@/features/users/user.service";
 import {
   getAdminWorkload,
   getFleetLeaders,
@@ -23,7 +22,6 @@ export default async function AdminDashboardPage() {
     leaders,
     workload,
     activity,
-    admins,
   ] = await Promise.all([
     getUpcomingTrips(30),
     boatService.getAllActivePricingTiers(),
@@ -32,7 +30,6 @@ export default async function AdminDashboardPage() {
     getFleetLeaders(5),
     getAdminWorkload(),
     getRecentActivity(20),
-    userService.getAdmins(),
   ]);
 
   return (
@@ -45,7 +42,6 @@ export default async function AdminDashboardPage() {
       leaders={leaders}
       workload={workload}
       activity={activity}
-      admins={admins}
     />
   );
 }

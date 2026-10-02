@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { cn } from "@/shared/lib/utils/general-utils";
 import { formatCentsAsCurrency } from "@/shared/lib/utils/money-utils";
+import { formatServiceFee } from "@/shared/lib/utils/pricing-utils";
 import type { BookingAddOn } from "@/features/bookings/booking.types";
 import type { BookingExpenseLine } from "@/features/bookings/booking-expense.types";
 import type { CustomerMoney } from "@/features/bookings/lib/booking-money";
@@ -42,7 +43,7 @@ export function BreakdownCard({
   isInquiry: boolean;
   money: CustomerMoney;
   lines: BreakdownLines;
-  /** For the Add expense editor (the totals show in Commission). */
+  /** For the Add expense editor (the totals show in the Revenue card). */
   expenseLines: BookingExpenseLine[];
   opsGmvCents: number | null;
   totalAmountCents: number | null;
@@ -83,9 +84,7 @@ export function BreakdownCard({
 
   const feeLabel = money.serviceFeeWaived
     ? "Card fee · waived"
-    : money.subtotalCents > 0 && money.serviceFeeCents > 0
-      ? `Card fee (${((money.serviceFeeCents / money.subtotalCents) * 100).toFixed(2).replace(/\.?0+$/, "")}%)`
-      : "Card fee";
+    : `Card fee (${formatServiceFee(money.serviceFee)})`;
 
   return (
     <Card className="rounded-2xl border-border/60">

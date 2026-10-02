@@ -1,3 +1,5 @@
+import type { ServiceFee } from "@/shared/lib/utils/pricing-utils";
+
 /**
  * Types for the public proposal page.
  * Used when customers open the SMS/link to view and accept their charter proposal.
@@ -27,8 +29,10 @@ export interface ProposalBooking {
   captainFeeCents: number;
   /** Cleaning fee (cents) */
   cleaningFeeCents: number;
-  /** 3.5% card processing fee (cents) */
+  /** Card processing fee on the full total (cents) */
   serviceFeeCents: number;
+  /** The fee this boat was priced with (rate + fixed). */
+  serviceFee: ServiceFee;
   /** Card fee waived — the customer is settling off-card. */
   serviceFeeWaived: boolean;
   /** Total for this booking (cents) */
@@ -66,6 +70,6 @@ export interface ProposalPaymentOptions {
   remainingCents: number;
   /** Deposit-first option; only before anything is paid and when set. */
   deposit: { baseCents: number; feeCents: number; amountCents: number } | null;
-  /** Card fee rate label, e.g. "3.5%". */
-  feeRateLabel: string | null;
+  /** Card fee label, e.g. "3.99% + $0.99". */
+  feeLabel: string | null;
 }

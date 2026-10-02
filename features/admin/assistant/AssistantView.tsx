@@ -27,7 +27,7 @@ import { cn } from "@/shared/lib/utils/general-utils";
 const QUICK_PROMPTS = [
   { icon: Radar, label: "What's going on today?", prompt: "What's going on today? Give me the desk briefing: departures, anything urgent, new leads, money owed.", tone: "from-fuchsia-500/25 to-fuchsia-500/5 text-fuchsia-300 group-hover:from-fuchsia-500/40" },
   { icon: CircleDollarSign, label: "Who still owes money?", prompt: "Which confirmed trips still owe money, how much, and when do they sail?", tone: "from-emerald-500/25 to-emerald-500/5 text-emerald-300 group-hover:from-emerald-500/40" },
-  { icon: TrendingUp, label: "How did last month do?", prompt: "How did last month do versus the month before — GMV, commission, and trip count?", tone: "from-amber-400/25 to-amber-400/5 text-amber-300 group-hover:from-amber-400/40" },
+  { icon: TrendingUp, label: "How did last month do?", prompt: "How did last month do versus the month before — GMV, revenue, and trip count?", tone: "from-amber-400/25 to-amber-400/5 text-amber-300 group-hover:from-amber-400/40" },
   { icon: Anchor, label: "Trips missing a captain", prompt: "Which trips in the next 14 days are still missing a captain or still owe money?", tone: "from-rose-500/25 to-rose-500/5 text-rose-300 group-hover:from-rose-500/40" },
   { icon: Users, label: "New leads this week", prompt: "Show me the leads that came in this week — who they are, where from, and whether anyone has claimed them.", tone: "from-cyan-400/25 to-cyan-400/5 text-cyan-300 group-hover:from-cyan-400/40" },
   { icon: Sparkles, label: "Top boats this month", prompt: "Which boats are earning the most this month?", tone: "from-violet-500/25 to-violet-500/5 text-violet-300 group-hover:from-violet-500/40" },

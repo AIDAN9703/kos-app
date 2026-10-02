@@ -36,7 +36,8 @@ export interface RevenueMonth {
   /** "March" — headline label when this is the current month. */
   monthName: string;
   gmvCents: number;
-  commissionCents: number;
+  /** What KOS keeps: charter value minus every expense line. */
+  revenueCents: number;
   trips: number;
 }
 
@@ -121,7 +122,10 @@ export const getUpcomingTrips = cache(
 
 /** GMV expression shared by trend + leaderboard: ops override, else quote
  *  total minus the service fee — GMV is fee-exclusive everywhere. */
-const GMV = sql`COALESCE(SUM(COALESCE(${bookingOps.gmvCents}, ${bookingPricing.totalAmountCents} - COALESCE(${bookingPricing.serviceFeeCents}, 0))), 0)`;
+const ROW_GMV = sql`COALESCE(${bookingOps.gmvCents}, ${bookingPricing.totalAmountCents} - COALESCE(${bookingPricing.serviceFeeCents}, 0))`;
+const GMV = sql`COALESCE(SUM(${ROW_GMV}), 0)`;
+/** KOS revenue = GMV − expenses (owner payout, fuel, crew, …), per trip summed. */
+const REVENUE = sql`COALESCE(SUM(${ROW_GMV} - COALESCE(${bookingOps.expenseCents}, 0)), 0)`;
 /** Real trips only — INQUIRY deals aren't booked, CANCELLED aren't happening. */
 const REAL_TRIPS = notInArray(bookings.bookingStatus, ["CANCELLED", "INQUIRY"]);
 
@@ -142,7 +146,7 @@ export const getRevenueTrend = cache(async (months = 6): Promise<RevenueMonth[]>
     .select({
       key: sql<string>`${monthExpr}`,
       gmvCents: sql<number>`${GMV}`,
-      commissionCents: sql<number>`COALESCE(SUM(COALESCE(${bookingOps.commissionKosCents}, 0)), 0)`,
+      revenueCents: sql<number>`${REVENUE}`,
       trips: sql<number>`COUNT(${bookings.id})::int`,
     })
     .from(bookings)
@@ -160,7 +164,7 @@ export const getRevenueTrend = cache(async (months = 6): Promise<RevenueMonth[]>
       label: format(month, "MMM"),
       monthName: format(month, "MMMM"),
       gmvCents: Number(row?.gmvCents ?? 0),
-      commissionCents: Number(row?.commissionCents ?? 0),
+      revenueCents: Number(row?.revenueCents ?? 0),
       trips: Number(row?.trips ?? 0),
     };
   });

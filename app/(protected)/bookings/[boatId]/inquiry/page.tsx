@@ -35,7 +35,7 @@ export default async function BoatInquiryPage() {
       }
     >
       <BoatInquiryDetailsClient
-        serviceFeeRate={settings.serviceFeeRate}
+        serviceFee={settings.serviceFee}
         currentUser={currentUser}
       />
     </Suspense>

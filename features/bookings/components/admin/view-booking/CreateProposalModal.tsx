@@ -15,7 +15,6 @@ import {
 import { BookingComposer } from "@/features/bookings/components/admin/booking-forms/BookingComposer";
 import type { PricingTierOption } from "@/features/bookings/components/admin/booking-forms/types";
 import type { DealPrefill } from "@/features/bookings/lib/deal-prefill";
-import type { AdminOption } from "@/shared/lib/utils/people-display";
 
 /**
  * "Create proposal" as a modal on the inquiry page — a purpose-built form
@@ -27,11 +26,9 @@ import type { AdminOption } from "@/shared/lib/utils/people-display";
  */
 export function CreateProposalModal({
   pricingTiers,
-  admins,
   dealPrefill,
 }: {
   pricingTiers: PricingTierOption[];
-  admins: AdminOption[];
   dealPrefill: DealPrefill;
 }) {
   const [open, setOpen] = useState(false);
@@ -56,7 +53,6 @@ export function CreateProposalModal({
           </DialogHeader>
           <BookingComposer
             pricingTiers={pricingTiers}
-            admins={admins}
             dealPrefill={dealPrefill}
             onSuccess={() => {
               setOpen(false);

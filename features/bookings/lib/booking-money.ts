@@ -2,6 +2,7 @@ import { computeEffectiveGmvCents, computeOpsRevenueCents } from "@/shared/lib/u
 import type { PaymentDisplayStatus } from "@/shared/lib/utils/payment-display";
 import { computePaymentDisplayStatus } from "@/shared/lib/utils/payment-display";
 import { depositCharge } from "@/features/bookings/lib/charge-plan";
+import { serviceFeeFromSnapshot, type ServiceFee } from "@/shared/lib/utils/pricing-utils";
 
 /**
  * ONE place for a booking's money math. Two questions, kept apart:
@@ -15,6 +16,9 @@ export interface PricingLike {
   totalAmountCents: number | null | undefined;
   serviceFeeCents?: number | null;
   serviceFeeWaived?: boolean | null;
+  /** The fee snapshot (rate + fixed) this booking was priced with. */
+  serviceFeeBps?: number | null;
+  serviceFeeFixedCents?: number | null;
 }
 
 /** The total the customer actually owes: stored total, minus the card fee when waived. */
@@ -32,6 +36,8 @@ export function subtotalCents(p: PricingLike): number {
 export interface CustomerMoney {
   subtotalCents: number;
   serviceFeeCents: number;
+  /** The fee this booking was priced with — labels and re-pricing use it. */
+  serviceFee: ServiceFee;
   serviceFeeWaived: boolean;
   /** What the customer owes in total (fee-aware). */
   totalCents: number;
@@ -44,18 +50,22 @@ export interface CustomerMoney {
   status: PaymentDisplayStatus;
 }
 
-export function customerMoney(input: PricingLike & {
-  totalPaidCents: number | null | undefined;
-  depositAmountCents?: number | null;
-  latestPaymentStatus?: string | null;
-  hasRefund?: boolean | null;
-}): CustomerMoney {
+export function customerMoney(
+  input: PricingLike & {
+    totalPaidCents: number | null | undefined;
+    depositAmountCents?: number | null;
+    latestPaymentStatus?: string | null;
+    hasRefund?: boolean | null;
+  }
+): CustomerMoney {
   const totalCents = effectiveTotalCents(input);
   const paidCents = input.totalPaidCents ?? 0;
+  const serviceFee = serviceFeeFromSnapshot(input);
   const deposit = depositCharge({
     bookingId: "",
     totalCents: input.totalAmountCents ?? 0,
     serviceFeeCents: input.serviceFeeCents ?? 0,
+    serviceFee,
     serviceFeeWaived: Boolean(input.serviceFeeWaived),
     depositCents: input.depositAmountCents ?? null,
     paidCents: 0,
@@ -63,11 +73,13 @@ export function customerMoney(input: PricingLike & {
   return {
     subtotalCents: subtotalCents(input),
     serviceFeeCents: input.serviceFeeCents ?? 0,
+    serviceFee,
     serviceFeeWaived: Boolean(input.serviceFeeWaived),
     totalCents,
     paidCents,
     balanceCents: Math.max(0, totalCents - paidCents),
-    depositCents: input.depositAmountCents && input.depositAmountCents > 0 ? input.depositAmountCents : null,
+    depositCents:
+      input.depositAmountCents && input.depositAmountCents > 0 ? input.depositAmountCents : null,
     depositChargeCents: deposit?.amountCents ?? null,
     depositFeeCents: deposit?.feeCents ?? null,
     status: computePaymentDisplayStatus({
@@ -85,22 +97,29 @@ export interface DealEconomics {
   gmvOverridden: boolean;
   expenseCents: number;
   revenueCents: number | null;
-  commissionCents: number;
 }
 
-export function dealEconomics(input: PricingLike & {
-  opsGmvCents: number | null | undefined;
-  opsExpenseCents: number | null | undefined;
-  commissionAgentCents?: number | null;
-  commissionKosCents?: number | null;
-}): DealEconomics {
-  const gmvCents = computeEffectiveGmvCents(input.opsGmvCents, input.totalAmountCents, input.serviceFeeCents);
+export function dealEconomics(
+  input: PricingLike & {
+    opsGmvCents: number | null | undefined;
+    opsExpenseCents: number | null | undefined;
+  }
+): DealEconomics {
+  const gmvCents = computeEffectiveGmvCents(
+    input.opsGmvCents,
+    input.totalAmountCents,
+    input.serviceFeeCents
+  );
   const quoteGmv = subtotalCents(input);
   return {
     gmvCents,
     gmvOverridden: input.opsGmvCents != null && input.opsGmvCents !== quoteGmv,
     expenseCents: input.opsExpenseCents ?? 0,
-    revenueCents: computeOpsRevenueCents(input.opsGmvCents, input.totalAmountCents, input.opsExpenseCents, input.serviceFeeCents),
-    commissionCents: (input.commissionAgentCents ?? 0) + (input.commissionKosCents ?? 0),
+    revenueCents: computeOpsRevenueCents(
+      input.opsGmvCents,
+      input.totalAmountCents,
+      input.opsExpenseCents,
+      input.serviceFeeCents
+    ),
   };
 }

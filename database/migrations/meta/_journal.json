@@ -400,6 +400,27 @@
       "when": 1788570705306,
       "tag": "0060_status-vocabulary",
       "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1790820184944,
+      "tag": "0061_agent-commissions",
+      "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1790960352375,
+      "tag": "0062_service-fee-fixed-and-snapshot",
+      "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1790960636056,
+      "tag": "0063_remove-agent-commissions",
+      "breakpoints": true
     }
   ]
 }

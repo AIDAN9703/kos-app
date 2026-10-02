@@ -3,10 +3,7 @@ import { eq } from "drizzle-orm";
 
 import { db } from "@/database/db";
 import { appSettings } from "@/database/schema";
-import {
-  DEFAULT_APP_SETTINGS,
-  bpsToRate,
-} from "@/features/app-settings/app-settings.config";
+import { DEFAULT_APP_SETTINGS } from "@/features/app-settings/app-settings.config";
 import type { AppSettings } from "@/features/app-settings/app-settings.types";
 import type { UpdateAppSettingsInput } from "@/features/app-settings/app-settings.validation";
 
@@ -24,11 +21,11 @@ function isMissingAppSettingsTable(error: unknown): boolean {
 
 function toAppSettings(row: {
   serviceFeeBps: number;
+  serviceFeeFixedCents: number;
   updatedAt: Date | null;
 }): AppSettings {
   return {
-    serviceFeeBps: row.serviceFeeBps,
-    serviceFeeRate: bpsToRate(row.serviceFeeBps),
+    serviceFee: { bps: row.serviceFeeBps, fixedCents: row.serviceFeeFixedCents },
     updatedAt: row.updatedAt,
   };
 }
@@ -68,6 +65,7 @@ export async function saveAppSettings(
     .values({
       id: SETTINGS_ROW_ID,
       serviceFeeBps: input.serviceFeeBps,
+      serviceFeeFixedCents: input.serviceFeeFixedCents,
       updatedBy: updatedByUserId,
       updatedAt: new Date(),
     })
@@ -75,6 +73,7 @@ export async function saveAppSettings(
       target: appSettings.id,
       set: {
         serviceFeeBps: input.serviceFeeBps,
+        serviceFeeFixedCents: input.serviceFeeFixedCents,
         updatedBy: updatedByUserId,
         updatedAt: new Date(),
       },

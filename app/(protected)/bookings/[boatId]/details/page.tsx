@@ -16,7 +16,7 @@ export default async function BookingDetailsPage() {
     >
       <BookingDetailsClientLoader
         user={session?.user || null}
-        serviceFeeRate={settings.serviceFeeRate}
+        serviceFee={settings.serviceFee}
       />
     </Suspense>
   );

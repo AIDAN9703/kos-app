@@ -13,7 +13,6 @@
  * - Display layer converts to dollars using money-utils
  */
 
-import type { Cents } from "@/shared/lib/utils/money-utils";
 import type { PaymentDisplayStatus } from "@/shared/lib/utils/payment-display";
 import type {
   BookingStatus,
@@ -36,71 +35,6 @@ export type {
   PaymentType,
   AdminNoteType,
 };
-
-// ============================================================================
-// NEW STRUCTURED TYPES (Use these going forward)
-// All monetary values are in CENTS
-// ============================================================================
-
-/**
- * Pricing breakdown in cents - matches booking_pricing table
- */
-export interface BookingPricingData {
-  basePriceCents: Cents;
-  captainFeeCents: Cents | null;
-  cleaningFeeCents: Cents | null;
-  serviceFeeCents: Cents | null;
-  taxAmountCents: Cents | null;
-  discountAmountCents: Cents | null;
-  discountCode: string | null;
-  depositAmountCents: Cents | null;
-  totalAmountCents: Cents;
-  currency: string;
-  depositDueDate: Date | null;
-  remainderDueDate: Date | null;
-}
-
-/**
- * Payment record - matches payment table
- */
-export interface BookingPaymentData {
-  id: string;
-  paymentType: PaymentType;
-  amountCents: Cents;
-  currency: string;
-  status: PaymentStatus;
-  paymentMethodType: string;
-  paymentMethodDetail: string | null;
-  stripePaymentIntentId: string | null;
-  stripePaymentLinkId: string | null;
-  processedAt: Date | null;
-  createdAt: Date;
-}
-
-/**
- * Status history entry
- */
-export interface BookingStatusHistoryEntry {
-  id: string;
-  fromStatus: BookingStatus | null;
-  toStatus: BookingStatus;
-  changedByUserId: string | null;
-  changedByName?: string | null;
-  reason: string | null;
-  createdAt: Date;
-}
-
-/**
- * Admin note entry
- */
-export interface BookingAdminNoteEntry {
-  id: string;
-  adminUserId: string;
-  adminName?: string | null;
-  noteType: AdminNoteType;
-  content: string;
-  createdAt: Date;
-}
 
 /**
  * Add-on stored on a booking (matches booking.add_ons JSON column)
@@ -195,6 +129,9 @@ export interface BookingListItem {
   serviceFeeCents: number | null;
   /** Card fee waived (paid off-card) — the effective total drops the fee. */
   serviceFeeWaived: boolean;
+  /** The card fee snapshot this booking was priced with (bps null = legacy row). */
+  serviceFeeBps: number | null;
+  serviceFeeFixedCents: number | null;
   currency: string;
 
   needsCaptain: boolean | null;
@@ -263,10 +200,6 @@ export interface BookingListItem {
   opsCaptainPaid?: boolean | null;
   opsAllPaid?: boolean | null;
   opsSheetsSent?: boolean | null;
-  opsAgentCode?: string | null;
-  opsCommissionAgentCents?: number | null;
-  opsCommissionKosCents?: number | null;
-  opsCommissionCents?: number | null;
   opsSourceOverride?: string | null;
 }
 

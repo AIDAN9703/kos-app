@@ -23,13 +23,14 @@ import {
   PriceBreakdown,
   PriceHeader,
 } from "./fields";
+import type { ServiceFee } from "@/shared/lib/utils/pricing-utils";
 
 export type BookingVariant = "instant" | "request";
 
 interface BookingFormProps {
   boat: BookingBoat;
-  /** Decimal service fee rate (e.g. 0.035) from app settings, fetched by the server page. */
-  serviceFeeRate: number;
+  /** The card fee from app settings (rate + fixed), passed down from the server page. */
+  serviceFee: ServiceFee;
   /** `instant` → payment flow, `request` → inquiry flow. Defaults to the boat's `instantBook` flag. */
   variant?: BookingVariant;
   /** `inline` inside the mobile drawer, `popover` on desktop. */
@@ -40,7 +41,7 @@ interface BookingFormProps {
 
 export function BookingForm({
   boat,
-  serviceFeeRate,
+  serviceFee,
   variant = boat.instantBook ? "instant" : "request",
   layout = "popover",
   bare = false,
@@ -174,7 +175,7 @@ export function BookingForm({
               tier={selectedTier}
               cleaningFee={boat.cleaningFee || 0}
               currency={currency}
-              serviceFeeRate={serviceFeeRate}
+              serviceFee={serviceFee}
             />
           )}
 

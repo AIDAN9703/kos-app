@@ -24,8 +24,10 @@ export const appSettings = pgTable(
   "app_setting",
   {
     id: integer("id").primaryKey().default(1),
-    /** Card processing / service fee applied to booking subtotals, in basis points (350 = 3.5%). */
-    serviceFeeBps: integer("service_fee_bps").default(350).notNull(),
+    /** Card processing fee: a percentage of every charge, in basis points (399 = 3.99%)… */
+    serviceFeeBps: integer("service_fee_bps").default(399).notNull(),
+    /** …plus a fixed amount per booking, collected with its first payment (99 = $0.99). */
+    serviceFeeFixedCents: integer("service_fee_fixed_cents").default(99).notNull(),
     updatedBy: uuid("updated_by").references(() => users.id, {
       onDelete: "set null",
     }),

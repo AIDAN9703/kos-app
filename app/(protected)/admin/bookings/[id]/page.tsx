@@ -16,7 +16,7 @@ import {
   BookingEditModeProvider,
   BookingPageEditButton,
 } from "@/features/bookings/components/admin/view-booking/BookingEditMode";
-import { CommissionCard } from "@/features/bookings/components/admin/view-booking/CommissionCard";
+import { RevenueCard } from "@/features/bookings/components/admin/view-booking/RevenueCard";
 import { DealContactBand } from "@/features/bookings/components/admin/view-booking/DealContactBand";
 import { BreakdownCard } from "@/features/bookings/components/admin/view-booking/BreakdownCard";
 import type { SendToCustomerData } from "@/features/bookings/components/admin/view-booking/SendToCustomer";
@@ -68,7 +68,7 @@ interface BookingDetailsPageProps {
  * ONE page for every deal. The same cards in the same places at every stage;
  * a card appears when it has something to show. Inquiry: header, what they
  * asked for, finances (estimate), activity. Booking: header, the trip (with
- * crew), commission, party (if any), finances (read-only breakdown), activity
+ * crew), revenue, party (if any), breakdown (read-only, with sending), activity
  * (with completed payments). Edit trip turns the trip card into the whole
  * form — trip, pricing, add-ons, more boats — so all editing is on the left.
  * Nothing is shown twice.
@@ -295,8 +295,6 @@ export default async function BookingDetailsPage({ params }: BookingDetailsPageP
     serviceFeeWaived: booking.serviceFeeWaived,
     opsGmvCents: ops?.gmvCents ?? null,
     opsExpenseCents: ops?.expenseCents ?? null,
-    commissionAgentCents: ops?.commissionAgentCents ?? null,
-    commissionKosCents: ops?.commissionKosCents ?? null,
   });
   const currency = booking.currency ?? "USD";
   const fmt = (c: number) => formatCentsAsCurrency(c, { currency });
@@ -405,7 +403,6 @@ export default async function BookingDetailsPage({ params }: BookingDetailsPageP
                     <>
                       <CreateProposalModal
                         pricingTiers={pricingTiers}
-                        admins={admins}
                         dealPrefill={buildDealPrefillForBookingForm(booking)}
                       />
                       <BookingPageEditButton label="Edit contact" />
@@ -457,11 +454,9 @@ export default async function BookingDetailsPage({ params }: BookingDetailsPageP
                   }
                   canAddBoat={["PROPOSED", "BOOKED"].includes(booking.bookingStatus)}
                 />
-                <CommissionCard
+                <RevenueCard
                   economics={economics}
-                  expenseLines={expenseLines}
-                  commissionAgentCents={ops?.commissionAgentCents ?? null}
-                  commissionKosCents={ops?.commissionKosCents ?? null}
+                  expenseLineCount={expenseLines.length}
                   currency={currency}
                 />
                 {partyMembers.length > 1 ? (

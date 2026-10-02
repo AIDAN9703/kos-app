@@ -22,7 +22,6 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import { cn, formatCurrency } from "@/shared/lib/utils/general-utils";
-import { adminDisplayName, type AdminOption } from "@/shared/lib/utils/people-display";
 import { UserSelect } from "@/features/users/components/UserSelect";
 import { useUser } from "@/features/users/hooks/useUsers";
 
@@ -69,8 +68,6 @@ const OTHER_EXPENSE_CATEGORIES: { value: BookingExpenseCategory; label: string }
   { value: "CREW", label: "Crew" },
   { value: "OTHER", label: "Other" },
 ];
-
-const NO_AGENT = "__none__";
 
 const dollarsToCents = (v: string) => Math.round((Number(v) || 0) * 100);
 
@@ -120,14 +117,12 @@ function ModePill({
  */
 export function BookingComposer({
   pricingTiers,
-  admins,
   dealPrefill = null,
   datePrefill = null,
   onSuccess,
 }: {
   pricingTiers: PricingTierOption[];
   /** Sales-agent choices — the same admin list the board's assign menu uses. */
-  admins: AdminOption[];
   /** Present when pricing an INQUIRY deal — that row upgrades in place. */
   dealPrefill?: DealPrefill | null;
   /** Calendar deep-link (?date=YYYY-MM-DD) prefill for scratch creates. */
@@ -238,7 +233,6 @@ export function BookingComposer({
 
   // ── Deal-level ops attribution (applies to every boat) ──
   const [source, setSource] = useState("Direct");
-  const [agentAdminId, setAgentAdminId] = useState<string>(NO_AGENT);
 
   // Per-boat charter gross (base + cleaning + add-ons) — the same figure the
   // server derives from each booking's pricing row for its GMV.
@@ -318,8 +312,6 @@ export function BookingComposer({
         })),
     ];
 
-    const agentAdmin = admins.find((a) => a.id === agentAdminId);
-
     const payload = {
       dealId: dealPrefill?.dealId ?? null,
       bookings: sections.map((s) => ({
@@ -342,7 +334,6 @@ export function BookingComposer({
       dropoffLocation: dropoffLocation || null,
       adminNotes: adminNotes || null,
       source: source || null,
-      agentCode: agentAdmin ? adminDisplayName(agentAdmin) : null,
       sendProposalEmail,
       sendProposalSms,
     };
@@ -393,8 +384,6 @@ export function BookingComposer({
       }
     });
   }, [
-    admins,
-    agentAdminId,
     dealPrefill?.dealId,
     isDealMode,
     sections,
@@ -507,22 +496,6 @@ export function BookingComposer({
                   {SOURCE_OPTIONS.map((s) => (
                     <SelectItem key={s} value={s}>
                       {s}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Sales agent</Label>
-              <Select value={agentAdminId} onValueChange={setAgentAdminId}>
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder="No agent" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NO_AGENT}>No agent</SelectItem>
-                  {admins.map((a) => (
-                    <SelectItem key={a.id} value={a.id}>
-                      {adminDisplayName(a)}
                     </SelectItem>
                   ))}
                 </SelectContent>

@@ -9,7 +9,7 @@ import { calculateEndDateTime } from "@/shared/lib/utils/date-helpers";
 import { eq } from "drizzle-orm";
 import { calculateBookingPriceCents } from "@/shared/lib/utils/pricing-utils";
 import { getAppSettings } from "@/features/app-settings/app-settings.service";
-import { centsToDollars, dollarsToCents } from "@/shared/lib/utils/money-utils";
+import { dollarsToCents } from "@/shared/lib/utils/money-utils";
 import { addOnService } from "@/features/add-ons/add-on.service";
 import { availabilityService } from "@/features/availability/services/availability.service";
 import { getBaseUrl } from "@/shared/lib/utils/base-url";
@@ -108,13 +108,13 @@ export async function createInstantBooking(data: BookingRequest & { boatId: stri
     );
 
     // Calculate all fees (cents) including add-ons
-    const { serviceFeeRate } = await getAppSettings();
+    const { serviceFee } = await getAppSettings();
     const breakdown = calculateBookingPriceCents(
       dollarsToCents(pricingTier.price),
       dollarsToCents(boat.cleaningFee || 0),
       0, // Captain service is included in base price
       addOnsCents,
-      serviceFeeRate
+      serviceFee
     );
 
     const boatCurrency = (boat.currency ?? "USD").toUpperCase();
@@ -169,12 +169,15 @@ export async function createInstantBooking(data: BookingRequest & { boatId: stri
         endDateTime: endDateTime.toISOString(),
         pricingTierId: validatedData.pricingTierId,
         numberOfPassengers: validatedData.numberOfPassengers.toString(),
-        basePrice: centsToDollars(breakdown.basePriceCents).toString(),
-        captainFee: centsToDollars(breakdown.captainFeeCents).toString(),
-        cleaningFee: centsToDollars(breakdown.cleaningFeeCents).toString(),
-        serviceFee: centsToDollars(breakdown.serviceFeeCents).toString(),
-        totalAmount: centsToDollars(breakdown.totalPriceCents).toString(),
-        depositAmount: (boat.depositAmount || 0).toString(),
+        // Exact cents + the fee snapshot, so the webhook stores what was paid.
+        basePriceCents: String(breakdown.basePriceCents),
+        captainFeeCents: String(breakdown.captainFeeCents),
+        cleaningFeeCents: String(breakdown.cleaningFeeCents),
+        serviceFeeCents: String(breakdown.serviceFeeCents),
+        totalAmountCents: String(breakdown.totalPriceCents),
+        depositAmountCents: String(dollarsToCents(boat.depositAmount || 0)),
+        serviceFeeBps: String(serviceFee.bps),
+        serviceFeeFixedCents: String(serviceFee.fixedCents),
         // Priced add-on snapshot so the webhook can persist it post-payment.
         addOns: addOnSnapshot.length > 0 ? JSON.stringify(addOnSnapshot) : "",
         currency: boatCurrency,

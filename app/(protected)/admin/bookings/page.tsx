@@ -34,7 +34,7 @@ export default async function BookingsPage({
 
   // ONE way in: Add booking. Phone/DM inquiries go through the same door —
   // an inquiry is just a booking at its first stage, not a separate thing.
-  const headerCta = <BookingsHeaderCta pricingTiers={pricingTiers} admins={admins} />;
+  const headerCta = <BookingsHeaderCta pricingTiers={pricingTiers} />;
 
   if (params.view === "calendar") {
     return (

@@ -42,7 +42,6 @@ export interface TripDetail extends TripSummary {
   dropoffLocation: string | null;
   specialRequests: string | null;
   occasionType: string | null;
-  acceptedAt: Date | null;
   cancelledAt: Date | null;
   cancellationReason: string | null;
   currency: string;

@@ -105,7 +105,6 @@ export default function PublicProposalClient({
                     publicToken={publicToken}
                     payment={data.payment}
                     totalPaidCents={data.totalPaidCents}
-                    totalAmountCents={data.totalAmountCents}
                   />
                 </div>
               </section>

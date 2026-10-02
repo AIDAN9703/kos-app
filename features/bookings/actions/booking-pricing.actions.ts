@@ -12,7 +12,11 @@ import { bookingPricingService } from "@/features/bookings/services/booking-pric
 import { bookingService } from "@/features/bookings/services/booking.service";
 import { paymentService } from "@/features/payments/payment.service";
 import { getAdminSession } from "@/shared/lib/utils/auth-utils";
-import { calculateBookingPriceCents } from "@/shared/lib/utils/pricing-utils";
+import {
+  calculateBookingPriceCents,
+  serviceFeeFromSnapshot,
+  type ServiceFee,
+} from "@/shared/lib/utils/pricing-utils";
 
 /**
  * Admin re-pricing of an existing deal from the booking detail page — the
@@ -48,29 +52,20 @@ function revalidateBooking(bookingId: string) {
 }
 
 /**
- * The fee rate this booking was priced with. Settings can change after a
- * proposal goes out; re-pricing must not silently move a customer's rate, so
- * derive it from the snapshot and fall back to settings only for unpriced rows.
+ * The fee this booking was priced with. Settings can change after a proposal
+ * goes out; re-pricing must not silently move a customer's fee, so use the
+ * booking's snapshot and fall back to settings only for never-priced rows.
  */
-async function feeRateForBooking(booking: {
+async function feeForBooking(booking: {
+  serviceFeeBps: number | null;
+  serviceFeeFixedCents: number | null;
   serviceFeeCents: number | null;
-  basePriceCents: number | null;
-  captainFeeCents: number | null;
-  cleaningFeeCents: number | null;
-  addOns?: Array<{ total: number }> | null;
-}): Promise<number> {
-  const addOnsCents = Math.round((booking.addOns ?? []).reduce((sum, a) => sum + a.total, 0) * 100);
-  const subtotal =
-    (booking.basePriceCents ?? 0) +
-    (booking.captainFeeCents ?? 0) +
-    (booking.cleaningFeeCents ?? 0) +
-    addOnsCents;
-  const fee = booking.serviceFeeCents ?? 0;
-  if (subtotal > 0 && fee > 0) {
-    // Round to whole basis points so 349.99… reads as 3.5%.
-    return Math.round((fee / subtotal) * 10_000) / 10_000;
+  totalAmountCents: number | null;
+}): Promise<ServiceFee> {
+  if (booking.serviceFeeBps != null || (booking.serviceFeeCents ?? 0) > 0) {
+    return serviceFeeFromSnapshot(booking);
   }
-  return (await getAppSettings()).serviceFeeRate;
+  return (await getAppSettings()).serviceFee;
 }
 
 export async function updateBookingPricing(
@@ -105,13 +100,13 @@ export async function updateBookingPricing(
     }));
     const addOnsCents = Math.round(addOns.reduce((sum, a) => sum + a.total, 0) * 100);
 
-    const rate = await feeRateForBooking(booking);
+    const fee = await feeForBooking(booking);
     const breakdown = calculateBookingPriceCents(
       input.basePriceCents,
       input.cleaningFeeCents,
       input.captainFeeCents,
       addOnsCents,
-      rate
+      fee
     );
     const total = breakdown.totalPriceCents;
     if (total <= 0) return { success: false, error: "The total has to be more than zero." };
@@ -175,6 +170,8 @@ export async function updateBookingPricing(
       captainFeeCents: breakdown.captainFeeCents || null,
       cleaningFeeCents: breakdown.cleaningFeeCents || null,
       serviceFeeCents: breakdown.serviceFeeCents,
+      serviceFeeBps: fee.bps,
+      serviceFeeFixedCents: fee.fixedCents,
       depositAmountCents: input.depositAmountCents || null,
       totalAmountCents: total,
     });

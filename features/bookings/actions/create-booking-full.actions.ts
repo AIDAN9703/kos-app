@@ -122,7 +122,6 @@ export async function createBookingFull(
     const pricingByBooking = new Map(pricingRows.map((r) => [r.bookingId, r]));
 
     const sourceOverride = input.source?.trim() || null;
-    const agentCode = input.agentCode?.trim() || null;
     let partyGmvCents = 0;
     let partyOwnerPayoutCents = 0;
 
@@ -156,13 +155,9 @@ export async function createBookingFull(
           : null;
       if (gmvCents != null) partyGmvCents += gmvCents;
 
-      if (gmvCents != null || sourceOverride || agentCode) {
-        await bookingOpsService.upsert(id, {
-          gmvCents,
-          sourceOverride,
-          agentCode,
-        });
-      }
+      // GMV is NOT stored here: left empty it follows the booking's price, so
+      // later price edits move revenue too. Only a manual override sets it.
+      await bookingOpsService.upsert(id, { sourceOverride });
     }
 
     // Audit the financials capture once, on the lead (creation itself is
@@ -171,7 +166,7 @@ export async function createBookingFull(
       (sum, b) => sum + (b.expenseLines?.length ?? 0),
       0
     );
-    if (totalExpenseLines > 0 || sourceOverride || agentCode) {
+    if (totalExpenseLines > 0 || sourceOverride) {
       await bookingEventsService.logEvent({
         bookingId,
         eventType: BOOKING_EVENT_TYPES.UPDATED,
@@ -188,7 +183,6 @@ export async function createBookingFull(
           partyOwnerPayoutCents,
           expenseLineCount: totalExpenseLines,
           source: sourceOverride,
-          agentCode,
         },
       });
     }

@@ -12,9 +12,8 @@ import { paymentService } from "@/features/payments/payment.service";
 import { getBaseUrl } from "@/shared/lib/utils/base-url";
 import { getStripe, getOrCreateStripeCustomer } from "@/shared/lib/services/stripe.service";
 import { dollarsToCents } from "@/shared/lib/utils/money-utils";
+import { formatServiceFee, serviceFeeFromSnapshot } from "@/shared/lib/utils/pricing-utils";
 import {
-  feeRateOf,
-  formatFeeRate,
   planCharge,
   type ChargeableBoat,
   type ChargePlan,
@@ -69,6 +68,7 @@ async function loadParty(bookingId: string): Promise<{ party: Party; boats: Char
     bookingId: m.booking.id,
     totalCents: Number(m.pricing!.totalAmountCents),
     serviceFeeCents: Number(m.pricing!.serviceFeeCents ?? 0),
+    serviceFee: serviceFeeFromSnapshot(m.pricing!),
     serviceFeeWaived: Boolean(m.pricing!.serviceFeeWaived),
     depositCents:
       m.pricing!.depositAmountCents != null ? Number(m.pricing!.depositAmountCents) : null,
@@ -115,7 +115,7 @@ function buildLineItems(
     .join(" • ");
   const feeLabel = (bookingId: string) => {
     const boat = boats.find((b) => b.bookingId === bookingId);
-    return boat ? ` (${formatFeeRate(feeRateOf(boat))})` : "";
+    return boat ? ` (${formatServiceFee(boat.serviceFee)})` : "";
   };
 
   if (plan.kind === "DEPOSIT") {

@@ -18,12 +18,12 @@ import {
   startProposalPayment,
 } from "@/features/bookings/actions/proposal.actions";
 import type { ProposalPaymentOptions } from "@/features/bookings/lib/proposal.types";
+import { PaymentAmountChoice } from "@/features/bookings/components/PaymentAmountChoice";
 
 interface ProposalActionsProps {
   publicToken: string;
   payment: ProposalPaymentOptions;
   totalPaidCents: number;
-  totalAmountCents: number;
 }
 
 /**
@@ -36,12 +36,7 @@ interface ProposalActionsProps {
  *
  * Every card amount already includes the card processing fee on that payment.
  */
-export function ProposalActions({
-  publicToken,
-  payment,
-  totalPaidCents,
-  totalAmountCents,
-}: ProposalActionsProps) {
+export function ProposalActions({ publicToken, payment, totalPaidCents }: ProposalActionsProps) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [requestModalOpen, setRequestModalOpen] = useState(false);
@@ -51,7 +46,7 @@ export function ProposalActions({
   const [choice, setChoice] = useState<"deposit" | "full">("deposit");
 
   const fmt = (c: number) => formatCentsAsCurrency(c);
-  const { deposit, remainingCents, offCard, feeRateLabel } = payment;
+  const { deposit, remainingCents, offCard } = payment;
   const chargeType: "deposit" | "full" = deposit ? choice : "full";
   const chargeCents = chargeType === "deposit" && deposit ? deposit.amountCents : remainingCents;
   const isPaidInFull = totalPaidCents > 0 && remainingCents === 0;
@@ -92,8 +87,6 @@ export function ProposalActions({
     </Button>
   );
 
-  const feeNote = feeRateLabel ? ` and the ${feeRateLabel} card processing fee` : "";
-
   let body: React.ReactNode;
   if (offCard) {
     body = (
@@ -112,42 +105,22 @@ export function ProposalActions({
       <>
         <Banner tone="success">{fmt(totalPaidCents)} received. Your date is locked in.</Banner>
         {payButton(`Pay remaining balance · ${fmt(remainingCents)}`)}
-        <p className="text-center text-xs text-slate-500">
-          Includes the card processing fee on the balance. Due before your trip.
-        </p>
       </>
     );
   } else {
     body = (
       <>
         {deposit ? (
-          <div
-            className="grid grid-cols-2 gap-2"
-            role="radiogroup"
-            aria-label="How much to pay now"
-          >
-            <PayChoice
-              active={chargeType === "deposit"}
-              label="Pay the deposit"
-              detail={`${fmt(deposit.amountCents)} now`}
-              onClick={() => setChoice("deposit")}
-            />
-            <PayChoice
-              active={chargeType === "full"}
-              label="Pay in full"
-              detail={`${fmt(remainingCents)} now`}
-              onClick={() => setChoice("full")}
-            />
-          </div>
+          <PaymentAmountChoice
+            value={chargeType}
+            onChange={setChoice}
+            depositCents={deposit.amountCents}
+            fullCents={remainingCents}
+          />
         ) : null}
         {payButton(
           chargeType === "deposit" ? `Pay ${fmt(chargeCents)} deposit` : `Pay ${fmt(chargeCents)}`
         )}
-        <p className="text-center text-xs leading-5 text-slate-500">
-          {chargeType === "deposit" && deposit
-            ? `${fmt(deposit.baseCents)} deposit + ${fmt(deposit.feeCents)} card processing fee${feeRateLabel ? ` (${feeRateLabel})` : ""}. The remaining ${fmt(Math.max(0, totalAmountCents - deposit.amountCents))} is due before the trip and can be paid from this page.`
-            : `Includes your charter${feeNote}. Paying confirms your booking.`}
-        </p>
       </>
     );
   }
@@ -229,34 +202,5 @@ function Banner({ tone, children }: { tone: "success" | "info"; children: React.
       <Icon className="h-5 w-5 shrink-0" />
       <span>{children}</span>
     </div>
-  );
-}
-
-function PayChoice({
-  active,
-  label,
-  detail,
-  onClick,
-}: {
-  active: boolean;
-  label: string;
-  detail: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={active}
-      onClick={onClick}
-      className={
-        active
-          ? "rounded-xl border-2 border-primary bg-primary/5 px-3 py-2.5 text-left"
-          : "rounded-xl border border-border/60 px-3 py-2.5 text-left transition-colors hover:bg-muted/50"
-      }
-    >
-      <span className="block text-sm font-semibold text-primary">{label}</span>
-      <span className="block text-xs text-slate-500">{detail}</span>
-    </button>
   );
 }

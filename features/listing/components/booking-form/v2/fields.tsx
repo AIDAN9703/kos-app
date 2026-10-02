@@ -11,9 +11,12 @@ import {
 } from "@/shared/components/ui/tooltip";
 import { cn, formatCurrency } from "@/shared/lib/utils/general-utils";
 import { PricingTier } from "@/shared/lib/types/types";
-import { calculateBookingPrice } from "@/shared/lib/utils/pricing-utils";
-import { centsToDollars } from "@/shared/lib/utils/money-utils";
-import { formatRateAsPercent } from "@/features/app-settings/app-settings.config";
+import {
+  calculateBookingPriceCents,
+  formatServiceFee,
+  type ServiceFee,
+} from "@/shared/lib/utils/pricing-utils";
+import { centsToDollars, dollarsToCents, formatCentsAsCurrency } from "@/shared/lib/utils/money-utils";
 import type { ResolvedBoatAddOn } from "@/features/add-ons/add-on.types";
 import type { BookingPickerLayout } from "../shared/booking-picker-layout";
 
@@ -387,32 +390,38 @@ export function PriceBreakdown({
   tier,
   cleaningFee,
   currency,
-  serviceFeeRate,
+  serviceFee,
 }: {
   tier: PricingTier;
   cleaningFee: number;
   currency: string;
-  /** Decimal rate (e.g. 0.035) from app settings, passed down from the server page. */
-  serviceFeeRate: number;
+  /** The card fee from app settings (rate + fixed), passed down from the server page. */
+  serviceFee: ServiceFee;
 }) {
-  const b = calculateBookingPrice(tier.price, cleaningFee || 0, 0, serviceFeeRate);
-  const fmt = (n: number) => formatCurrency(n, currency, { showCents: true });
+  const b = calculateBookingPriceCents(
+    dollarsToCents(tier.price),
+    dollarsToCents(cleaningFee || 0),
+    0,
+    0,
+    serviceFee
+  );
+  const fmt = (cents: number) => formatCentsAsCurrency(cents, { currency });
 
   return (
     <div className="space-y-2 rounded-2xl bg-muted/40 p-4">
-      <Line label={`${tier.hours} hr charter`} amount={fmt(b.basePrice)} />
+      <Line label={`${tier.hours} hr charter`} amount={fmt(b.basePriceCents)} />
       <div className="flex justify-between text-sm">
         <span className="text-muted-foreground">Crew</span>
         <span className="font-medium text-emerald-600">Selection Included</span>
       </div>
-      {b.cleaningFee > 0 && <Line label="Cleaning fee" amount={fmt(b.cleaningFee)} />}
+      {b.cleaningFeeCents > 0 && <Line label="Cleaning fee" amount={fmt(b.cleaningFeeCents)} />}
       <Line
-        label={`Card processing (${formatRateAsPercent(serviceFeeRate)}%)`}
-        amount={fmt(b.serviceFee)}
+        label={`Card processing (${formatServiceFee(serviceFee)})`}
+        amount={fmt(b.serviceFeeCents)}
       />
       <div className="mt-2 flex items-center justify-between border-t border-border pt-3">
         <span className="font-semibold text-foreground">Total</span>
-        <span className="text-xl font-bold text-primary">{fmt(b.totalPrice)}</span>
+        <span className="text-xl font-bold text-primary">{fmt(b.totalPriceCents)}</span>
       </div>
     </div>
   );

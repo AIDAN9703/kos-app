@@ -12,6 +12,7 @@ import { sendBookingConfirmationEmail } from "@/shared/lib/services/email.servic
 import { alertTeam } from "@/features/bookings/lib/team-alerts";
 import { formatCentsAsCurrency } from "@/shared/lib/utils/money-utils";
 import { dollarsToCents } from "@/shared/lib/utils/money-utils";
+import { serviceFeeFromSnapshot } from "@/shared/lib/utils/pricing-utils";
 import type { BookingAddOn } from "@/features/bookings/booking.types";
 
 export type InstantCheckoutFulfillmentResult =
@@ -19,6 +20,34 @@ export type InstantCheckoutFulfillmentResult =
   | { status: "already_processed"; bookingId: string }
   | { status: "skipped"; reason: string };
 
+
+/**
+ * The price the guest paid, from the checkout session's metadata. Sessions
+ * carry exact cents and the fee snapshot; sessions created before that carry
+ * dollar strings, which are still read so in-flight checkouts settle.
+ */
+function pricingFromMetadata(metadata: Record<string, string>) {
+  const cents = (key: string, legacyDollarsKey: string) =>
+    metadata[key] != null
+      ? parseInt(metadata[key], 10) || 0
+      : dollarsToCents(parseFloat(metadata[legacyDollarsKey] || "0"));
+  const serviceFeeCents = cents("serviceFeeCents", "serviceFee");
+  const totalPriceCents = cents("totalAmountCents", "totalAmount");
+  return {
+    basePriceCents: cents("basePriceCents", "basePrice"),
+    cleaningFeeCents: cents("cleaningFeeCents", "cleaningFee"),
+    captainFeeCents: cents("captainFeeCents", "captainFee"),
+    serviceFeeCents,
+    totalPriceCents,
+    depositAmountCents: cents("depositAmountCents", "depositAmount"),
+    serviceFee: serviceFeeFromSnapshot({
+      serviceFeeBps: metadata.serviceFeeBps != null ? parseInt(metadata.serviceFeeBps, 10) : null,
+      serviceFeeFixedCents: parseInt(metadata.serviceFeeFixedCents || "0", 10),
+      serviceFeeCents,
+      totalAmountCents: totalPriceCents,
+    }),
+  };
+}
 
 /**
  * Create (or idempotently confirm) an instant-booking from a paid Stripe Checkout
@@ -100,14 +129,7 @@ export async function fulfillInstantCheckoutSession(
     stripeCheckoutSessionId: session.id,
     stripeCustomerId: (session.customer as string) || undefined,
     addOns: addOnSnapshot,
-    pricingOverrideCents: {
-      basePriceCents: dollarsToCents(parseFloat(metadata.basePrice || "0")),
-      cleaningFeeCents: dollarsToCents(parseFloat(metadata.cleaningFee || "0")),
-      captainFeeCents: dollarsToCents(parseFloat(metadata.captainFee || "0")),
-      serviceFeeCents: dollarsToCents(parseFloat(metadata.serviceFee || "0")),
-      totalPriceCents: dollarsToCents(parseFloat(metadata.totalAmount || "0")),
-      depositAmountCents: dollarsToCents(parseFloat(metadata.depositAmount || "0")),
-    },
+    pricingOverrideCents: pricingFromMetadata(metadata),
   };
 
   let newBooking;

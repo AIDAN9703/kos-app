@@ -3,14 +3,17 @@
  * the public proposal page, the customer's trip page and the admin
  * Breakdown, so every screen quotes the amount Stripe will actually take.
  *
- * The card processing fee is charged on EVERY card payment, in proportion:
- *   deposit       = deposit + (deposit × fee rate)
- *   pay in full   = the booking total (subtotal + fee)
+ * The card fee (a percentage plus a fixed amount per booking) is charged on
+ * EVERY card payment:
+ *   deposit       = deposit + deposit × rate + the fixed fee
+ *   pay in full   = the booking total (subtotal + its fee)
  *   balance       = total − already paid
- * Because the deposit carried its share of the fee, the balance carries the
- * rest — deposit + balance always equals the total, and KOS never absorbs
- * Stripe's processing cost on a deposit.
+ * The first payment carries the fixed fee; the balance carries the rest of
+ * the percentage. Deposit + balance always equals the total, so the guest
+ * never pays more than their proposal says.
  */
+
+import { serviceFeeOn, type ServiceFee } from "@/shared/lib/utils/pricing-utils";
 
 export type ChargeType = "deposit" | "full";
 
@@ -20,6 +23,8 @@ export interface ChargeableBoat {
   /** Stored booking total in cents (subtotal + card fee). */
   totalCents: number;
   serviceFeeCents: number;
+  /** The fee this booking was priced with (its snapshot). */
+  serviceFee: ServiceFee;
   /** Settled off-card — no card payments are taken. */
   serviceFeeWaived: boolean;
   /** Deposit the admin set, BEFORE the card fee. Null = no deposit option. */
@@ -47,15 +52,6 @@ export interface ChargePlan {
   feeCents: number;
 }
 
-/** The fee rate this booking was priced at (fee ÷ subtotal); 0 when waived. */
-export function feeRateOf(
-  boat: Pick<ChargeableBoat, "totalCents" | "serviceFeeCents" | "serviceFeeWaived">
-): number {
-  if (boat.serviceFeeWaived) return 0;
-  const subtotal = boat.totalCents - boat.serviceFeeCents;
-  return subtotal > 0 && boat.serviceFeeCents > 0 ? boat.serviceFeeCents / subtotal : 0;
-}
-
 /** A deposit the guest may pay first: set, positive, below the subtotal. */
 export function validDepositCents(boat: ChargeableBoat): number | null {
   const subtotal = boat.totalCents - boat.serviceFeeCents;
@@ -63,18 +59,14 @@ export function validDepositCents(boat: ChargeableBoat): number | null {
   return deposit > 0 && deposit < subtotal ? deposit : null;
 }
 
-/** Deposit plus its share of the card fee. */
+/** Deposit plus its card fee (the first payment, so the fixed part too). */
 export function depositCharge(
   boat: ChargeableBoat
 ): { baseCents: number; feeCents: number; amountCents: number } | null {
   const base = validDepositCents(boat);
   if (base == null) return null;
-  const fee = Math.round(base * feeRateOf(boat));
+  const fee = boat.serviceFeeWaived ? 0 : serviceFeeOn(base, boat.serviceFee);
   return { baseCents: base, feeCents: fee, amountCents: base + fee };
-}
-
-export function remainingCents(boats: ChargeableBoat[]): number {
-  return boats.reduce((sum, b) => sum + Math.max(0, b.totalCents - b.paidCents), 0);
 }
 
 /**
@@ -138,9 +130,4 @@ function summarize(kind: PaymentKind, lines: ChargeLine[]): ChargePlan {
     amountCents: lines.reduce((sum, l) => sum + l.amountCents, 0),
     feeCents: lines.reduce((sum, l) => sum + l.feeCents, 0),
   };
-}
-
-/** "3.5%" from a rate, for labels. */
-export function formatFeeRate(rate: number): string {
-  return `${Number((rate * 100).toFixed(2))}%`;
 }

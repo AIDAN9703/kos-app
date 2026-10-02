@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { BookingComposer } from "@/features/bookings/components/admin/booking-forms/BookingComposer";
 import { boatService } from "@/features/boats/boat.service";
 import { bookingService } from "@/features/bookings/services/booking.service";
-import { userService } from "@/features/users/user.service";
 import { buildDealPrefillForBookingForm } from "@/features/bookings/lib/deal-prefill";
 import { buildDatePrefillForBookingForm } from "@/features/bookings/lib/booking-create-date-prefill";
 
@@ -17,9 +16,8 @@ export default async function AdminBookingCreatePage({ searchParams }: Props) {
   const { dealId, inquiryId, date } = await searchParams;
   const targetDealId = (dealId ?? inquiryId)?.trim();
 
-  const [pricingTiers, admins, deal] = await Promise.all([
+  const [pricingTiers, deal] = await Promise.all([
     boatService.getAllActivePricingTiers(),
-    userService.getAdmins(),
     targetDealId ? bookingService.getBookingById(targetDealId) : Promise.resolve(null),
   ]);
 
@@ -49,7 +47,6 @@ export default async function AdminBookingCreatePage({ searchParams }: Props) {
           plain scratch. Add a second boat to create a charter party. */}
       <BookingComposer
         pricingTiers={pricingTiers}
-        admins={admins}
         dealPrefill={dealPrefill}
         datePrefill={datePrefill}
       />

@@ -15,7 +15,6 @@ import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/shared/lib/utils/general-utils";
 import { BookingComposer } from "@/features/bookings/components/admin/booking-forms/BookingComposer";
 import type { PricingTierOption } from "@/features/bookings/components/admin/booking-forms/types";
-import type { AdminOption } from "@/shared/lib/utils/people-display";
 
 /**
  * "Add booking" trigger + dialog for the board header and dashboard — a thin
@@ -25,7 +24,6 @@ import type { AdminOption } from "@/shared/lib/utils/people-display";
  */
 export function NewBookingModal({
   pricingTiers,
-  admins,
   triggerLabel = "Add booking",
   triggerClassName,
   triggerSize = "sm",
@@ -33,7 +31,6 @@ export function NewBookingModal({
   onCloseComplete,
 }: {
   pricingTiers: PricingTierOption[];
-  admins: AdminOption[];
   triggerLabel?: string;
   triggerClassName?: string;
   triggerSize?: "sm" | "default" | "lg";
@@ -77,7 +74,6 @@ export function NewBookingModal({
           </DialogHeader>
           <BookingComposer
             pricingTiers={pricingTiers}
-            admins={admins}
             onSuccess={() => {
               handleClose();
               router.refresh();

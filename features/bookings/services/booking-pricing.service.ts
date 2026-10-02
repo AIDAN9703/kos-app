@@ -4,9 +4,9 @@
  * Business logic layer for booking pricing.
  * Uses direct database access (no repository layer).
  * 
- * All monetary values are in CENTS. The service fee rate comes from app
- * settings (admin-configurable) and is snapshotted onto each booking's
- * pricing row — settings changes never alter existing bookings.
+ * All monetary values are in CENTS. The service fee (rate + fixed) comes from
+ * app settings and is snapshotted onto each booking's pricing row — settings
+ * changes never alter existing bookings.
  */
 
 import { db } from '@/database/db';
@@ -14,7 +14,7 @@ import { bookingPricing } from '@/database/schema';
 import { eq } from 'drizzle-orm';
 import type { BookingPricing } from '@/database/types';
 import type { Cents } from '@/shared/lib/utils/money-utils';
-import { calculateBookingPriceCents } from '@/shared/lib/utils/pricing-utils';
+import { calculateBookingPriceCents, type ServiceFee } from '@/shared/lib/utils/pricing-utils';
 import { getAppSettings } from '@/features/app-settings/app-settings.service';
 
 // ============================================================================
@@ -27,6 +27,8 @@ export interface CreateBookingPricingInput {
   captainFeeCents?: Cents | null;
   cleaningFeeCents?: Cents | null;
   serviceFeeCents?: Cents | null;
+  /** The fee it was priced with — required so the snapshot is never missing. */
+  serviceFee: ServiceFee;
   taxAmountCents?: Cents | null;
   discountAmountCents?: Cents | null;
   discountCode?: string | null;
@@ -42,6 +44,8 @@ export interface UpdateBookingPricingInput {
   captainFeeCents?: Cents | null;
   cleaningFeeCents?: Cents | null;
   serviceFeeCents?: Cents | null;
+  serviceFeeBps?: number;
+  serviceFeeFixedCents?: Cents;
   taxAmountCents?: Cents | null;
   discountAmountCents?: Cents | null;
   discountCode?: string | null;
@@ -54,7 +58,7 @@ export interface UpdateBookingPricingInput {
 /**
  * Simple pricing input for creating from base values
  * Service will calculate fees automatically.
- * Subtotal = base + add-ons + cleaning + captain; service fee (3.5%) applied to subtotal.
+ * Subtotal = base + add-ons + cleaning + captain; the service fee (from settings) applies on top.
  */
 export interface SimplePricingInput {
   basePriceCents: Cents;
@@ -87,6 +91,8 @@ export class BookingPricingService {
         captainFeeCents: input.captainFeeCents ?? null,
         cleaningFeeCents: input.cleaningFeeCents ?? null,
         serviceFeeCents: input.serviceFeeCents ?? null,
+        serviceFeeBps: input.serviceFee.bps,
+        serviceFeeFixedCents: input.serviceFee.fixedCents,
         taxAmountCents: input.taxAmountCents ?? null,
         discountAmountCents: input.discountAmountCents ?? null,
         discountCode: input.discountCode ?? null,
@@ -109,13 +115,13 @@ export class BookingPricingService {
     input: SimplePricingInput
   ): Promise<BookingPricing> {
     // Calculate fees: subtotal = base + add-ons + cleaning + captain; service fee on subtotal
-    const { serviceFeeRate } = await getAppSettings();
+    const { serviceFee } = await getAppSettings();
     const breakdown = calculateBookingPriceCents(
       input.basePriceCents,
       input.cleaningFeeCents ?? 0,
       input.captainFeeCents ?? 0,
       input.addOnsCents ?? 0,
-      serviceFeeRate
+      serviceFee
     );
 
     // Apply tax and discount after service fee calculation
@@ -129,6 +135,7 @@ export class BookingPricingService {
       captainFeeCents: breakdown.captainFeeCents || null,
       cleaningFeeCents: breakdown.cleaningFeeCents || null,
       serviceFeeCents: breakdown.serviceFeeCents,
+      serviceFee,
       taxAmountCents: taxCents || null,
       discountAmountCents: discountCents || null,
       discountCode: input.discountCode,

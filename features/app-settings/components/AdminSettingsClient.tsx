@@ -8,9 +8,10 @@ import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { useToast } from "@/shared/lib/hooks/use-toast";
-import { cn, formatCurrency } from "@/shared/lib/utils/general-utils";
+import { cn } from "@/shared/lib/utils/general-utils";
 import { updateAppSettings } from "@/features/app-settings/app-settings.mutations";
-import { formatBpsAsPercent } from "@/features/app-settings/app-settings.config";
+import { formatCentsAsCurrency } from "@/shared/lib/utils/money-utils";
+import { serviceFeeOn } from "@/shared/lib/utils/pricing-utils";
 import type { AppSettings } from "@/features/app-settings/app-settings.types";
 
 type SectionId = "payments" | "theme";
@@ -30,28 +31,34 @@ export function AdminSettingsClient({ settings }: { settings: AppSettings }) {
   const [active, setActive] = useState<SectionId>("payments");
   const [saving, setSaving] = useState(false);
 
-  const [feePercent, setFeePercent] = useState(formatBpsAsPercent(settings.serviceFeeBps));
+  const [feePercent, setFeePercent] = useState(String(settings.serviceFee.bps / 100));
+  const [feeFixed, setFeeFixed] = useState((settings.serviceFee.fixedCents / 100).toFixed(2));
 
-  const parsedFeeBps = useMemo(() => {
+  // Inputs → the stored shape (bps + cents); null while either isn't a number.
+  const draftFee = useMemo(() => {
     const pct = Number(feePercent);
-    return Number.isFinite(pct) ? Math.round(pct * 100) : null;
-  }, [feePercent]);
-
-  const isDirty = parsedFeeBps !== settings.serviceFeeBps;
-
-  const feePreview =
-    parsedFeeBps != null
-      ? formatCurrency((1000 * parsedFeeBps) / 10_000, "USD", { showCents: true })
+    const fixed = Number(feeFixed);
+    return Number.isFinite(pct) && Number.isFinite(fixed) && feePercent.trim() !== ""
+      ? { bps: Math.round(pct * 100), fixedCents: Math.round(fixed * 100) }
       : null;
+  }, [feePercent, feeFixed]);
+
+  const isDirty =
+    draftFee != null &&
+    (draftFee.bps !== settings.serviceFee.bps ||
+      draftFee.fixedCents !== settings.serviceFee.fixedCents);
 
   const handleSave = async () => {
-    if (parsedFeeBps == null) {
-      toast({ title: "Please enter a valid number", variant: "destructive" });
+    if (draftFee == null) {
+      toast({ title: "Please enter valid numbers", variant: "destructive" });
       return;
     }
 
     setSaving(true);
-    const result = await updateAppSettings({ serviceFeeBps: parsedFeeBps });
+    const result = await updateAppSettings({
+      serviceFeeBps: draftFee.bps,
+      serviceFeeFixedCents: draftFee.fixedCents,
+    });
     setSaving(false);
 
     if (result.success && result.data) {
@@ -110,34 +117,56 @@ export function AdminSettingsClient({ settings }: { settings: AppSettings }) {
 
             <div className="divide-y divide-border/60 px-6">
               {active === "payments" && (
-                <SettingRow
-                  label="Card processing fee"
-                  description="Percentage applied to the booking subtotal (charter + add-ons + cleaning + captain) at checkout. Shown to customers as a line item."
-                  hint={
-                    feePreview
-                      ? `Example: ${feePercent || 0}% on a $1,000 charter = ${feePreview}`
-                      : undefined
-                  }
-                >
-                  <div className="relative w-32">
-                    <Input
-                      id="service-fee"
-                      type="number"
-                      inputMode="decimal"
-                      min={0}
-                      max={20}
-                      step={0.05}
-                      value={feePercent}
-                      onChange={(e) => setFeePercent(e.target.value)}
-                      className="pr-8 text-right tabular-nums"
-                    />
-                    <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-muted-foreground">
-                      %
-                    </span>
-                  </div>
-                </SettingRow>
+                <>
+                  <SettingRow
+                    label="Card processing fee"
+                    description="A percentage of every card payment, shown to customers as a line item. Applies to bookings priced from now on; existing bookings keep the fee they were quoted."
+                    hint={
+                      draftFee
+                        ? `Example: a $1,000 charter paid in full has a ${formatCentsAsCurrency(serviceFeeOn(100_000, draftFee))} fee.`
+                        : undefined
+                    }
+                  >
+                    <div className="relative w-32">
+                      <Input
+                        id="service-fee"
+                        type="number"
+                        inputMode="decimal"
+                        min={0}
+                        max={20}
+                        step={0.01}
+                        value={feePercent}
+                        onChange={(e) => setFeePercent(e.target.value)}
+                        className="pr-8 text-right tabular-nums"
+                      />
+                      <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-muted-foreground">
+                        %
+                      </span>
+                    </div>
+                  </SettingRow>
+                  <SettingRow
+                    label="Fixed fee per booking"
+                    description="Added once per booking, with the guest's first payment (deposit or full)."
+                  >
+                    <div className="relative w-32">
+                      <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-muted-foreground">
+                        $
+                      </span>
+                      <Input
+                        id="service-fee-fixed"
+                        type="number"
+                        inputMode="decimal"
+                        min={0}
+                        max={20}
+                        step={0.01}
+                        value={feeFixed}
+                        onChange={(e) => setFeeFixed(e.target.value)}
+                        className="pl-7 text-right tabular-nums"
+                      />
+                    </div>
+                  </SettingRow>
+                </>
               )}
-
             </div>
 
             {active === "payments" && (

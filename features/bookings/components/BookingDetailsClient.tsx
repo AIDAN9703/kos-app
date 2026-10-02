@@ -13,8 +13,8 @@ import BookingSubmitButton from "./BookingSubmitButton";
 import CharterDetailsForm from "./CharterDetailsForm";
 import { AddOnsPicker } from "@/features/listing/components/booking-form/v2/fields";
 import { useBoat } from "./BoatProvider";
-import { calculateBookingPrice } from "@/shared/lib/utils/pricing-utils";
-import { formatCurrency } from "@/shared/lib/utils/general-utils";
+import { calculateBookingPriceCents, type ServiceFee } from "@/shared/lib/utils/pricing-utils";
+import { dollarsToCents, formatCentsAsCurrency } from "@/shared/lib/utils/money-utils";
 import { BookingRequest } from "@/features/_validation/validations";
 import { toast } from "@/shared/lib/hooks/use-toast";
 import type { Session } from "next-auth";
@@ -25,11 +25,11 @@ const BookingAuthSection = dynamic(() => import("./BookingAuthSection"), {
 
 export default function BookingDetailsClient({
   user,
-  serviceFeeRate,
+  serviceFee,
 }: {
   user: Session["user"] | null;
-  /** Decimal service fee rate (e.g. 0.035) from app settings, fetched by the server page. */
-  serviceFeeRate: number;
+  /** The card fee from app settings (rate + fixed), passed down from the server page. */
+  serviceFee: ServiceFee;
 }) {
   const router = useRouter();
   const boat = useBoat();
@@ -139,8 +139,8 @@ export default function BookingDetailsClient({
 
   const priceBreakdown = useMemo(() => {
     if (!selectedTier || !boat) return null;
-    return calculateBookingPrice(selectedTier.price, boat.cleaningFee || 0, 0, serviceFeeRate);
-  }, [selectedTier, boat, serviceFeeRate]);
+    return calculateBookingPriceCents(dollarsToCents(selectedTier.price), dollarsToCents(boat.cleaningFee || 0), 0, 0, serviceFee);
+  }, [selectedTier, boat, serviceFee]);
 
   const safeBoat = useMemo(
     () => ({
@@ -158,7 +158,7 @@ export default function BookingDetailsClient({
 
   const totalLabel = useMemo(() => {
     if (!priceBreakdown) return "";
-    return formatCurrency(priceBreakdown.totalPrice, safeBoat.currency);
+    return formatCentsAsCurrency(priceBreakdown.totalPriceCents, { currency: safeBoat.currency });
   }, [priceBreakdown, safeBoat.currency]);
 
   const handleBookingSubmit = useCallback(
@@ -271,7 +271,7 @@ export default function BookingDetailsClient({
               <BookingPricingSection
                 boat={safeBoat}
                 selectedTier={selectedTier}
-                serviceFeeRate={serviceFeeRate}
+                serviceFee={serviceFee}
                 addOns={previewAddOns}
               />
             </div>
@@ -283,7 +283,7 @@ export default function BookingDetailsClient({
               <BookingPricingSection
                 boat={safeBoat}
                 selectedTier={selectedTier}
-                serviceFeeRate={serviceFeeRate}
+                serviceFee={serviceFee}
                 addOns={previewAddOns}
               />
               <BookingSubmitButton

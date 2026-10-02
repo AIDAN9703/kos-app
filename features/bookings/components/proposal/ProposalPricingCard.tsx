@@ -24,12 +24,6 @@ export function ProposalPricingCard({
   // transparent, and the total drops to the subtotal.
   const feeWaived = bookings.length > 0 && bookings.every((b) => b.serviceFeeWaived);
   const grandTotalCents = feeWaived ? subtotalCents : subtotalCents + totalServiceFeeCents;
-  // Derived from this proposal's own pricing snapshot — stays correct even if
-  // the global fee setting changes after the proposal was created.
-  const feePercentLabel =
-    subtotalCents > 0
-      ? ` (${String(Number(((totalServiceFeeCents / subtotalCents) * 100).toFixed(2)))}%)`
-      : "";
 
   return (
     <div className="space-y-3">
@@ -73,7 +67,7 @@ export function ProposalPricingCard({
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-slate-600">
-            Card processing fee{feePercentLabel}
+            Card processing fee{payment.feeLabel ? ` (${payment.feeLabel})` : ""}
             {feeWaived ? (
               <span className="ml-2 text-xs font-medium text-emerald-700">
                 waived · paid off-card

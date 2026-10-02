@@ -1,7 +1,7 @@
+import type { ServiceFee } from "@/shared/lib/utils/pricing-utils";
+
 export interface AppSettings {
-  /** Raw stored value, basis points (350 = 3.5%). */
-  serviceFeeBps: number;
-  /** Decimal rate derived from bps (0.035) — what pricing math consumes. */
-  serviceFeeRate: number;
+  /** The card fee new bookings are priced with (bookings keep their own snapshot). */
+  serviceFee: ServiceFee;
   updatedAt: Date | null;
 }
