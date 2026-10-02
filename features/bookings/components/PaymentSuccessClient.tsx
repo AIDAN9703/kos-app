@@ -226,7 +226,7 @@ export default function PaymentSuccessClient() {
       </h1>
       <p className="mt-4 text-[15px] leading-7 text-slate-600 sm:text-base">
         {remainingCents > 0
-          ? `Your deposit went through and your date is locked in. The remaining ${formatCentsAsCurrency(remainingCents)} is due before your trip — we'll send a payment link when it's time.`
+          ? `Your payment went through and your date is locked in. The remaining ${formatCentsAsCurrency(remainingCents)} is due before your trip, and you can pay it anytime from your proposal link.`
           : "Your payment went through and your charter is locked in."}{" "}
         A confirmation email is on its way
         {booking?.customerName ? `, ${booking.customerName.split(" ")[0]}` : ""}.

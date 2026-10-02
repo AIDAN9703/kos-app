@@ -491,7 +491,7 @@ export function TripEditor({
                 label="Deposit"
                 value={deposit}
                 onChange={setDeposit}
-                hint="Leave blank and the guest pays in full."
+                hint="Before the card fee, which is added when the guest pays it. Leave blank and the guest pays in full."
               />
             </div>
           </FormSection>

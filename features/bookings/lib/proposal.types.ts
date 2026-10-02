@@ -23,6 +23,8 @@ export interface ProposalBooking {
   endDateTime: Date | null;
   /** Charter base price only (cents) */
   basePriceCents: number;
+  /** Captain fee (cents) */
+  captainFeeCents: number;
   /** Cleaning fee (cents) */
   cleaningFeeCents: number;
   /** 3.5% card processing fee (cents) */
@@ -31,6 +33,8 @@ export interface ProposalBooking {
   serviceFeeWaived: boolean;
   /** Total for this booking (cents) */
   totalCents: number;
+  /** Deposit the admin set for this boat, before the card fee. */
+  depositCents: number | null;
   addOns: ProposalAddOn[] | null;
 }
 
@@ -47,10 +51,21 @@ export interface ProposalData {
   dropoffLocation: string | null;
   /** Lead boat's IANA zone — Trip Details renders boat-local, not viewer-local. */
   timezone: string | null;
-  allowPayment: boolean;
-  acceptedAt: Date | null;
   totalPaidCents: number;
-  depositAmountCents: number | null;
   totalAmountCents: number;
   bookings: ProposalBooking[];
+  /** What the guest can pay from this page right now. */
+  payment: ProposalPaymentOptions;
+}
+
+/** Card payment choices on the proposal page, already priced with the card fee. */
+export interface ProposalPaymentOptions {
+  /** Settled off-card — no card payment is offered. */
+  offCard: boolean;
+  /** Everything still owed (the full total until something is paid). */
+  remainingCents: number;
+  /** Deposit-first option; only before anything is paid and when set. */
+  deposit: { baseCents: number; feeCents: number; amountCents: number } | null;
+  /** Card fee rate label, e.g. "3.5%". */
+  feeRateLabel: string | null;
 }

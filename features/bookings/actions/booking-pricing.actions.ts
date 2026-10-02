@@ -128,8 +128,13 @@ export async function updateBookingPricing(
         error: `The customer has already paid ${(paidCents / 100).toFixed(2)} — the new total can't be less than that.`,
       };
     }
-    if (input.depositAmountCents != null && input.depositAmountCents > effectiveTotal) {
-      return { success: false, error: "The deposit can't be more than the total." };
+    // The deposit is entered before the card fee, so it must sit below the
+    // subtotal for "pay the deposit first" to mean anything.
+    if (input.depositAmountCents != null && input.depositAmountCents >= breakdown.subtotalCents) {
+      return {
+        success: false,
+        error: "The deposit has to be less than the subtotal, or leave it blank for full payment only.",
+      };
     }
 
     const previous = {

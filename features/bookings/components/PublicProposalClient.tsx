@@ -48,8 +48,8 @@ export default function PublicProposalClient({
                 </h1>
                 {data.updatedAt ? (
                   <p className="mt-1.5 text-xs font-medium text-white/70">
-                    Updated {format(new Date(data.updatedAt), "MMMM d, yyyy")} — this link
-                    always shows the latest version
+                    Updated {format(new Date(data.updatedAt), "MMMM d, yyyy")} — this link always
+                    shows the latest version
                   </p>
                 ) : null}
               </div>
@@ -96,18 +96,15 @@ export default function PublicProposalClient({
                 <div className="mt-4">
                   <ProposalPricingCard
                     bookings={data.bookings}
-                    depositAmountCents={data.depositAmountCents}
+                    payment={data.payment}
                     totalPaidCents={data.totalPaidCents}
                   />
                 </div>
                 <div className="mt-8">
                   <ProposalActions
                     publicToken={publicToken}
-                    allowPayment={data.allowPayment}
-                    serviceFeeWaived={data.bookings.some((b) => b.serviceFeeWaived)}
-                    isAccepted={!!data.acceptedAt}
+                    payment={data.payment}
                     totalPaidCents={data.totalPaidCents}
-                    depositAmountCents={data.depositAmountCents}
                     totalAmountCents={data.totalAmountCents}
                   />
                 </div>

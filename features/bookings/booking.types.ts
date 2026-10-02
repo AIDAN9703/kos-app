@@ -279,7 +279,6 @@ export interface BookingDetails extends BookingListItem {
   pricingTierId: string | null;
   paymentMethod: string | null;
   /** Proposal page shows a pay button when true. */
-  allowPayment: boolean;
   /** Channel the deal came through (bookings.source). */
   source: string | null;
   updatedAt: Date;

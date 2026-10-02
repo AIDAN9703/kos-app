@@ -9,11 +9,8 @@ type StartTripPaymentResult = { success: true; url: string } | { success: false;
 /**
  * Open Stripe Checkout for one of the customer's OWN booked trips. getTrip is
  * scoped to the signed-in user, so another customer's booking id is a miss.
- *
- * Checkout charges the deposit or the full amount (the customer's pick), not
- * an arbitrary remainder — so this only runs while nothing has been paid yet.
- * Once a deposit is in, the balance is collected through the payment link the
- * team sends, and the trip page says so instead of showing a button.
+ * Before anything is paid they may pick the deposit; after that, "full"
+ * charges the remaining balance. Every amount includes its card fee.
  */
 export async function startTripPayment(
   bookingId: string,
@@ -24,10 +21,10 @@ export async function startTripPayment(
 
   const trip = await getTrip(auth.userId, bookingId);
   if (!trip) return { success: false, error: "We couldn't find that trip." };
-  if (trip.status !== "BOOKED" || trip.paidCents > 0 || trip.totalCents <= 0) {
+  if (trip.status !== "BOOKED" || trip.offCard || trip.balanceCents <= 0) {
     return { success: false, error: "This trip isn't awaiting a card payment." };
   }
-  if (chargeType === "deposit" && !(trip.depositCents && trip.depositCents < trip.totalCents)) {
+  if (chargeType === "deposit" && (trip.paidCents > 0 || !trip.depositChargeCents)) {
     return { success: false, error: "This trip doesn't have a deposit option." };
   }
 

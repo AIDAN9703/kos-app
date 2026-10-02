@@ -10,24 +10,34 @@ import { startTripPayment } from "../../actions/trip.actions";
 
 interface PayTripButtonProps {
   tripId: string;
-  totalCents: number;
-  /** Deposit that locks the date; null when the trip has no deposit option. */
-  depositCents: number | null;
+  /** Everything still owed, card fee included. */
+  balanceCents: number;
+  /** Deposit by card (deposit + its fee) — only before anything is paid. */
+  depositChargeCents: number | null;
+  /** Something is already paid, so this pays the remaining balance. */
+  isBalance: boolean;
   currency: string;
 }
 
 /**
- * Sends the customer to Stripe Checkout for their own trip. With a deposit on
- * offer they choose deposit-first or pay-in-full; otherwise one button.
+ * Sends the customer to Stripe Checkout for their own trip: deposit or full
+ * before anything is paid, the remaining balance after. Amounts include the
+ * card processing fee on that payment.
  */
-export function PayTripButton({ tripId, totalCents, depositCents, currency }: PayTripButtonProps) {
-  const hasDeposit = depositCents != null && depositCents > 0 && depositCents < totalCents;
-  const [choice, setChoice] = useState<"deposit" | "full">("full");
+export function PayTripButton({
+  tripId,
+  balanceCents,
+  depositChargeCents,
+  isBalance,
+  currency,
+}: PayTripButtonProps) {
+  const hasDeposit = !isBalance && depositChargeCents != null && depositChargeCents < balanceCents;
+  const [choice, setChoice] = useState<"deposit" | "full">("deposit");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const fmt = (c: number) => formatCentsAsCurrency(c, { currency });
   const chargeType = hasDeposit ? choice : "full";
-  const chargeCents = chargeType === "deposit" ? depositCents! : totalCents;
+  const chargeCents = chargeType === "deposit" ? depositChargeCents! : balanceCents;
 
   const pay = async () => {
     setLoading(true);
@@ -47,13 +57,13 @@ export function PayTripButton({ tripId, totalCents, depositCents, currency }: Pa
           <Choice
             active={chargeType === "deposit"}
             label="Deposit"
-            detail={`${fmt(depositCents!)} now`}
+            detail={`${fmt(depositChargeCents!)} now`}
             onClick={() => setChoice("deposit")}
           />
           <Choice
             active={chargeType === "full"}
             label="Pay in full"
-            detail={`${fmt(totalCents)} now`}
+            detail={`${fmt(balanceCents)} now`}
             onClick={() => setChoice("full")}
           />
         </div>
@@ -62,15 +72,17 @@ export function PayTripButton({ tripId, totalCents, depositCents, currency }: Pa
         {loading ? <Loader2 className="animate-spin" /> : <CreditCard />}
         {loading
           ? "Opening checkout…"
-          : chargeType === "deposit"
-            ? `Pay ${fmt(chargeCents)} deposit`
-            : `Pay ${fmt(chargeCents)}`}
+          : isBalance
+            ? `Pay remaining balance · ${fmt(chargeCents)}`
+            : chargeType === "deposit"
+              ? `Pay ${fmt(chargeCents)} deposit`
+              : `Pay ${fmt(chargeCents)}`}
       </Button>
-      {hasDeposit && chargeType === "deposit" ? (
-        <p className="text-xs leading-5 text-slate-500">
-          The remaining {fmt(totalCents - depositCents!)} is due before the trip.
-        </p>
-      ) : null}
+      <p className="text-xs leading-5 text-slate-500">
+        {hasDeposit && chargeType === "deposit"
+          ? `Includes the card processing fee on the deposit. The remaining ${fmt(balanceCents - depositChargeCents!)} is due before the trip.`
+          : "Includes the card processing fee on this payment."}
+      </p>
     </div>
   );
 }

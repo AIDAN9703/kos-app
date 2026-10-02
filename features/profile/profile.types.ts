@@ -29,7 +29,10 @@ export interface TripSummary {
   totalCents: number;
   paidCents: number;
   balanceCents: number;
-  depositCents: number | null;
+  /** What the deposit costs by card (deposit + its card fee); null = no deposit option. */
+  depositChargeCents: number | null;
+  /** Being settled off-card — no card payment is offered. */
+  offCard: boolean;
   /** Set once a proposal was sent; links to the public proposal page. */
   publicToken: string | null;
   createdAt: Date;

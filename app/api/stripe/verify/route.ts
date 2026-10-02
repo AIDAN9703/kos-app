@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/database/db";
-import { bookings, bookingStatusHistory, bookingPricing, payments, boats } from "@/database/schema";
+import { bookings, bookingPricing, payments, boats } from "@/database/schema";
 import { eq, and } from "drizzle-orm";
 import { paymentService } from "@/features/payments/payment.service";
 import { bookingService } from "@/features/bookings/services/booking.service";
-import { bookingEventsService } from "@/features/bookings/services/booking-events.service";
 import { sendBookingConfirmationEmail } from "@/shared/lib/services/email.service";
 import { alertTeam } from "@/features/bookings/lib/team-alerts";
 import { formatCentsAsCurrency } from "@/shared/lib/utils/money-utils";
-import type { BookingStatus } from "@/database/types";
 import { getStripe } from "@/shared/lib/services/stripe.service";
 import { fulfillInstantCheckoutSession } from "@/features/bookings/services/instant-checkout-fulfillment.service";
+import { confirmPaidBooking, type ConfirmOutcome } from "@/features/bookings/lib/confirm-paid-booking";
 
 export const dynamic = "force-dynamic";
 
@@ -163,34 +162,13 @@ async function buildVerifyResponse(
     for (const sib of siblings) partyIds.add(sib.id);
   }
 
+  // Only proposals become booked: a cancelled or completed booking is never
+  // revived by reloading an old success link, and a taken slot is held.
+  const outcomes = new Map<string, ConfirmOutcome>();
   for (const id of partyIds) {
-    const [row] = await db
-      .select({ id: bookings.id, bookingStatus: bookings.bookingStatus })
-      .from(bookings)
-      .where(eq(bookings.id, id))
-      .limit(1);
-    if (!row || row.bookingStatus === "BOOKED") continue;
-
-    await db
-      .update(bookings)
-      .set({ bookingStatus: "BOOKED", updatedAt: new Date() })
-      .where(eq(bookings.id, id));
-
-    await db.insert(bookingStatusHistory).values({
-      bookingId: id,
-      fromStatus: row.bookingStatus as BookingStatus,
-      toStatus: "BOOKED",
-      reason: "Payment verified",
-    });
-    await bookingEventsService.logStatusChange({
-      bookingId: id,
-      fromStatus: row.bookingStatus as BookingStatus,
-      toStatus: "BOOKED",
-      actorType: "system",
-      reason: "Payment verified",
-      channel: "stripe",
-    });
+    outcomes.set(id, await confirmPaidBooking(id, "Payment verified"));
   }
+  const confirmed = [...outcomes.values()].every((o) => o === "booked" || o === "unchanged");
 
   // Settle the payment rows. The webhook is the primary settler, but when it
   // can't reach us (localhost, misconfigured endpoint) this is the only shot.
@@ -220,9 +198,11 @@ async function buildVerifyResponse(
   if (settledAny) {
     const fullBooking = await bookingService.getBookingById(bookingId);
     if (fullBooking) {
-      await sendBookingConfirmationEmail(fullBooking).catch((e) =>
-        console.warn("[Verify] Confirmation email failed:", e)
-      );
+      if (confirmed) {
+        await sendBookingConfirmationEmail(fullBooking).catch((e) =>
+          console.warn("[Verify] Confirmation email failed:", e)
+        );
+      }
       const settledCents = sessionPayments.reduce((sum, p) => sum + Number(p.amountCents), 0);
       await alertTeam({
         subject: `Payment received — ${fullBooking.customerName}${fullBooking.boatName ? ` · ${fullBooking.boatName}` : ""}`,

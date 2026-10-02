@@ -4,64 +4,62 @@ import { revalidatePath } from "next/cache";
 
 import { bookingService } from "@/features/bookings/services/booking.service";
 import { alertTeam } from "@/features/bookings/lib/team-alerts";
+import { getOrCreateCheckoutUrl } from "@/features/bookings/actions/stripe-checkout";
+import {
+  availabilityService,
+  SlotUnavailableError,
+} from "@/features/availability/services/availability.service";
 
-export interface AcceptProposalResponse {
-  success: boolean;
-  data?: { checkoutUrl: string | null };
-  error?: string;
-}
+type StartPaymentResult =
+  | { success: true; checkoutUrl: string }
+  | { success: false; error: string };
 
-export async function acceptProposalAction(
-  _prevState: AcceptProposalResponse,
-  formData: FormData
-): Promise<AcceptProposalResponse> {
+/**
+ * The guest pays from their proposal link — deposit or everything owed.
+ * There is no separate "accept" step: payment is the yes. Nothing changes
+ * here; the booking is confirmed when Stripe reports the money (webhook).
+ * The date is re-checked first so nobody pays for a slot that's gone.
+ */
+export async function startProposalPayment(
+  publicToken: string,
+  chargeType: "deposit" | "full"
+): Promise<StartPaymentResult> {
+  if (!publicToken || (chargeType !== "deposit" && chargeType !== "full")) {
+    return { success: false, error: "This payment link isn't valid." };
+  }
+
   try {
-    const publicToken = formData.get("publicToken") as string;
-    const payNow = formData.get("payNow") === "true";
-    const customerNote = (formData.get("customerNote") as string) || null;
-    const chargeType = formData.get("chargeType") as "deposit" | "full" | null;
-
-    if (!publicToken) {
-      return { success: false, error: "Invalid link" };
+    const rows = await bookingService.getProposalBookingsByPublicToken(publicToken);
+    const lead = rows?.find((b) => b.boatId && b.startDateTime);
+    if (!rows || !lead) {
+      return { success: false, error: "This proposal is no longer open. Please contact us." };
     }
 
-    const result = await bookingService.acceptProposal({
-      publicToken,
-      customerNote,
-      payNow,
-      chargeType: chargeType === "deposit" || chargeType === "full" ? chargeType : undefined,
-    });
-
-    // The customer just said yes — the team hears it without watching the
-    // board. Only on a real flip: a returning visitor's "Complete payment"
-    // re-enters this path with nothing left to accept.
-    if (result.accepted > 0 && result.bookingIds[0]) {
-      const lead = await bookingService.getBookingById(result.bookingIds[0]);
-      if (lead) {
-        const payingNow = payNow && Boolean(result.checkoutUrl);
-        await alertTeam({
-          subject: `Proposal accepted — ${lead.customerName}${lead.boatName ? ` · ${lead.boatName}` : ""}`,
-          heading: payingNow ? "Proposal accepted — customer is paying now" : "Proposal accepted",
-          booking: lead,
-          extraLines: [{ label: "Customer note", value: customerNote }],
-          note: payingNow
-            ? "They're in Stripe checkout; a payment alert follows when it settles."
-            : "Accepted without paying online — collect the balance and record it on the booking.",
-        });
+    for (const b of rows) {
+      if (b.bookingStatus === "PROPOSED" && b.boatId && b.startDateTime && b.endDateTime) {
+        await availabilityService.assertSlotAvailable(
+          b.boatId,
+          b.startDateTime,
+          b.endDateTime,
+          b.id
+        );
       }
     }
 
-    return {
-      success: true,
-      data: {
-        checkoutUrl: result.checkoutUrl ?? null,
-      },
-    };
+    const checkoutUrl = await getOrCreateCheckoutUrl(lead.id, { chargeType });
+    return { success: true, checkoutUrl };
   } catch (error) {
-    console.error("Accept proposal error:", error);
+    if (error instanceof SlotUnavailableError) {
+      return {
+        success: false,
+        error:
+          "That date was just booked by someone else. Please contact us and we'll find another option.",
+      };
+    }
+    console.error("startProposalPayment failed:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to accept the proposal",
+      error: "We couldn't open the payment page. Please try again, or contact us.",
     };
   }
 }

@@ -25,7 +25,7 @@ search, blog, add-ons, auth, admin, booking-groups, app-settings, `_marketing`.
    derived from the payments ledger, never a status. `BOOKED` is the one status that
    blocks the calendar. (Migration 0060 retired DRAFT / PENDING / APPROVED / CONFIRMED.)
 2. **Guest-first.** `bookings.userId` is nullable; every booking carries its own
-   contact snapshot. Customers inquire, accept, and pay without an account.
+   contact snapshot. Customers inquire and pay without an account.
 3. **Money in cents** everywhere; dollars only at the display edge.
 
 ### Hard constraints
@@ -76,8 +76,15 @@ Unset boats fall back to America/New_York. Prod's remaining 12: 2 at La Coloma M
 - **Inquiry intake** — landing general inquiry, term-charter inquiry, boat-page inquiry
   (account-gated with in-page auth modal). All land as `INQUIRY` on the board.
 - **Proposal → payment → confirmation** (verified end to end): price an inquiry →
-  branded proposal email → public proposal page (accept / request changes) → Stripe
-  Checkout → payment settles → confirmation email → branded success page.
+  branded proposal email → public proposal page → guest pays the deposit or in full
+  (no accept step; paying is the yes) → Stripe Checkout → webhook confirms the booking
+  → confirmation email → branded success page. After a deposit the same page offers
+  "Pay remaining balance". The card fee is charged on every card payment in proportion:
+  deposit = deposit + deposit × fee rate; balance = total − paid. One planner,
+  `features/bookings/lib/charge-plan.ts`, prices checkout, the proposal page, the trip
+  page and the Breakdown. Payment confirms through `lib/confirm-paid-booking.ts`: only
+  PROPOSED → BOOKED, cancelled deals are never revived, a taken slot is held and the
+  team alerted. The per-booking "allow online payment" switch is gone (column unused).
 - **Boat-local charter times (input AND display)** — what an admin types is the boat's
   wall clock, never the browser's, so booking a Miami charter from anywhere stores the
   Miami hour; every surface (proposal page, emails, board, detail page) displays
@@ -255,8 +262,8 @@ Code is already on the new words, so **apply 0060 to dev before running the app,
 to prod before deploying** (`npm run db:migrate:dev` / `:prod`; pre/post-flight queries
 are in the file). Derived pipeline: Inquiry → Contacted → Proposal → Booked → Paid →
 Completed. One "booked" verb everywhere (`bookingStatusService.markBooked`): the
-customer accepting, an admin's ⋯ → "Mark as booked" (checks the slot, books the whole
-party), or a recorded payment. Old event payloads still carry the old words; the
+customer paying on their link, an admin's ⋯ → "Mark as booked" (checks the slot, books
+the whole party), or a recorded payment. Old event payloads still carry the old words; the
 timeline reads them through `canonicalBookingStatus` in `deal-status.ts` — the ONLY
 place the retired names exist. "Draft" is gone from code and copy: the public link is
 `/bookings/proposal/[token]` (`/bookings/draft/…` permanently redirects for links

@@ -20,7 +20,7 @@ import { TripStatusBadge } from "./TripStatusBadge";
 
 export function TripDetailView({ trip }: { trip: TripDetail }) {
   const hours = tripDurationHours(trip);
-  const canPayNow = trip.status === "BOOKED" && trip.paidCents === 0 && trip.totalCents > 0;
+  const canPayNow = trip.status === "BOOKED" && !trip.offCard && trip.balanceCents > 0;
 
   const facts = [
     { Icon: CalendarDays, label: "Date", value: tripDate(trip) },
@@ -135,8 +135,8 @@ export function TripDetailView({ trip }: { trip: TripDetail }) {
           {trip.totalCents > 0 ? (
             <dl className="mt-3 space-y-2 text-sm">
               <MoneyLine label="Total" cents={trip.totalCents} currency={trip.currency} strong />
-              {trip.depositCents ? (
-                <MoneyLine label="Deposit" cents={trip.depositCents} currency={trip.currency} />
+              {trip.depositChargeCents && trip.paidCents === 0 ? (
+                <MoneyLine label="Deposit option" cents={trip.depositChargeCents} currency={trip.currency} />
               ) : null}
               <MoneyLine label="Paid" cents={trip.paidCents} currency={trip.currency} />
               <MoneyLine
@@ -162,15 +162,11 @@ export function TripDetailView({ trip }: { trip: TripDetail }) {
             {canPayNow ? (
               <PayTripButton
                 tripId={trip.id}
-                totalCents={trip.totalCents}
-                depositCents={trip.depositCents}
+                balanceCents={trip.balanceCents}
+                depositChargeCents={trip.paidCents === 0 ? trip.depositChargeCents : null}
+                isBalance={trip.paidCents > 0}
                 currency={trip.currency}
               />
-            ) : null}
-            {trip.status === "BOOKED" && trip.paidCents > 0 && trip.balanceCents > 0 ? (
-              <p className="text-sm leading-6 text-slate-600">
-                Your balance is due before departure — we&apos;ll send a secure payment link.
-              </p>
             ) : null}
             {trip.paidCents > 0 ? <BillingPortalButton /> : null}
           </div>

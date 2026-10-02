@@ -234,7 +234,6 @@ export class BookingService {
         addOns: addOnsPayload.length > 0 ? addOnsPayload : null,
         assignedAdminId: assignedAdminId ?? null,
         publicToken: tokenForThisBooking,
-        allowPayment: input.allowPayment ?? false,
         publishedAt: publishNow ? now : null,
       };
 
@@ -405,18 +404,7 @@ export class BookingService {
       dropoffLocation: first.dropoffLocation,
       // Charter times display in the BOAT's local time everywhere.
       timezone: (first.boatId ? boatsById.get(first.boatId)?.timezone : null) ?? null,
-      allowPayment: first.allowPayment,
-      acceptedAt: first.acceptedAt,
       totalPaidCents: Number(paidRow?.paid ?? 0),
-      // Deposit to secure the date = SUM of per-boat deposits across the
-      // party (checkout charges the same sum in deposit mode).
-      depositAmountCents: (() => {
-        const sum = proposalBookings.reduce(
-          (acc, b) => acc + Number(pricingByBooking.get(b.id)?.depositAmountCents ?? 0),
-          0
-        );
-        return sum > 0 ? sum : null;
-      })(),
       totalAmountCents: totalCents,
       bookings: proposalBookings.map((b) => {
         const boat = boatsById.get(b.boatId);
@@ -429,7 +417,10 @@ export class BookingService {
           total: number;
         }> | null;
         const basePriceCents = pricing ? Number(pricing.basePriceCents) : 0;
+        const captainFeeCents = pricing ? Number(pricing.captainFeeCents ?? 0) : 0;
         const cleaningFeeCents = pricing ? Number(pricing.cleaningFeeCents ?? 0) : 0;
+        const depositCents =
+          pricing?.depositAmountCents != null ? Number(pricing.depositAmountCents) : null;
         const serviceFeeCents = pricing ? Number(pricing.serviceFeeCents ?? 0) : 0;
         const totalCents = pricing ? Number(pricing.totalAmountCents) : 0;
         const serviceFeeWaived = Boolean(pricing?.serviceFeeWaived);
@@ -442,10 +433,12 @@ export class BookingService {
           startDateTime: b.startDateTime,
           endDateTime: b.endDateTime,
           basePriceCents,
+          captainFeeCents,
           cleaningFeeCents,
           serviceFeeCents,
           serviceFeeWaived,
           totalCents,
+          depositCents,
           addOns: addOns ?? null,
         };
       }),
@@ -518,8 +511,8 @@ export class BookingService {
       .limit(1);
 
     if (!first) return null;
-    // PROPOSED = open proposal, BOOKED = accepted (paid or not) — the link
-    // stays a living booking page through the whole journey.
+    // PROPOSED = open proposal, BOOKED = deposit or full payment in (or booked
+    // by an admin) — the link stays the customer's payment page throughout.
     if (!["PROPOSED", "BOOKED"].includes(first.bookingStatus)) return null;
     // Unsent proposals are private: the token only works once the proposal has
     // actually been published (emailed/SMS'd or link explicitly shared).
@@ -535,75 +528,6 @@ export class BookingService {
     }
 
     return [first];
-  }
-
-  /**
-   * Customer accepts the proposal — every open row in it becomes BOOKED
-   */
-  async acceptProposal(input: {
-    publicToken: string;
-    customerNote?: string | null;
-    payNow?: boolean;
-    chargeType?: "deposit" | "full";
-  }): Promise<{ bookingIds: string[]; checkoutUrl?: string | null; accepted: number }> {
-    const proposalBookings = await this.getProposalBookingsByPublicToken(input.publicToken);
-    if (!proposalBookings || proposalBookings.length === 0) {
-      throw new Error("Proposal not found or no longer open");
-    }
-
-    const now = new Date();
-    const bookingIds: string[] = [];
-    let accepted = 0;
-
-    for (const b of proposalBookings) {
-      // Idempotent: a retried submit or a mixed-status group must not blow
-      // up — rows already past PROPOSED are kept as-is.
-      if (b.bookingStatus === "PROPOSED") {
-        // The proposal may have been out for days — re-check the slot at the
-        // moment of acceptance, since BOOKED starts blocking the calendar.
-        if (b.boatId && b.startDateTime && b.endDateTime) {
-          await availabilityService.assertSlotAvailable(
-            b.boatId,
-            b.startDateTime,
-            b.endDateTime,
-            b.id
-          );
-        }
-        try {
-          await bookingStatusService.markBooked(b.id, {
-            acceptedAt: now,
-            acceptedCustomerNote: input.customerNote ?? null,
-            reason: "Customer accepted the proposal",
-            actorType: "user",
-            channel: "web",
-          });
-        } catch (error) {
-          // Race loser: the overlap constraint rejected the BOOKED flip.
-          if (isOverlapConstraintError(error)) {
-            throw new SlotUnavailableError([]);
-          }
-          throw error;
-        }
-        accepted += 1;
-      }
-      bookingIds.push(b.id);
-    }
-
-    let checkoutUrl: string | null = null;
-    if (input.payNow && proposalBookings[0].allowPayment && bookingIds.length > 0) {
-      try {
-        const { createCheckoutSessionForBooking } = await import(
-          "@/features/bookings/actions/stripe-checkout"
-        );
-        checkoutUrl = await createCheckoutSessionForBooking(bookingIds[0], {
-          chargeType: input.chargeType,
-        });
-      } catch (err) {
-        console.error("Failed to create checkout session for proposal:", err);
-      }
-    }
-
-    return { bookingIds, checkoutUrl, accepted };
   }
 
   /**
@@ -1214,7 +1138,6 @@ export class BookingService {
         cleaningFeeCents: bookingPricing.cleaningFeeCents,
         serviceFeeCents: bookingPricing.serviceFeeCents,
         serviceFeeWaived: bookingPricing.serviceFeeWaived,
-        allowPayment: bookings.allowPayment,
         taxAmountCents: bookingPricing.taxAmountCents,
         discountAmountCents: bookingPricing.discountAmountCents,
         totalAmountCents: bookingPricing.totalAmountCents,
@@ -1297,7 +1220,6 @@ export class BookingService {
       paymentStatus: latestPaymentStatus,
       paymentMethod: booking.paymentMethod ?? null,
       serviceFeeWaived: Boolean(booking.serviceFeeWaived),
-      allowPayment: Boolean(booking.allowPayment),
       paymentDisplayStatus: computePaymentDisplayStatus({
         totalPaidCents,
         totalAmountCents: effectiveTotalCents({

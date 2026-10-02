@@ -355,7 +355,7 @@ const baseEmailStyles = `
 `;
 
 /**
- * Send the charter proposal email with the link to view and accept
+ * Send the charter proposal email with the link to view and pay
  * Called automatically when admin creates a booking/group
  */
 export async function sendProposalEmail(params: {
@@ -395,7 +395,7 @@ export async function sendProposalEmail(params: {
       html: buildBrandEmailHtml({
         previewText: isUpdate
           ? "Your charter proposal has been updated — same link, latest details."
-          : "Your charter proposal is ready — open to review pricing and accept when you're ready.",
+          : "Your charter proposal is ready. Open it to review the price and pay to book.",
         contentHtml: `
               <p class="proposal-greeting">Hi ${safeName},</p>
 
@@ -438,7 +438,7 @@ export async function sendProposalEmail(params: {
                 <p class="proposal-next-title">What happens next</p>
                 <ul>
                   <li>Open your proposal to see the full breakdown and add-ons.</li>
-                  <li>Accept when you're ready — you can complete payment online if enabled.</li>
+                  <li>Pay the deposit or the full amount from your proposal to lock in your date.</li>
                   <li>Questions? Reply to this email and our team will help.</li>
                 </ul>
               </div>
@@ -692,7 +692,7 @@ export async function sendBookingConfirmationEmail(
               <p class="proposal-lead">
                 ${
                   isDeposit
-                    ? `Your <strong>${formatCentsAsCurrency(paidCents)}</strong> deposit went through and your date is locked in. The remaining <strong>${formatCentsAsCurrency(remainingCents)}</strong> is due before your trip — we'll send a payment link when it's time.`
+                    ? `Your <strong>${formatCentsAsCurrency(paidCents)}</strong> deposit went through and your date is locked in. The remaining <strong>${formatCentsAsCurrency(remainingCents)}</strong> is due before your trip, and you can pay it anytime from your proposal link.`
                     : `Your payment went through and your charter is confirmed.`
                 } We can't wait to
                 welcome you aboard <strong>${escapeHtml(booking.boatName || 'your yacht')}</strong>.

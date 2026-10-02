@@ -1,6 +1,7 @@
 import { computeEffectiveGmvCents, computeOpsRevenueCents } from "@/shared/lib/utils/ops-revenue";
 import type { PaymentDisplayStatus } from "@/shared/lib/utils/payment-display";
 import { computePaymentDisplayStatus } from "@/shared/lib/utils/payment-display";
+import { depositCharge } from "@/features/bookings/lib/charge-plan";
 
 /**
  * ONE place for a booking's money math. Two questions, kept apart:
@@ -37,6 +38,9 @@ export interface CustomerMoney {
   paidCents: number;
   balanceCents: number;
   depositCents: number | null;
+  /** What the guest is charged for the deposit: deposit + its card fee. */
+  depositChargeCents: number | null;
+  depositFeeCents: number | null;
   status: PaymentDisplayStatus;
 }
 
@@ -48,6 +52,14 @@ export function customerMoney(input: PricingLike & {
 }): CustomerMoney {
   const totalCents = effectiveTotalCents(input);
   const paidCents = input.totalPaidCents ?? 0;
+  const deposit = depositCharge({
+    bookingId: "",
+    totalCents: input.totalAmountCents ?? 0,
+    serviceFeeCents: input.serviceFeeCents ?? 0,
+    serviceFeeWaived: Boolean(input.serviceFeeWaived),
+    depositCents: input.depositAmountCents ?? null,
+    paidCents: 0,
+  });
   return {
     subtotalCents: subtotalCents(input),
     serviceFeeCents: input.serviceFeeCents ?? 0,
@@ -56,6 +68,8 @@ export function customerMoney(input: PricingLike & {
     paidCents,
     balanceCents: Math.max(0, totalCents - paidCents),
     depositCents: input.depositAmountCents && input.depositAmountCents > 0 ? input.depositAmountCents : null,
+    depositChargeCents: deposit?.amountCents ?? null,
+    depositFeeCents: deposit?.feeCents ?? null,
     status: computePaymentDisplayStatus({
       totalPaidCents: paidCents,
       totalAmountCents: totalCents,

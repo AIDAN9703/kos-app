@@ -1,8 +1,5 @@
 import type Stripe from "stripe";
-import { eq } from "drizzle-orm";
 
-import { db } from "@/database/db";
-import { bookings, bookingStatusHistory } from "@/database/schema";
 import { bookingService } from "@/features/bookings/services/booking.service";
 import { bookingEventsService } from "@/features/bookings/services/booking-events.service";
 import {
@@ -10,48 +7,18 @@ import {
   isOverlapConstraintError,
 } from "@/features/availability/services/availability.service";
 import { paymentService } from "@/features/payments/payment.service";
+import { confirmPaidBooking } from "@/features/bookings/lib/confirm-paid-booking";
 import { sendBookingConfirmationEmail } from "@/shared/lib/services/email.service";
 import { alertTeam } from "@/features/bookings/lib/team-alerts";
 import { formatCentsAsCurrency } from "@/shared/lib/utils/money-utils";
 import { dollarsToCents } from "@/shared/lib/utils/money-utils";
 import type { BookingAddOn } from "@/features/bookings/booking.types";
-import type { BookingStatus } from "@/database/types";
 
 export type InstantCheckoutFulfillmentResult =
   | { status: "created"; bookingId: string }
   | { status: "already_processed"; bookingId: string }
   | { status: "skipped"; reason: string };
 
-async function ensureBookingBooked(bookingId: string, reason: string) {
-  const [booking] = await db
-    .select({ id: bookings.id, bookingStatus: bookings.bookingStatus })
-    .from(bookings)
-    .where(eq(bookings.id, bookingId))
-    .limit(1);
-
-  if (!booking || booking.bookingStatus === "BOOKED") return;
-
-  await db
-    .update(bookings)
-    .set({ bookingStatus: "BOOKED", updatedAt: new Date() })
-    .where(eq(bookings.id, bookingId));
-
-  await db.insert(bookingStatusHistory).values({
-    bookingId,
-    fromStatus: booking.bookingStatus,
-    toStatus: "BOOKED",
-    reason,
-  });
-
-  await bookingEventsService.logStatusChange({
-    bookingId,
-    fromStatus: booking.bookingStatus as BookingStatus,
-    toStatus: "BOOKED",
-    actorType: "system",
-    reason,
-    channel: "stripe",
-  });
-}
 
 /**
  * Create (or idempotently confirm) an instant-booking from a paid Stripe Checkout
@@ -80,16 +47,8 @@ export async function fulfillInstantCheckoutSession(
       : session.payment_intent?.id ?? null;
 
   if (existingPayment) {
-    try {
-      await ensureBookingBooked(existingPayment.payableId, "Payment received (instant book)");
-    } catch (error) {
-      // A held overlap booking must not be force-booked by a webhook retry.
-      if (!isOverlapConstraintError(error)) throw error;
-      console.error(
-        "[InstantCheckout] Confirm blocked by overlap constraint — booking stays held:",
-        existingPayment.payableId
-      );
-    }
+    // A held overlap booking stays held; a cancelled one is never revived.
+    await confirmPaidBooking(existingPayment.payableId, "Payment received (instant book)");
     if (existingPayment.status !== "SUCCEEDED" && paymentIntentId) {
       await paymentService.markPaymentSucceeded(existingPayment.id, paymentIntentId);
     }

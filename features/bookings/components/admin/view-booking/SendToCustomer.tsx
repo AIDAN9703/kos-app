@@ -1,20 +1,15 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNowStrict } from "date-fns";
 import { Check, Copy, Loader2, Send } from "lucide-react";
 
 import { Button } from "@/shared/components/ui/button";
 import { Checkbox } from "@/shared/components/ui/checkbox";
-import { Switch } from "@/shared/components/ui/switch";
 import { useToast } from "@/shared/lib/hooks/use-toast";
 import { cn } from "@/shared/lib/utils/general-utils";
-import {
-  sendProposalUpdate,
-  setProposalAllowPayment,
-  shareProposalLink,
-} from "@/features/bookings/actions/deal.actions";
+import { sendProposalUpdate, shareProposalLink } from "@/features/bookings/actions/deal.actions";
 
 export interface SendToCustomerData {
   bookingId: string;
@@ -27,15 +22,14 @@ export interface SendToCustomerData {
   lastSentAt: string | null;
   /** Admin edits since that send — the customer's link has changed. */
   editsSinceSend: number;
-  allowPayment: boolean;
-  /** Off-card settlement — no online payment to offer. */
+  /** Off-card settlement — the link shows the price but takes no card payment. */
   serviceFeeWaived: boolean;
 }
 
 /**
  * The bottom of the Breakdown card: send the customer their one link, which
- * always shows the breakdown above. Pick email and/or text, choose whether
- * they can pay online, send or copy. No dialog — after Edit trip → Done the
+ * always shows the breakdown above and lets them pay by card. Pick email
+ * and/or text, then send or copy. No dialog — after Edit trip → Done the
  * breakdown updates in place and this says the customer hasn't seen it yet.
  */
 export function SendToCustomer({ data }: { data: SendToCustomerData }) {
@@ -47,17 +41,14 @@ export function SendToCustomer({ data }: { data: SendToCustomerData }) {
     customerPhone,
     lastSentAt,
     editsSinceSend,
-    allowPayment,
     serviceFeeWaived,
   } = data;
   const router = useRouter();
   const { toast } = useToast();
   const [email, setEmail] = useState(Boolean(customerEmail));
   const [sms, setSms] = useState(false);
-  const [pay, setPay] = useState(allowPayment);
   const [sending, setSending] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [, startTransition] = useTransition();
 
   const hasUnsentChanges = lastSentAt != null && editsSinceSend > 0;
   const sendLabel =
@@ -93,19 +84,6 @@ export function SendToCustomer({ data }: { data: SendToCustomerData }) {
     void shareProposalLink(bookingId);
   }
 
-  function togglePay(next: boolean) {
-    setPay(next);
-    startTransition(async () => {
-      const r = await setProposalAllowPayment(bookingId, next);
-      if (!r.success) {
-        setPay(!next);
-        toast({ title: "Couldn't update", description: r.error, variant: "destructive" });
-      } else {
-        router.refresh();
-      }
-    });
-  }
-
   return (
     <section className="space-y-4 border-t border-border/50 pt-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -123,19 +101,11 @@ export function SendToCustomer({ data }: { data: SendToCustomerData }) {
         )}
       </div>
 
-      <label className="flex items-center justify-between gap-3 text-sm">
-        <span>
-          <span className="font-medium">Online payment</span>
-          <span className="block text-xs text-muted-foreground">
-            {serviceFeeWaived
-              ? "Settling off-card, so there's nothing to pay online"
-              : pay
-                ? "They can pay by card from the link"
-                : "They accept, and you collect payment"}
-          </span>
-        </span>
-        <Switch checked={pay} onCheckedChange={togglePay} disabled={serviceFeeWaived} />
-      </label>
+      <p className="text-xs text-muted-foreground">
+        {serviceFeeWaived
+          ? "Being settled off-card, so the link shows the price without a pay button."
+          : "The link lets them pay the deposit (when one is set) or the full amount by card."}
+      </p>
 
       <div className="flex flex-wrap items-center gap-5 text-sm">
         <label className={cn("flex items-center gap-2", !customerEmail && "opacity-40")}>

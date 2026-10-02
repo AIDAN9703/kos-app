@@ -324,7 +324,6 @@ export default async function BookingDetailsPage({ params }: BookingDetailsPageP
           customerPhone: booking.customerPhone,
           lastSentAt: lastSentAt ? new Date(lastSentAt).toISOString() : null,
           editsSinceSend: changesSinceLastSend,
-          allowPayment: booking.allowPayment,
           serviceFeeWaived: money.serviceFeeWaived,
         }
       : null;

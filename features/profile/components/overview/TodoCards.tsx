@@ -63,7 +63,7 @@ function describe(item: AttentionItem): {
         chip: "Proposal ready",
         tone: "accent",
         title: item.trip.boatName,
-        detail: `${tripDate(item.trip)} · Review the details and accept when you're ready.`,
+        detail: `${tripDate(item.trip)} · Review the details and pay to book when you're ready.`,
         cta: "Review proposal",
         href: `/bookings/proposal/${item.trip.publicToken}`,
       };

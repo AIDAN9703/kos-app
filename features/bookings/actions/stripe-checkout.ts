@@ -1,12 +1,10 @@
 /**
- * Stripe Checkout Session Creation
+ * Stripe Checkout for every non-instant card payment: the public proposal
+ * page, the customer's trip page, and the payment links admins send.
  *
- * Creates Checkout Sessions for all non-instant booking payments:
- * - Admin request bookings (admin creates booking, sends payment link to customer)
- * - Proposal pay-now (customer accepts the proposal and pays immediately)
- *
- * NOTE: All amounts are stored in CENTS in the database.
- * Stripe also expects amounts in cents, so no conversion is needed.
+ * What gets charged comes from planCharge (features/bookings/lib/charge-plan):
+ * a deposit plus its share of the card fee, the full total, or the remaining
+ * balance. Amounts are cents end to end, matching Stripe.
  */
 
 import { bookingService } from "@/features/bookings/services/booking.service";
@@ -14,275 +12,249 @@ import { paymentService } from "@/features/payments/payment.service";
 import { getBaseUrl } from "@/shared/lib/utils/base-url";
 import { getStripe, getOrCreateStripeCustomer } from "@/shared/lib/services/stripe.service";
 import { dollarsToCents } from "@/shared/lib/utils/money-utils";
-import type { PaymentType } from "@/database/types";
+import {
+  feeRateOf,
+  formatFeeRate,
+  planCharge,
+  type ChargeableBoat,
+  type ChargePlan,
+  type ChargeType,
+} from "@/features/bookings/lib/charge-plan";
+
+type Party = NonNullable<Awaited<ReturnType<typeof bookingService.getChargeableParty>>>;
+
+type LineItem = {
+  price_data: {
+    currency: string;
+    product_data: { name: string; description?: string; images?: string[] };
+    unit_amount: number;
+  };
+  quantity: number;
+};
 
 function toAbsoluteImageUrl(url: string | null, baseUrl: string): string | undefined {
   if (!url?.trim()) return undefined;
   if (url.startsWith("http://") || url.startsWith("https://")) return url;
   const base = baseUrl.replace(/\/$/, "");
-  const path = url.startsWith("/") ? url : `/${url}`;
-  return `${base}${path}`;
+  return `${base}${url.startsWith("/") ? url : `/${url}`}`;
 }
 
-/**
- * Create a Stripe Checkout Session for a booking — or its whole charter
- * party. If the booking belongs to a group, the session charges EVERY boat
- * in the party (per-boat line items) and writes one PENDING payment row per
- * booking, all sharing the session id, so per-boat financials stay correct
- * and the webhook/verify can settle and confirm the entire party.
- *
- * Charges the party total unless the payer chose the deposit (chargeType
- * "deposit"), in which case it charges the SUM of per-boat deposits. A
- * deposit exists only if the admin entered one — there is no other switch.
- */
-export async function createCheckoutSessionForBooking(
-  bookingId: string,
-  options?: { chargeType?: "deposit" | "full" }
-): Promise<string> {
+const formatTripDate = (d: Date) =>
+  d.toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+/** The party plus what each boat has already been paid, ready to plan. */
+async function loadParty(bookingId: string): Promise<{ party: Party; boats: ChargeableBoat[] }> {
   const party = await bookingService.getChargeableParty(bookingId);
   if (!party || party.length === 0) throw new Error(`Booking not found: ${bookingId}`);
 
-  const lead = party[0];
-
-  // Checkout is only reachable for priced proposals/requests — an undated
-  // INQUIRY row can never be charged.
-  if (!lead.booking.startDateTime) {
+  // Only a priced, dated deal can be charged — an INQUIRY row never is.
+  if (!party[0].booking.startDateTime) {
     throw new Error("This deal has no trip date yet — price and schedule it before charging.");
   }
   for (const member of party) {
-    if (member.pricing?.serviceFeeWaived) {
-      throw new Error(
-        "The card fee on this booking was waived for an off-card payment — collect the balance manually, or un-waive it before charging a card."
-      );
-    }
-    const total = Number(member.pricing?.totalAmountCents ?? 0);
-    if (total <= 0) {
+    if (Number(member.pricing?.totalAmountCents ?? 0) <= 0) {
       throw new Error(
         `"${member.boat?.name ?? "A boat"}" in this party has no pricing yet — price every boat before charging.`
       );
     }
   }
 
-  const partyTotalCents = party.reduce(
-    (sum, m) => sum + Number(m.pricing!.totalAmountCents),
-    0
-  );
-  const partyDepositCents = party.reduce(
-    (sum, m) => sum + Number(m.pricing?.depositAmountCents ?? 0),
-    0
-  );
-  const hasDeposit = partyDepositCents > 0;
+  const paid = await paymentService.getPaidCentsByBooking(party.map((m) => m.booking.id));
+  const boats: ChargeableBoat[] = party.map((m) => ({
+    bookingId: m.booking.id,
+    totalCents: Number(m.pricing!.totalAmountCents),
+    serviceFeeCents: Number(m.pricing!.serviceFeeCents ?? 0),
+    serviceFeeWaived: Boolean(m.pricing!.serviceFeeWaived),
+    depositCents:
+      m.pricing!.depositAmountCents != null ? Number(m.pricing!.depositAmountCents) : null,
+    paidCents: paid.get(m.booking.id) ?? 0,
+  }));
+  return { party, boats };
+}
 
-  const isDeposit = options?.chargeType === "deposit" && hasDeposit;
+function planOrThrow(boats: ChargeableBoat[], chargeType: ChargeType): ChargePlan {
+  const result = planCharge(boats, chargeType);
+  if (!result.ok) throw new Error(result.error);
+  return result.plan;
+}
 
-  const chargeCents = isDeposit ? partyDepositCents : partyTotalCents;
-  const paymentRecordType: PaymentType = isDeposit ? "DEPOSIT" : "FULL_PAYMENT";
+/**
+ * Stripe line items for a plan. Every list sums to exactly plan.amountCents;
+ * the itemized single-boat breakdown falls back to one line if its parts
+ * ever disagree with the stored total.
+ */
+function buildLineItems(
+  party: Party,
+  boats: ChargeableBoat[],
+  plan: ChargePlan,
+  currency: string
+): LineItem[] {
+  const baseUrl = getBaseUrl();
+  const memberById = new Map(party.map((m) => [m.booking.id, m]));
+  const line = (name: string, amount: number, description?: string, image?: string): LineItem => ({
+    price_data: {
+      currency,
+      product_data: { name, description, images: image ? [image] : undefined },
+      unit_amount: amount,
+    },
+    quantity: 1,
+  });
+  const lead = party[0];
+  const passengers = lead.booking.numberOfPassengers ?? 1;
+  const tripDescription = [
+    `Date: ${formatTripDate(lead.booking.startDateTime!)}`,
+    `${passengers} passenger${passengers !== 1 ? "s" : ""}`,
+    lead.booking.pickupLocation ? `Pickup: ${lead.booking.pickupLocation}` : null,
+  ]
+    .filter(Boolean)
+    .join(" • ");
+  const feeLabel = (bookingId: string) => {
+    const boat = boats.find((b) => b.bookingId === bookingId);
+    return boat ? ` (${formatFeeRate(feeRateOf(boat))})` : "";
+  };
 
+  if (plan.kind === "DEPOSIT") {
+    const items = plan.lines.map((l) => {
+      const m = memberById.get(l.bookingId)!;
+      return line(
+        `Deposit — ${m.boat?.name ?? "Charter"}`,
+        l.baseCents,
+        party.length > 1 && m.booking.startDateTime
+          ? `Date: ${formatTripDate(m.booking.startDateTime)}`
+          : tripDescription,
+        toAbsoluteImageUrl(m.boat?.mainImage ?? null, baseUrl)
+      );
+    });
+    if (plan.feeCents > 0) {
+      items.push(
+        line(
+          `Card processing fee${feeLabel(plan.lines[0].bookingId)}`,
+          plan.feeCents,
+          "Applied to the deposit"
+        )
+      );
+    }
+    return items;
+  }
+
+  if (plan.kind === "PARTIAL") {
+    return plan.lines.map((l) => {
+      const m = memberById.get(l.bookingId)!;
+      return line(
+        `Remaining balance — ${m.boat?.name ?? "Charter"}`,
+        l.amountCents,
+        "Includes the card processing fee on the balance",
+        toAbsoluteImageUrl(m.boat?.mainImage ?? null, baseUrl)
+      );
+    });
+  }
+
+  // FULL_PAYMENT
+  if (party.length > 1) {
+    return plan.lines.map((l) => {
+      const m = memberById.get(l.bookingId)!;
+      return line(
+        `Charter: ${m.boat?.name ?? "Charter"}`,
+        l.amountCents,
+        m.booking.startDateTime
+          ? `Date: ${formatTripDate(m.booking.startDateTime)} • Includes the card processing fee`
+          : "Includes the card processing fee",
+        toAbsoluteImageUrl(m.boat?.mainImage ?? null, baseUrl)
+      );
+    });
+  }
+
+  const pricing = lead.pricing!;
+  const boatName = lead.boat?.name || "Boat Rental";
+  const image = toAbsoluteImageUrl(lead.boat?.mainImage ?? null, baseUrl);
+  const addOns = (lead.booking.addOns ?? []) as Array<{
+    name: string;
+    quantity: number;
+    total: number;
+  }>;
+  const items: LineItem[] = [];
+  const base = Number(pricing.basePriceCents ?? 0);
+  if (base > 0) items.push(line(`Charter: ${boatName}`, base, tripDescription, image));
+  const captain = Number(pricing.captainFeeCents ?? 0);
+  if (captain > 0) items.push(line("Captain", captain, boatName));
+  const cleaning = Number(pricing.cleaningFeeCents ?? 0);
+  if (cleaning > 0) items.push(line("Cleaning fee", cleaning, boatName));
+  for (const addOn of addOns) {
+    const cents = dollarsToCents(addOn.total);
+    if (cents > 0) {
+      items.push(
+        line(addOn.quantity > 1 ? `${addOn.name} × ${addOn.quantity}` : addOn.name, cents, boatName)
+      );
+    }
+  }
+  if (plan.feeCents > 0) {
+    items.push(
+      line(
+        `Card processing fee${feeLabel(lead.booking.id)}`,
+        plan.feeCents,
+        "Applied to the subtotal"
+      )
+    );
+  }
+  const itemized = items.reduce((sum, i) => sum + i.price_data.unit_amount, 0);
+  return itemized === plan.amountCents
+    ? items
+    : [
+        line(
+          `Charter: ${boatName}`,
+          plan.amountCents,
+          `${tripDescription} • Includes the card processing fee`,
+          image
+        ),
+      ];
+}
+
+/**
+ * Create a Checkout Session for a booking or its whole charter party, and
+ * one PENDING payment row per boat (its own share) sharing the session id,
+ * so per-boat financials stay correct and the webhook settles them together.
+ */
+async function createSession(
+  bookingId: string,
+  party: Party,
+  boats: ChargeableBoat[],
+  plan: ChargePlan
+): Promise<string> {
+  const lead = party[0];
   const currency = lead.pricing?.currency?.toLowerCase() ?? "usd";
   const baseUrl = getBaseUrl();
-  const stripe = getStripe();
 
-  const formatTripDate = (d: Date) =>
-    d.toLocaleDateString("en-US", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-
-  const passengerCount = lead.booking.numberOfPassengers ?? 1;
-  const leadDescriptionParts = [
-    `Date: ${formatTripDate(lead.booking.startDateTime)}`,
-    `${passengerCount} passenger${passengerCount !== 1 ? "s" : ""}`,
-  ];
-  if (lead.booking.pickupLocation) {
-    leadDescriptionParts.push(`Pickup: ${lead.booking.pickupLocation}`);
-  }
-  const leadDescription = leadDescriptionParts.join(" • ");
-
-  // Pre-fill the customer email so Stripe doesn't ask for it
   const customerId = await getOrCreateStripeCustomer(
     lead.booking.customerEmail,
     lead.booking.customerName,
     lead.booking.userId ?? undefined
   );
 
-  const lineItems: Array<{
-    price_data: {
-      currency: string;
-      product_data: {
-        name: string;
-        description?: string;
-        images?: string[];
-      };
-      unit_amount: number;
-    };
-    quantity: number;
-  }> = [];
-
-  if (party.length > 1) {
-    // ── Charter party: one line item per boat, totals per boat ──
-    for (const member of party) {
-      const memberName = member.boat?.name ?? "Charter";
-      const memberImage = toAbsoluteImageUrl(member.boat?.mainImage ?? null, baseUrl);
-      const memberAmount = isDeposit
-        ? Number(member.pricing?.depositAmountCents ?? 0)
-        : Number(member.pricing!.totalAmountCents);
-      if (memberAmount <= 0) continue; // deposit mode: boats without a deposit
-      const memberDescription = member.booking.startDateTime
-        ? `Date: ${formatTripDate(member.booking.startDateTime)}`
-        : undefined;
-      lineItems.push({
-        price_data: {
-          currency,
-          product_data: {
-            name: isDeposit ? `Deposit — ${memberName}` : `Charter: ${memberName}`,
-            description: memberDescription,
-            images: memberImage ? [memberImage] : undefined,
-          },
-          unit_amount: memberAmount,
-        },
-        quantity: 1,
-      });
-    }
-  } else {
-    // ── Single boat: detailed breakdown, unchanged from the classic flow ──
-    const booking = lead.booking;
-    const pricing = lead.pricing!;
-    const boatName = lead.boat?.name || "Boat Rental";
-    const boatImageUrl = toAbsoluteImageUrl(lead.boat?.mainImage ?? null, baseUrl);
-
-    if (isDeposit) {
-      lineItems.push({
-        price_data: {
-          currency,
-          product_data: {
-            name: `Deposit — ${boatName}`,
-            description: leadDescription,
-            images: boatImageUrl ? [boatImageUrl] : undefined,
-          },
-          unit_amount: chargeCents,
-        },
-        quantity: 1,
-      });
-    } else {
-      const basePriceCents = Number(pricing.basePriceCents ?? 0);
-      const cleaningFeeCents = Number(pricing.cleaningFeeCents ?? 0);
-      const serviceFeeCents = Number(pricing.serviceFeeCents ?? 0);
-      const addOns = (booking.addOns ?? []) as Array<{
-        name: string;
-        unitPrice: number;
-        quantity: number;
-        total: number;
-      }>;
-
-      if (basePriceCents > 0) {
-        lineItems.push({
-          price_data: {
-            currency,
-            product_data: {
-              name: `Charter: ${boatName}`,
-              description: leadDescription,
-              images: boatImageUrl ? [boatImageUrl] : undefined,
-            },
-            unit_amount: basePriceCents,
-          },
-          quantity: 1,
-        });
-      }
-      if (cleaningFeeCents > 0) {
-        lineItems.push({
-          price_data: {
-            currency,
-            product_data: {
-              name: "Cleaning fee",
-              description: `${boatName}`,
-            },
-            unit_amount: cleaningFeeCents,
-          },
-          quantity: 1,
-        });
-      }
-      for (const addOn of addOns) {
-        const addOnCents = dollarsToCents(addOn.total);
-        if (addOnCents > 0) {
-          lineItems.push({
-            price_data: {
-              currency,
-              product_data: {
-                name: addOn.quantity > 1 ? `${addOn.name} × ${addOn.quantity}` : addOn.name,
-                description: boatName,
-              },
-              unit_amount: addOnCents,
-            },
-            quantity: 1,
-          });
-        }
-      }
-      if (serviceFeeCents > 0) {
-        // Percent is derived from the booking's own pricing snapshot so the label
-        // always matches what was actually charged, even if settings changed since.
-        const feeBaseCents =
-          basePriceCents + cleaningFeeCents + addOns.reduce((sum, a) => sum + dollarsToCents(a.total), 0);
-        const feePercentLabel =
-          feeBaseCents > 0
-            ? ` (${String(Number(((serviceFeeCents / feeBaseCents) * 100).toFixed(2)))}%)`
-            : "";
-        lineItems.push({
-          price_data: {
-            currency,
-            product_data: {
-              name: `Card processing fee${feePercentLabel}`,
-              description: "Applied to subtotal",
-            },
-            unit_amount: serviceFeeCents,
-          },
-          quantity: 1,
-        });
-      }
-      if (lineItems.length === 0) {
-        lineItems.push({
-          price_data: {
-            currency,
-            product_data: {
-              name: `Charter: ${boatName}`,
-              description: leadDescription,
-              images: boatImageUrl ? [boatImageUrl] : undefined,
-            },
-            unit_amount: chargeCents,
-          },
-          quantity: 1,
-        });
-      }
-    }
-  }
-
-  const session = await stripe.checkout.sessions.create({
+  const session = await getStripe().checkout.sessions.create({
     mode: "payment",
     customer: customerId,
-    line_items: lineItems,
+    line_items: buildLineItems(party, boats, plan, currency),
     metadata: {
       bookingId,
       bookingGroupId: lead.booking.bookingGroupId ?? "",
       bookingType: lead.booking.bookingType,
-      paymentRecordType,
+      paymentRecordType: plan.kind,
     },
     success_url: `${baseUrl}/bookings/payment-success?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${baseUrl}/bookings/payment-success?session_id={CHECKOUT_SESSION_ID}&cancelled=true`,
   });
 
-  // One PENDING payment row PER booking (its own share), all sharing the
-  // session — per-boat financials stay per-row, settle-all keys off session.
-  for (const member of party) {
-    const memberAmount = isDeposit
-      ? Number(member.pricing?.depositAmountCents ?? 0)
-      : Number(member.pricing!.totalAmountCents);
-    if (memberAmount <= 0) continue;
+  for (const l of plan.lines) {
     await paymentService.createPayment({
       payableType: "BOOKING",
-      payableId: member.booking.id,
-      paymentType: paymentRecordType,
-      amountCents: memberAmount,
+      payableId: l.bookingId,
+      paymentType: plan.kind,
+      amountCents: l.amountCents,
       currency: currency.toUpperCase(),
       status: "PENDING",
       paymentMethodType: "STRIPE_CHECKOUT",
@@ -295,80 +267,55 @@ export async function createCheckoutSessionForBooking(
 }
 
 /**
- * Get an existing valid checkout session URL for a booking, or create a new
- * one if none exists / the old one expired. Pass `chargeType` when the payer
- * chose deposit-vs-full: an open session for a different amount is expired
- * and replaced, so the customer is never sent to a stale price.
+ * Reuse the booking's open checkout session when it charges exactly what this
+ * request would (same kind, same amount); otherwise expire it and open a new
+ * one, so nobody is ever sent to a stale price.
  */
 export async function getOrCreateCheckoutUrl(
   bookingId: string,
-  options?: { chargeType?: "deposit" | "full" }
+  options?: { chargeType?: ChargeType }
 ): Promise<string> {
-  const existingPayments = await paymentService.getPaymentsForPayable("BOOKING", bookingId);
+  const { party, boats } = await loadParty(bookingId);
+  const plan = planOrThrow(boats, options?.chargeType ?? "full");
+  const leadLine = plan.lines.find((l) => l.bookingId === bookingId) ?? plan.lines[0];
 
-  // Check for an existing PENDING checkout session
-  const pendingCheckout = existingPayments.find(
+  const existing = await paymentService.getPaymentsForPayable("BOOKING", leadLine.bookingId);
+  const pending = existing.find(
     (p) =>
       p.paymentMethodType === "STRIPE_CHECKOUT" &&
       p.status === "PENDING" &&
       p.stripeCheckoutSessionId
   );
 
-  if (pendingCheckout?.stripeCheckoutSessionId) {
+  if (pending?.stripeCheckoutSessionId) {
     const stripe = getStripe();
-    let reusable = false;
     try {
-      const session = await stripe.checkout.sessions.retrieve(
-        pendingCheckout.stripeCheckoutSessionId
-      );
+      const session = await stripe.checkout.sessions.retrieve(pending.stripeCheckoutSessionId);
       if (session.status === "open" && session.url) {
-        // A deposit session can't serve a full-payment request (or vice
-        // versa): the pending row's type says what the session charges.
-        const sessionIsDeposit = pendingCheckout.paymentType === "DEPOSIT";
-        const wantsDeposit = options?.chargeType === "deposit";
-        reusable = options?.chargeType === undefined || sessionIsDeposit === wantsDeposit;
-        if (reusable) return session.url;
+        const sameCharge =
+          pending.paymentType === plan.kind &&
+          Number(pending.amountCents) === leadLine.amountCents &&
+          session.amount_total === plan.amountCents;
+        if (sameCharge) return session.url;
         try {
           await stripe.checkout.sessions.expire(session.id);
         } catch {
-          // Already expired/completed — the row below is cancelled either way.
+          // Already expired or completed — the rows below are cancelled either way.
         }
       }
     } catch {
-      // Session expired or invalid — fall through to create a new one
+      // Session missing or invalid — fall through and open a new one.
     }
 
-    // Mark this booking's pending rows on that session as CANCELLED. Checkout
-    // is always started from the lead booking, so its rows are the ones that
-    // gate reuse; sibling rows are settled or cancelled by session id downstream.
-    for (const p of existingPayments) {
-      if (
-        p.status === "PENDING" &&
-        p.stripeCheckoutSessionId === pendingCheckout.stripeCheckoutSessionId
-      ) {
-        await paymentService.updatePayment(p.id, { status: "CANCELLED" });
-      }
+    // Cancel every pending row on that session, across the whole party.
+    const sessionRows = await paymentService.getPaymentsByStripeCheckoutSessionId(
+      pending.stripeCheckoutSessionId
+    );
+    for (const row of sessionRows) {
+      if (row.status === "PENDING")
+        await paymentService.updatePayment(row.id, { status: "CANCELLED" });
     }
   }
 
-  // Also check for legacy Payment Link payments
-  const pendingLink = existingPayments.find(
-    (p) => p.paymentMethodType === "STRIPE_LINK" && p.status === "PENDING" && p.stripePaymentLinkId
-  );
-
-  if (pendingLink?.stripePaymentLinkId) {
-    try {
-      const stripe = getStripe();
-      const paymentLink = await stripe.paymentLinks.retrieve(pendingLink.stripePaymentLinkId);
-      if (paymentLink.active && paymentLink.url) {
-        return paymentLink.url;
-      }
-    } catch {
-      // Payment link invalid — fall through
-    }
-  }
-
-  return createCheckoutSessionForBooking(bookingId, {
-    chargeType: options?.chargeType,
-  });
+  return createSession(bookingId, party, boats, plan);
 }

@@ -12,6 +12,7 @@ import {
   users,
 } from "@/database/schema";
 import { effectiveTotalCents } from "@/features/bookings/lib/booking-money";
+import { depositCharge } from "@/features/bookings/lib/charge-plan";
 import type {
   AccountUser,
   CaptainAssignment,
@@ -96,7 +97,14 @@ function toTripSummary(row: TripRow): TripSummary {
     serviceFeeWaived: row.serviceFeeWaived,
   });
   const paidCents = Number(row.paidCents ?? 0);
-  const deposit = Number(row.depositAmountCents ?? 0);
+  const deposit = depositCharge({
+    bookingId: row.id,
+    totalCents: Number(row.totalAmountCents ?? 0),
+    serviceFeeCents: Number(row.serviceFeeCents ?? 0),
+    serviceFeeWaived: Boolean(row.serviceFeeWaived),
+    depositCents: row.depositAmountCents != null ? Number(row.depositAmountCents) : null,
+    paidCents,
+  });
   return {
     id: row.id,
     status: row.status,
@@ -113,7 +121,8 @@ function toTripSummary(row: TripRow): TripSummary {
     totalCents,
     paidCents,
     balanceCents: Math.max(0, totalCents - paidCents),
-    depositCents: deposit > 0 ? deposit : null,
+    depositChargeCents: deposit?.amountCents ?? null,
+    offCard: Boolean(row.serviceFeeWaived),
     publicToken: row.publicToken,
     createdAt: row.createdAt,
   };

@@ -9,7 +9,7 @@
 
 import { db } from '@/database/db';
 import { payments } from '@/database/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, inArray, ne, sql } from 'drizzle-orm';
 import type { 
   Payment, 
   PaymentStatus,
@@ -113,6 +113,32 @@ export class PaymentService {
    */
   async getBookingPayments(bookingId: string): Promise<Payment[]> {
     return this.getPaymentsForPayable('BOOKING', bookingId);
+  }
+
+  /**
+   * Money already received per booking: succeeded payments, refunds excluded.
+   * Bookings with nothing paid map to 0.
+   */
+  async getPaidCentsByBooking(bookingIds: string[]): Promise<Map<string, number>> {
+    const paid = new Map(bookingIds.map((id) => [id, 0]));
+    if (bookingIds.length === 0) return paid;
+    const rows = await db
+      .select({
+        bookingId: payments.payableId,
+        paid: sql<number>`COALESCE(SUM(${payments.amountCents}), 0)`,
+      })
+      .from(payments)
+      .where(
+        and(
+          eq(payments.payableType, 'BOOKING'),
+          inArray(payments.payableId, bookingIds),
+          eq(payments.status, 'SUCCEEDED'),
+          ne(payments.paymentType, 'REFUND')
+        )
+      )
+      .groupBy(payments.payableId);
+    for (const row of rows) paid.set(row.bookingId, Number(row.paid));
+    return paid;
   }
 
   /**

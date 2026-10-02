@@ -94,7 +94,6 @@ export async function createBookingFull(
         groupName: isParty
           ? `${input.bookings[0].customerName}'s charter party`
           : null,
-        allowPayment: input.allowPayment ?? false,
         sendProposalEmail,
         sendProposalSms,
         publishNow,
@@ -229,7 +228,7 @@ export async function createBookingFull(
         smsSent = b.customerPhone?.trim()
           ? await sendSms(
               b.customerPhone,
-              `Kings Of The Sea: Your charter proposal is ready. View & accept: ${proposalLink}`
+              `Kings Of The Sea: Your charter proposal is ready. View it and pay to book: ${proposalLink}`
             )
               .then((r) => r.success)
               .catch((err) => {

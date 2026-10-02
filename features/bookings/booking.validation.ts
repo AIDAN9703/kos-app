@@ -154,7 +154,6 @@ export const createBookingsSchema = z.object({
   adminNotes: z.string().nullable().optional(),
   bookings: z.array(bookingSectionSchema).min(1, "At least one booking is required"),
   groupName: z.string().nullable().optional(),
-  allowPayment: z.boolean().optional().default(false),
   sendProposalEmail: z.boolean().optional().default(false),
   sendProposalSms: z.boolean().optional().default(false),
   publishNow: z.boolean().optional(),
@@ -182,8 +181,7 @@ export const createBookingFullSchema = z.object({
   // boat's own pricing (charter gross = total − card fee).
   source: z.string().nullable().optional(),
   agentCode: z.string().nullable().optional(),
-  // Send options (only the Stripe proposal path is wired today)
-  allowPayment: z.boolean().optional().default(false),
+  // Send options
   sendProposalEmail: z.boolean().optional().default(false),
   sendProposalSms: z.boolean().optional().default(false),
 });

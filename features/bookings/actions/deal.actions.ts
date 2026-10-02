@@ -234,7 +234,7 @@ export async function sendProposalUpdate(
       return { success: false, error: "No proposal link exists for this booking" };
     }
     // The link serves the whole funnel: proposal while PROPOSED, payment page
-    // once accepted. Settled deals have nothing left to send.
+    // once booked. Settled deals have nothing left to send.
     if (!["PROPOSED", "BOOKED"].includes(row.bookingStatus)) {
       return { success: false, error: "This deal is settled — nothing left to send" };
     }
@@ -274,7 +274,7 @@ export async function sendProposalUpdate(
       const body = isPaymentStage
         ? `Kings Of The Sea: Complete your charter booking here: ${proposalLink}`
         : isFirstSend
-          ? `Kings Of The Sea: Your charter proposal is ready. View & accept: ${proposalLink}`
+          ? `Kings Of The Sea: Your charter proposal is ready. View it and pay to book: ${proposalLink}`
           : `Kings Of The Sea: Your charter proposal has been updated. Latest details: ${proposalLink}`;
       const smsResult = await sendSms(row.customerPhone, body);
       if (!smsResult.success) {
@@ -308,37 +308,6 @@ export async function sendProposalUpdate(
   } catch (error) {
     console.error("Error sending proposal update:", error);
     return { success: false, error: "Failed to send the proposal update" };
-  }
-}
-
-/**
- * Flip whether the proposal page shows a pay button. Off = "accept, we'll
- * follow up on payment"; on = accept and pay in one motion.
- */
-export async function setProposalAllowPayment(
-  bookingId: string,
-  allowPayment: boolean
-): Promise<DealActionResult> {
-  try {
-    const adminAuth = await getAdminSession();
-    if (adminAuth.error !== undefined) return { success: false, error: adminAuth.error };
-    await db
-      .update(bookings)
-      .set({ allowPayment, updatedAt: new Date() })
-      .where(eq(bookings.id, bookingId));
-    await bookingEventsService.logEvent({
-      bookingId,
-      eventType: BOOKING_EVENT_TYPES.UPDATED,
-      actorType: "admin",
-      actorId: adminAuth.session.user.id,
-      channel: "admin_portal",
-      displayMessage: allowPayment ? "Online payment turned on" : "Online payment turned off",
-    });
-    revalidateDeal(bookingId);
-    return { success: true };
-  } catch (error) {
-    console.error("Error toggling allowPayment:", error);
-    return { success: false, error: "Failed to update payment setting" };
   }
 }
 

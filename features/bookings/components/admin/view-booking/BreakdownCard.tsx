@@ -155,9 +155,9 @@ export function BreakdownCard({
         </Group>
 
         <p className="text-xs text-muted-foreground">
-          {money.depositCents
-            ? `Deposit option: the guest may pay ${fmt(money.depositCents)} first.`
-            : "No deposit: the guest pays in full."}
+          {money.depositChargeCents
+            ? `Deposit option: the guest may pay ${fmt(money.depositChargeCents)} first (${fmt(money.depositCents ?? 0)} deposit + ${fmt(money.depositFeeCents ?? 0)} card fee). The card fee is charged on every card payment.`
+            : "No deposit: the guest pays in full. The card fee is charged on every card payment."}
         </p>
 
         {send ? <SendToCustomer data={send} /> : null}

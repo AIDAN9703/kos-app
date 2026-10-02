@@ -273,7 +273,6 @@ export function BookingComposer({
   const kosRevenue = charterTotal - ownerPayoutTotal - otherExpenseTotal;
 
   // ── Send options ──
-  const [allowPayment, setAllowPayment] = useState(false);
   // Coming from a lead, the point is to SEND — default the channels on
   // (SMS only with consent) instead of silently saving it unsent.
   const [sendProposalEmail, setSendProposalEmail] = useState(
@@ -344,7 +343,6 @@ export function BookingComposer({
       adminNotes: adminNotes || null,
       source: source || null,
       agentCode: agentAdmin ? adminDisplayName(agentAdmin) : null,
-      allowPayment,
       sendProposalEmail,
       sendProposalSms,
     };
@@ -406,7 +404,6 @@ export function BookingComposer({
     dropoffLocation,
     adminNotes,
     source,
-    allowPayment,
     sendProposalEmail,
     sendProposalSms,
     onSuccess,
@@ -825,21 +822,6 @@ export function BookingComposer({
               />
               <span>Text the proposal link (SMS)</span>
             </label>
-            {(sendProposalEmail || sendProposalSms) && (
-              <div className="flex items-center gap-2.5 pl-7">
-                <Checkbox
-                  id="composer-allow-payment"
-                  checked={allowPayment}
-                  onCheckedChange={(c) => setAllowPayment(!!c)}
-                />
-                <Label htmlFor="composer-allow-payment" className="font-normal">
-                  Allow payment now
-                  <span className="ml-1 text-xs text-muted-foreground">
-                    (guest can pay the deposit if one is set, or the full amount)
-                  </span>
-                </Label>
-              </div>
-            )}
           </div>
 
           {submitError && <p className="text-sm text-destructive">{submitError}</p>}

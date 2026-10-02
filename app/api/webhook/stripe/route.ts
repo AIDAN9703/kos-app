@@ -13,6 +13,7 @@ import { sendBookingConfirmationEmail } from "@/shared/lib/services/email.servic
 import { alertTeam } from "@/features/bookings/lib/team-alerts";
 import { formatCentsAsCurrency } from "@/shared/lib/utils/money-utils";
 import { fulfillInstantCheckoutSession } from "@/features/bookings/services/instant-checkout-fulfillment.service";
+import { confirmPaidBooking, type ConfirmOutcome } from "@/features/bookings/lib/confirm-paid-booking";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -248,23 +249,42 @@ async function handleBookingPayment(
         .where(eq(bookings.bookingGroupId, leadRow.bookingGroupId));
       for (const s of siblings) bookingIdsToBook.add(s.id);
     }
+    // Only proposals become booked; cancelled deals are never revived and a
+    // taken slot is held for an admin (see confirmPaidBooking).
+    const outcomes = new Map<string, ConfirmOutcome>();
     for (const id of bookingIdsToBook) {
-      await ensureBookingBooked(id, "Payment received");
+      outcomes.set(id, await confirmPaidBooking(id, "Payment received"));
     }
+    const problems = [...outcomes.values()].filter((o) => o === "held" || o === "not_bookable");
 
     console.log(
-      `[Webhook] ${bookingIdsToBook.size} booking(s) booked via checkout ${session.id}`
+      `[Webhook] checkout ${session.id}: ${[...outcomes.entries()].map(([id, o]) => `${id}=${o}`).join(", ")}`
     );
 
-    // Send ONE confirmation email, for the lead booking — and ONE team alert.
+    const kindLabel: Record<string, string> = {
+      DEPOSIT: "Deposit",
+      PARTIAL: "Remaining balance",
+      FULL_PAYMENT: "Full payment",
+    };
+
+    // ONE confirmation email for the lead booking (only when it's really
+    // booked) and ONE team alert.
     const booking = await bookingService.getBookingById(bookingId);
     if (booking) {
-      await sendBookingConfirmationEmail(booking).catch((e) =>
-        console.warn("[Webhook] Confirmation email failed:", e)
-      );
+      if (problems.length === 0) {
+        await sendBookingConfirmationEmail(booking).catch((e) =>
+          console.warn("[Webhook] Confirmation email failed:", e)
+        );
+      }
       await alertTeam({
-        subject: `Payment received — ${booking.customerName}${booking.boatName ? ` · ${booking.boatName}` : ""}`,
-        heading: "Payment received (card)",
+        subject:
+          problems.length > 0
+            ? `⚠ Payment needs attention — ${booking.customerName}`
+            : `Payment received — ${booking.customerName}${booking.boatName ? ` · ${booking.boatName}` : ""}`,
+        heading:
+          problems.length > 0
+            ? "Payment received, but the booking couldn't be confirmed"
+            : "Payment received (card)",
         booking,
         extraLines: [
           {
@@ -276,9 +296,13 @@ async function handleBookingPayment(
                   })
                 : null,
           },
-          { label: "Type", value: metadata.paymentRecordType === "DEPOSIT" ? "Deposit" : "Full payment" },
+          { label: "Type", value: kindLabel[metadata.paymentRecordType ?? ""] ?? "Payment" },
           { label: "Boats", value: bookingIdsToBook.size > 1 ? `${bookingIdsToBook.size} (charter party)` : null },
         ],
+        note:
+          problems.length > 0
+            ? "The date was taken by another booking, or the booking was cancelled. Resolve it on the booking page and refund if needed."
+            : undefined,
       });
     }
   } catch (error) {
@@ -336,10 +360,12 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
           .where(eq(bookings.id, firstBooking.id));
 
     for (const b of bookingsToBook) {
-      await ensureBookingBooked(b.id, "Payment received via invoice");
+      const outcome = await confirmPaidBooking(b.id, "Payment received via invoice");
       const full = await bookingService.getBookingById(b.id);
       if (full) {
-        await sendBookingConfirmationEmail(full).catch(() => {});
+        if (outcome === "booked" || outcome === "unchanged") {
+          await sendBookingConfirmationEmail(full).catch(() => {});
+        }
         await alertTeam({
           subject: `Payment received — ${full.customerName}${full.boatName ? ` · ${full.boatName}` : ""}`,
           heading: "Payment received (invoice)",
@@ -474,42 +500,4 @@ async function handleChargeRefunded(charge: Stripe.Charge) {
     // Rethrow so Stripe retries — a missed refund leaves the booking state wrong.
     throw error;
   }
-}
-
-// ============================================================================
-// SHARED HELPERS
-// ============================================================================
-
-/**
- * Idempotently set a booking to BOOKED with status history + event log.
- */
-async function ensureBookingBooked(bookingId: string, reason: string) {
-  const [booking] = await db
-    .select({ id: bookings.id, bookingStatus: bookings.bookingStatus })
-    .from(bookings)
-    .where(eq(bookings.id, bookingId))
-    .limit(1);
-
-  if (!booking || booking.bookingStatus === "BOOKED") return;
-
-  await db
-    .update(bookings)
-    .set({ bookingStatus: "BOOKED", updatedAt: new Date() })
-    .where(eq(bookings.id, bookingId));
-
-  await db.insert(bookingStatusHistory).values({
-    bookingId,
-    fromStatus: booking.bookingStatus,
-    toStatus: "BOOKED",
-    reason,
-  });
-
-  await bookingEventsService.logStatusChange({
-    bookingId,
-    fromStatus: booking.bookingStatus as BookingStatus,
-    toStatus: "BOOKED",
-    actorType: "system",
-    reason,
-    channel: "stripe",
-  });
 }
