@@ -504,7 +504,8 @@ export class BoatService {
 
   /**
    * Delete a boat.
-   * Pricing tiers are cascade-deleted by the database.
+   * The database cascade-deletes its pricing tiers, add-ons, calendars and
+   * reviews; a boat with bookings is still blocked.
    */
   async deleteBoat(id: string): Promise<void> {
     await db.delete(boats).where(eq(boats.id, id));
