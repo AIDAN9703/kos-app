@@ -1,7 +1,7 @@
 "use server";
 
 import { compare, hash } from "bcryptjs";
-import { eq } from "drizzle-orm";
+import { and, eq, ne, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { db } from "@/database/db";
@@ -10,6 +10,7 @@ import { notificationPreferenceEnum } from "@/database/schema/enums";
 import { profileUpdateSchema, type ProfileFormValues } from "@/features/_validation/validations";
 import { passwordSchema } from "@/shared/lib/validation/common";
 import { getAuthenticatedUserId } from "@/shared/lib/utils/auth-utils";
+import { formatPhoneNumberE164 } from "@/shared/lib/utils/general-utils";
 import type { ActionResult } from "../profile.types";
 
 /**
@@ -22,6 +23,11 @@ import type { ActionResult } from "../profile.types";
 /** Refresh every profile page: the identity card in the layout shows name and photo. */
 function revalidateProfile() {
   revalidatePath("/profile", "layout");
+}
+
+/** Same number regardless of formatting ("305-555-0100" vs "+13055550100"). */
+function samePhone(a: string | null | undefined, b: string | null | undefined): boolean {
+  return (a ? formatPhoneNumberE164(a) : null) === (b ? formatPhoneNumberE164(b) : null);
 }
 
 function zodFieldErrors(error: z.ZodError): Record<string, string[]> {
@@ -78,15 +84,41 @@ export async function updateAccountDetails(
   const update = Object.fromEntries(
     (Object.keys(changes) as (keyof ProfileFormValues)[]).map((key) => {
       const value = parsed.data[key];
-      return [key, value === "" ? null : value];
+      if (value === "") return [key, null];
+      // Store phones as +1XXXXXXXXXX: phone sign-in and booking matching look them up that way.
+      if (key === "phoneNumber" && value) return [key, formatPhoneNumberE164(value)];
+      return [key, value];
     })
   ) as Partial<AccountColumns>;
   if (Object.keys(update).length === 0) return { success: true };
 
+  // A new email or phone is unproven until it's verified again. Keeping the
+  // old verified flag would let someone switch to another person's email or
+  // number and claim their guest bookings or open their Stripe billing.
+  const reverify: { emailVerified?: boolean; phoneVerified?: boolean } = {};
+  if (update.email && update.email.toLowerCase() !== current.email.toLowerCase()) {
+    const [taken] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(and(sql`LOWER(${users.email}) = LOWER(${update.email})`, ne(users.id, auth.userId)))
+      .limit(1);
+    if (taken) {
+      return {
+        success: false,
+        error: "Please check the highlighted fields.",
+        fieldErrors: { email: ["That email is already in use."] },
+      };
+    }
+    reverify.emailVerified = false;
+  }
+  if ("phoneNumber" in update && !samePhone(update.phoneNumber, current.phoneNumber)) {
+    reverify.phoneVerified = false;
+  }
+
   try {
     await db
       .update(users)
-      .set({ ...update, updatedAt: new Date() })
+      .set({ ...update, ...reverify, updatedAt: new Date() })
       .where(eq(users.id, auth.userId));
   } catch (error) {
     console.error("updateAccountDetails failed:", error);

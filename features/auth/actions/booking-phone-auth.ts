@@ -1,7 +1,7 @@
 "use server";
 
 import { hash } from "bcryptjs";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
 import { signIn } from "@/auth";
@@ -22,6 +22,27 @@ function isNextRedirect(error: unknown): boolean {
     "digest" in error &&
     String((error as { digest?: unknown }).digest).startsWith("NEXT_REDIRECT")
   );
+}
+
+const SHARED_NUMBER_ERROR =
+  "This number is on more than one account. Sign in with your email instead.";
+
+/**
+ * The one account that has proven it owns this number. Phone numbers aren't
+ * unique and anyone can type any number into their profile, so an unverified
+ * match must never sign someone in. Two verified accounts on one number is
+ * ambiguous, and we refuse rather than guess.
+ */
+async function findVerifiedPhoneAccount(
+  phone: string
+): Promise<{ id: string } | "ambiguous" | null> {
+  const rows = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(and(eq(users.phoneNumber, phone), eq(users.phoneVerified, true)))
+    .limit(2);
+  if (rows.length > 1) return "ambiguous";
+  return rows[0] ?? null;
 }
 
 export async function sendBookingPhoneCode(
@@ -53,24 +74,11 @@ export async function verifyBookingPhoneCode(
   }
 
   const formattedPhone = formatPhoneNumberE164(phoneNumber);
-  const existing = await db
-    .select({
-      id: users.id,
-      phoneVerified: users.phoneVerified,
-    })
-    .from(users)
-    .where(eq(users.phoneNumber, formattedPhone))
-    .limit(1);
+  const account = await findVerifiedPhoneAccount(formattedPhone);
+  if (account === "ambiguous") return { success: false, error: SHARED_NUMBER_ERROR };
 
-  if (existing.length > 0) {
-    if (!existing[0].phoneVerified) {
-      await db
-        .update(users)
-        .set({ phoneVerified: true, updatedAt: new Date() })
-        .where(eq(users.id, existing[0].id));
-    }
-
-    const proof = createPhoneBookingProof(existing[0].id, formattedPhone);
+  if (account) {
+    const proof = createPhoneBookingProof(account.id, formattedPhone);
     // NextAuth v5: signIn THROWS on failure and returns a redirect URL string
     // on success — checking `"error" in result` was an 'in'-on-string crash.
     try {
@@ -82,7 +90,7 @@ export async function verifyBookingPhoneCode(
     }
 
     // Freshly OTP-verified phone — adopt any guest bookings on this number.
-    claimGuestBookingsForUser(existing[0].id).catch((err) =>
+    claimGuestBookingsForUser(account.id).catch((err) =>
       console.error("Guest-booking claim failed:", err)
     );
 
@@ -123,15 +131,15 @@ export async function completeBookingPhoneProfile(
     return { success: false, error: "Code expired or invalid. Request a new code." };
   }
 
-  const existingPhone = await db
-    .select({ id: users.id })
-    .from(users)
-    .where(eq(users.phoneNumber, formattedPhone))
-    .limit(1);
+  const account = await findVerifiedPhoneAccount(formattedPhone);
+  if (account === "ambiguous") return { success: false, error: SHARED_NUMBER_ERROR };
 
-  if (existingPhone.length > 0) {
-    const proof = createPhoneBookingProof(existingPhone[0].id, formattedPhone);
+  if (account) {
+    const proof = createPhoneBookingProof(account.id, formattedPhone);
     await signIn("phone-booking", { proof, redirect: false });
+    claimGuestBookingsForUser(account.id).catch((err) =>
+      console.error("Guest-booking claim failed:", err)
+    );
     return { success: true, data: { message: "Signed in successfully" } };
   }
 

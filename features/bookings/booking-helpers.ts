@@ -5,7 +5,7 @@
 
 import { db } from "@/database/db";
 import { boats, boatPricingTiers } from "@/database/schema";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 
 export type BoatForBooking = {
   id: string;
@@ -57,7 +57,7 @@ export async function fetchBoatAndTier(
         hours: boatPricingTiers.hours,
       })
       .from(boatPricingTiers)
-      .where(eq(boatPricingTiers.id, pricingTierId))
+      .where(and(eq(boatPricingTiers.id, pricingTierId), eq(boatPricingTiers.boatId, boatId)))
       .limit(1);
     if (tierRow) tier = tierRow;
     else throw new Error(`Pricing tier not found: ${pricingTierId}`);

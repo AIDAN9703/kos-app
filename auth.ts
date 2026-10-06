@@ -79,7 +79,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           .where(eq(users.id, verified.userId))
           .limit(1);
 
-        if (user.length === 0 || user[0].phoneNumber !== verified.phone) {
+        if (user.length === 0 || user[0].phoneNumber !== verified.phone || !user[0].phoneVerified) {
           return null;
         }
 

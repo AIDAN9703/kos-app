@@ -6,7 +6,7 @@ import { auth } from "@/auth";
 import { bookingRequestSchema, BookingRequest } from "@/features/_validation/validations";
 import { z } from "zod";
 import { calculateEndDateTime } from "@/shared/lib/utils/date-helpers";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { calculateBookingPriceCents } from "@/shared/lib/utils/pricing-utils";
 import { getAppSettings } from "@/features/app-settings/app-settings.service";
 import { dollarsToCents } from "@/shared/lib/utils/money-utils";
@@ -34,11 +34,18 @@ export async function createInstantBooking(data: BookingRequest & { boatId: stri
     // Validate the booking data
     const validatedData = bookingRequestSchema.parse(data);
     
-    // Get the pricing tier details
+    // The tier sets the price, so it must be one of THIS boat's active tiers —
+    // otherwise a cheaper tier from another boat could be sent in its place.
     const pricingTierResults = await db
       .select()
       .from(boatPricingTiers)
-      .where(eq(boatPricingTiers.id, validatedData.pricingTierId));
+      .where(
+        and(
+          eq(boatPricingTiers.id, validatedData.pricingTierId),
+          eq(boatPricingTiers.boatId, data.boatId),
+          eq(boatPricingTiers.isActive, true)
+        )
+      );
     
     if (pricingTierResults.length === 0) {
       return { 
@@ -58,6 +65,7 @@ export async function createInstantBooking(data: BookingRequest & { boatId: stri
         depositAmount: boats.depositAmount,
         ownerId: boats.ownerId,
         instantBook: boats.instantBook,
+        active: boats.active,
         mainImage: boats.mainImage,
         crewRequired: boats.crewRequired,
         currency: boats.currency,
@@ -74,8 +82,8 @@ export async function createInstantBooking(data: BookingRequest & { boatId: stri
     
     const boat = boatResults[0];
     
-    // Verify boat allows instant booking
-    if (!boat.instantBook) {
+    // Verify boat is listed and allows instant booking
+    if (!boat.active || !boat.instantBook) {
       return {
         success: false,
         error: "This boat does not support instant booking"

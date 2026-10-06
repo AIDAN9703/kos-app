@@ -140,7 +140,9 @@ export class BookingService {
       const boat = boatsById.get(b.boatId);
       const tier = b.pricingTierId ? tiersById.get(b.pricingTierId) : null;
       if (!boat) throw new Error(`Boat not found: ${b.boatId}`);
-      if (b.pricingTierId && !tier) throw new Error(`Pricing tier not found: ${b.pricingTierId}`);
+      if (b.pricingTierId && (!tier || tier.boatId !== b.boatId)) {
+        throw new Error(`Pricing tier not found for this boat: ${b.pricingTierId}`);
+      }
       const startDateTime = new Date(b.startDateTime);
       const endDateTime = b.endDateTime
         ? new Date(b.endDateTime)
