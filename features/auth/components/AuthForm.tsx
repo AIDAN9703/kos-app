@@ -10,6 +10,7 @@ import {
   UseFormReturn,
 } from "react-hook-form";
 import { ZodType } from "zod";
+import { useSyncExternalStore } from "react";
 
 import { Button } from "@/shared/components/ui/button";
 import {
@@ -26,6 +27,7 @@ import { FIELD_NAMES, FIELD_TYPES } from "@/shared/lib/constants";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { continueWithGoogle } from "@/features/auth/client/email-auth";
+import { authClient } from "@/shared/lib/auth/auth-client";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import {
   bookingAuthInputClass,
@@ -55,6 +57,17 @@ interface Props<T extends FieldValues> {
   /** Switch sign-in ↔ sign-up without leaving the page (booking modal) */
   onSwitchToSignUp?: () => void;
   onSwitchToSignIn?: () => void;
+}
+
+const noSubscription = () => () => {};
+
+/** Small pill marking the sign-in method this browser used last time. */
+function LastUsedPill() {
+  return (
+    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+      Last used
+    </span>
+  );
 }
 
 /** Messages for ?error= codes Better Auth sends back after a failed Google sign-in. */
@@ -110,6 +123,12 @@ const AuthForm = <T extends FieldValues>({
   };
 
   const isEmbedded = variant === "embedded";
+  // From a cookie only the browser can read; null during the server render.
+  const lastMethod = useSyncExternalStore(
+    noSubscription,
+    () => authClient.getLastUsedLoginMethod(),
+    () => null
+  );
   const googleError = isEmbedded ? null : googleErrorMessage(searchParams.get("error"));
 
   return (
@@ -161,6 +180,7 @@ const AuthForm = <T extends FieldValues>({
           <span className={isEmbedded ? "font-medium text-foreground" : "font-medium text-gray-600"}>
             Continue with Google
           </span>
+          {lastMethod === "google" && <LastUsedPill />}
         </button>
       </div>
 
@@ -232,7 +252,10 @@ const AuthForm = <T extends FieldValues>({
                 <span>{isSignIn ? "Signing in..." : "Creating account..."}</span>
               </div>
             ) : isSignIn ? (
-              "Sign in"
+              <span className="flex items-center gap-2">
+                Sign in
+                {lastMethod === "email" && <LastUsedPill />}
+              </span>
             ) : (
               "Create account"
             )}

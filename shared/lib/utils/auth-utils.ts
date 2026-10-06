@@ -5,7 +5,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/shared/lib/auth/auth";
-import type { Role } from "@/shared/lib/auth/permissions";
+import { rolesCan, type PermissionRequest, type Role } from "@/shared/lib/auth/permissions";
 import type { SessionUser } from "@/shared/lib/auth/session-user";
 
 /**
@@ -35,6 +35,21 @@ export const getSession = cache(async (): Promise<AppSession | null> => {
 
 export function hasRole(user: SessionUser, role: Role): boolean {
   return user.roles.includes(role);
+}
+
+/** May this person do it? e.g. can(user, { booking: ["view-all"] }). */
+export function can(user: SessionUser, request: PermissionRequest): boolean {
+  return rolesCan(user.roles, request);
+}
+
+/** Server actions and API routes: the session when allowed, otherwise an error. */
+export async function requirePermission(
+  request: PermissionRequest
+): Promise<{ session: AppSession; error?: never } | { session?: never; error: string }> {
+  const session = await getSession();
+  if (!session) return { error: "Not authenticated" };
+  if (!can(session.user, request)) return { error: "You don't have access to that." };
+  return { session };
 }
 
 /** Pages: the signed-in session, or a redirect to sign-in. */

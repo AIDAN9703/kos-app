@@ -1,18 +1,19 @@
 import "server-only";
 
-import { hash } from "bcryptjs";
-import { and, eq, sql, type SQL } from "drizzle-orm";
+import { eq, sql, type SQL } from "drizzle-orm";
+import { headers } from "next/headers";
 
 import { db } from "@/database/db";
 import { accounts, users } from "@/database/schema";
+import { auth } from "@/shared/lib/auth/auth";
 import { formatRoles, parseRoles, type Role } from "@/shared/lib/auth/permissions";
 import type { AssignableRole } from "./user-roles.constants";
 
 /**
- * Role and password writes made by our own code (admin screens, captain and
- * crew promotion). Better Auth's own flows write through its hooks in
- * shared/lib/auth/auth.ts; both keep the legacy is_admin / password columns in
- * step during the rollout.
+ * Admin changes to who someone is and how they sign in. Each goes through
+ * Better Auth's admin API, which checks the caller may do it (user:set-role,
+ * user:set-password) and runs the hooks that keep the legacy is_admin and
+ * password columns in step during the rollout.
  */
 
 export { ASSIGNABLE_ROLES, type AssignableRole } from "./user-roles.constants";
@@ -23,10 +24,10 @@ export function hasRoleSql(role: Role): SQL {
 }
 
 export async function setUserRoles(userId: string, list: Role[]): Promise<void> {
-  await db
-    .update(users)
-    .set({ role: formatRoles(list), isAdmin: list.includes("admin"), updatedAt: new Date() })
-    .where(eq(users.id, userId));
+  await auth.api.setRole({
+    body: { userId, role: parseRoles(formatRoles(list)) },
+    headers: await headers(),
+  });
 }
 
 export async function addUserRole(userId: string, role: Role): Promise<void> {
@@ -45,6 +46,11 @@ export function mergeAssignableRoles(currentRole: string | null, picked: Assigna
   return [...kept, ...picked];
 }
 
+/** Set or replace someone's password (creates their email + password sign-in if they had none). */
+export async function setUserPassword(userId: string, newPassword: string): Promise<void> {
+  await auth.api.setUserPassword({ body: { userId, newPassword }, headers: await headers() });
+}
+
 /** How a person can sign in: "credential" (email + password), "google", … */
 export async function getSignInMethods(userId: string): Promise<string[]> {
   const rows = await db
@@ -52,24 +58,4 @@ export async function getSignInMethods(userId: string): Promise<string[]> {
     .from(accounts)
     .where(eq(accounts.userId, userId));
   return rows.map((row) => row.providerId);
-}
-
-/** Set (or replace) a person's password: the hash lives on their "credential" sign-in method. */
-export async function setCredentialPassword(userId: string, password: string): Promise<void> {
-  const hashed = await hash(password, 10);
-  const [existing] = await db
-    .select({ id: accounts.id })
-    .from(accounts)
-    .where(and(eq(accounts.userId, userId), eq(accounts.providerId, "credential")))
-    .limit(1);
-
-  if (existing) {
-    await db
-      .update(accounts)
-      .set({ password: hashed, updatedAt: new Date() })
-      .where(eq(accounts.id, existing.id));
-  } else {
-    await db.insert(accounts).values({ userId, providerId: "credential", accountId: userId, password: hashed });
-  }
-  await db.update(users).set({ password: hashed }).where(eq(users.id, userId));
 }

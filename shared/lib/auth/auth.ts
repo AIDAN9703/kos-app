@@ -95,6 +95,24 @@ const options = {
       phoneVerified: { type: "boolean", required: false, defaultValue: false, input: false },
       username: { type: "string", required: false, input: false, returned: false },
     },
+    // The new address is confirmed by email before it replaces the old one;
+    // a verified account approves from its current address first.
+    changeEmail: {
+      enabled: true,
+      sendChangeEmailConfirmation: async ({ user, newEmail, url }) => {
+        logLinkInDevelopment("email change approval", user.email, url);
+        void sendAccountEmail({
+          to: user.email,
+          name: (user as { firstName?: string | null }).firstName ?? user.name,
+          subject: "Approve your new email — Kings Of The Sea",
+          previewText: `Approve changing your sign-in email to ${newEmail}.`,
+          lead: `Someone asked to change the email on your Kings Of The Sea account to ${newEmail}. If that was you, approve it below and we'll send a confirmation to the new address.`,
+          buttonLabel: "Approve the change",
+          url,
+          footnote: "Didn't ask for this? Ignore this email and change your password; your email stays the same.",
+        });
+      },
+    },
   },
 
   session: {

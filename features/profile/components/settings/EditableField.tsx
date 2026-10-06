@@ -89,7 +89,7 @@ export function EditableField({
     setSaving(false);
     if (result.success) {
       setEditing(false);
-      toast({ title: "Saved", description: `${label} updated.` });
+      toast({ title: "Saved", description: result.message ?? `${label} updated.` });
     } else {
       setError(result.error);
       setFieldErrors(result.fieldErrors ?? {});

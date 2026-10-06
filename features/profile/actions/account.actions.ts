@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, ne, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { APIError } from "better-auth/api";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
@@ -12,7 +12,8 @@ import { profileUpdateSchema, type ProfileFormValues } from "@/features/_validat
 import { passwordSchema } from "@/shared/lib/validation/common";
 import { auth as betterAuth } from "@/shared/lib/auth/auth";
 import { displayName } from "@/shared/lib/auth/session-user";
-import { getAuthenticatedUserId } from "@/shared/lib/utils/auth-utils";
+import { getAuthenticatedUserId, getSession } from "@/shared/lib/utils/auth-utils";
+import { emailSchema } from "@/shared/lib/validation/common";
 import { formatPhoneNumberE164 } from "@/shared/lib/utils/general-utils";
 import type { ActionResult } from "../profile.types";
 
@@ -50,8 +51,10 @@ function zodFieldErrors(error: z.ZodError): Record<string, string[]> {
 type AccountColumns = Pick<typeof users.$inferInsert, keyof ProfileFormValues | "name">;
 
 export async function updateAccountDetails(
-  changes: Partial<ProfileFormValues>
+  input: Partial<ProfileFormValues>
 ): Promise<ActionResult> {
+  // Email changes go through requestEmailChange, which confirms the new address first.
+  const { email: _ignoredEmail, ...changes } = input;
   const auth = await getAuthenticatedUserId();
   if (!auth.userId) return { success: false, error: auth.error ?? "Not authenticated" };
 
@@ -88,8 +91,6 @@ export async function updateAccountDetails(
     (Object.keys(changes) as (keyof ProfileFormValues)[]).map((key) => {
       const value = parsed.data[key];
       if (value === "") return [key, null];
-      // Stored lowercase: sign-in looks emails up that way.
-      if (key === "email" && value) return [key, value.trim().toLowerCase()];
       // Store phones as +1XXXXXXXXXX: phone sign-in and booking matching look them up that way.
       if (key === "phoneNumber" && value) return [key, formatPhoneNumberE164(value)];
       return [key, value];
@@ -97,25 +98,10 @@ export async function updateAccountDetails(
   ) as Partial<AccountColumns>;
   if (Object.keys(update).length === 0) return { success: true };
 
-  // A new email or phone is unproven until it's verified again. Keeping the
-  // old verified flag would let someone switch to another person's email or
-  // number and claim their guest bookings or open their Stripe billing.
-  const reverify: { emailVerified?: boolean; phoneVerified?: boolean } = {};
-  if (update.email && update.email.toLowerCase() !== current.email.toLowerCase()) {
-    const [taken] = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(and(sql`LOWER(${users.email}) = LOWER(${update.email})`, ne(users.id, auth.userId)))
-      .limit(1);
-    if (taken) {
-      return {
-        success: false,
-        error: "Please check the highlighted fields.",
-        fieldErrors: { email: ["That email is already in use."] },
-      };
-    }
-    reverify.emailVerified = false;
-  }
+  // A new phone is unproven until it's verified again. Keeping the old
+  // verified flag would let someone switch to another person's number and
+  // claim their guest bookings.
+  const reverify: { phoneVerified?: boolean } = {};
   if ("phoneNumber" in update && !samePhone(update.phoneNumber, current.phoneNumber)) {
     reverify.phoneVerified = false;
   }
@@ -125,7 +111,7 @@ export async function updateAccountDetails(
     update.name = displayName(
       "firstName" in update ? update.firstName : current.firstName,
       "lastName" in update ? update.lastName : current.lastName,
-      update.email ?? current.email
+      current.email
     );
   }
 
@@ -141,6 +127,51 @@ export async function updateAccountDetails(
 
   revalidateProfile();
   return { success: true };
+}
+
+/**
+ * Change the sign-in email the safe way (Better Auth's change-email flow):
+ * nothing changes until the person opens a link sent to the NEW address, and
+ * a verified account first approves from its CURRENT address. An address
+ * that already has an account gets the same answer, so this can't be used to
+ * discover who has an account.
+ */
+export async function requestEmailChange(
+  input: Partial<ProfileFormValues>
+): Promise<ActionResult> {
+  const session = await getSession();
+  if (!session) return { success: false, error: "Not authenticated" };
+
+  const parsed = emailSchema.safeParse(input.email?.trim() ?? "");
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: "Please check the highlighted fields.",
+      fieldErrors: { email: [parsed.error.issues[0]?.message ?? "Enter a valid email"] },
+    };
+  }
+  const newEmail = parsed.data.toLowerCase();
+  if (newEmail === session.user.email) return { success: true, message: "That's already your email." };
+
+  try {
+    await betterAuth.api.changeEmail({
+      body: { newEmail, callbackURL: "/profile/settings?verified=1" },
+      headers: await headers(),
+    });
+  } catch (error) {
+    if (error instanceof APIError && error.body?.message) {
+      return { success: false, error: error.body.message };
+    }
+    console.error("requestEmailChange failed:", error);
+    return { success: false, error: "We couldn't start the change. Please try again." };
+  }
+
+  return {
+    success: true,
+    message: session.user.emailVerified
+      ? `To keep your account safe, approve the change from your current email first. Then confirm ${newEmail}.`
+      : `We sent a link to ${newEmail}. Your email changes once you open it.`,
+  };
 }
 
 const notificationPreferencesSchema = z

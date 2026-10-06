@@ -1,11 +1,9 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { LogOut } from "lucide-react";
-import { Button } from "@/shared/components/ui/button";
 import { auth } from "@/shared/lib/auth/auth";
 import { requireAuth } from "@/shared/lib/utils/auth-utils";
-import { signOutAction } from "@/features/auth/actions/sign-out";
-import { updateAccountDetails } from "@/features/profile/actions/account.actions";
+import { SignOutButton } from "@/features/auth/components/SignOutButton";
+import { requestEmailChange, updateAccountDetails } from "@/features/profile/actions/account.actions";
 import { BillingPortalButton } from "@/features/profile/components/BillingPortalButton";
 import { PageHeader } from "@/features/profile/components/PageHeader";
 import { EditableField } from "@/features/profile/components/settings/EditableField";
@@ -74,7 +72,7 @@ export default async function AccountSettingsPage({
             label="Email"
             fields={[{ key: "email", label: "Email address", type: "email", required: true }]}
             values={{ email: account.email }}
-            description="Confirmations, proposals and receipts go here."
+            description="Confirmations, proposals and receipts go here. A new address is confirmed by email before it's used."
             aside={
               account.emailVerified ? (
                 <span className="rounded-full bg-success-soft px-2 py-0.5 text-[11px] font-semibold text-success">
@@ -84,7 +82,7 @@ export default async function AccountSettingsPage({
                 <VerifyEmailButton email={account.email} />
               )
             }
-            onSave={updateAccountDetails}
+            onSave={requestEmailChange}
           />
           <EditableField
             label="Phone"
@@ -183,16 +181,7 @@ export default async function AccountSettingsPage({
               You&apos;ll need your password (or Google) to sign back in.
             </p>
           </div>
-          <form action={signOutAction}>
-            <Button
-              type="submit"
-              variant="outline"
-              className="border-destructive text-destructive hover:bg-destructive/5"
-            >
-              <LogOut />
-              Sign out
-            </Button>
-          </form>
+          <SignOutButton />
         </section>
       </div>
     </div>

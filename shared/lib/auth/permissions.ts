@@ -57,3 +57,15 @@ export function formatRoles(list: Role[]): string {
   const unique = [...new Set(list)].filter((role) => role !== DEFAULT_ROLE);
   return unique.length > 0 ? unique.join(",") : DEFAULT_ROLE;
 }
+
+/** What a permission check asks for, e.g. { booking: ["view-all"] }. */
+export type PermissionRequest = Parameters<(typeof roles)["admin"]["authorize"]>[0];
+
+/**
+ * True when any of these roles grants everything asked for. This is Better
+ * Auth's own role check, run locally against the roles above: no request, and
+ * the same answer on the server and in the browser.
+ */
+export function rolesCan(list: Role[], request: PermissionRequest): boolean {
+  return list.some((role) => roles[role].authorize(request).success);
+}

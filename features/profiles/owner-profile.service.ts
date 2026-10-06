@@ -3,13 +3,17 @@
  */
 
 import { db } from "@/database/db";
-import { ownerProfiles, users } from "@/database/schema";
+import { users } from "@/database/schema";
 import { and, desc, eq, ilike, or } from "drizzle-orm";
+import { hasRoleSql } from "@/features/users/user-access";
 
 export class OwnerProfileService {
-  /** Active users with an owner_profile row (boat owner picker). */
+  /**
+   * People an admin can set as a boat's owner: anyone with the Owner role.
+   * (The owner_profile row only holds business details, and may not exist yet.)
+   */
   async getOwnersForAssignment(search?: string) {
-    const conditions = [eq(users.status, "ACTIVE")];
+    const conditions = [eq(users.status, "ACTIVE"), hasRoleSql("owner")];
 
     if (search) {
       conditions.push(
@@ -32,7 +36,6 @@ export class OwnerProfileService {
         profileImage: users.profileImage,
       })
       .from(users)
-      .innerJoin(ownerProfiles, eq(ownerProfiles.userId, users.id))
       .where(and(...conditions))
       .orderBy(desc(users.createdAt))
       .limit(50);

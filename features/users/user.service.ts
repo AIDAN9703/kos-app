@@ -26,8 +26,10 @@ import {
 
 //bcrypt
 import { displayName } from '@/shared/lib/auth/session-user';
-import { formatRoles } from '@/shared/lib/auth/permissions';
-import { hasRoleSql, mergeAssignableRoles, setCredentialPassword } from '@/features/users/user-access';
+import { formatRoles, parseRoles } from '@/shared/lib/auth/permissions';
+import { hasRoleSql, mergeAssignableRoles, setUserPassword, setUserRoles } from '@/features/users/user-access';
+import { auth } from '@/shared/lib/auth/auth';
+import { headers } from 'next/headers';
 
 /**
  * User Service Layer
@@ -224,22 +226,27 @@ export class UserService {
    * Create new user (with password hashing)
    */
   async createUser(userData: CreateUserInput): Promise<User> {
-    const { password, roles, ...fields } = userData;
-    const email = fields.email.trim().toLowerCase();
+    const { password, roles, email, firstName, lastName, phoneNumber, ...profile } = userData;
 
-    const [newUser] = await db
-      .insert(users)
-      .values({
-        ...fields,
+    // Better Auth creates the account and its email + password sign-in, and
+    // checks the caller may assign these roles.
+    const { user: created } = await auth.api.createUser({
+      body: {
         email,
-        name: displayName(fields.firstName, fields.lastName, email),
-        role: formatRoles(roles),
-        isAdmin: roles.includes("admin"),
-      })
-      .returning();
+        password,
+        name: displayName(firstName, lastName, email),
+        role: parseRoles(formatRoles(roles)),
+        data: { firstName, lastName, phoneNumber },
+      },
+      headers: await headers(),
+    });
 
-    // The password lives on the person's "credential" sign-in method.
-    await setCredentialPassword(newUser.id, password);
+    // The rest of the profile (username, address, verification flags…).
+    const [newUser] = await db
+      .update(users)
+      .set({ ...profile, updatedAt: new Date() })
+      .where(eq(users.id, created.id))
+      .returning();
 
     // Admin vouches for the identity — adopt matching guest bookings even
     // though nothing is verified yet.
@@ -271,12 +278,6 @@ export class UserService {
         updateData.email ?? current.email
       );
     }
-    if (roles) {
-      const merged = mergeAssignableRoles(current.role, roles);
-      updateData.role = formatRoles(merged);
-      updateData.isAdmin = merged.includes("admin");
-    }
-
     const [updatedUser] = await db
       .update(users)
       .set(updateData)
@@ -286,7 +287,8 @@ export class UserService {
     if (!updatedUser) {
       throw new Error(`User not found: ${id}`);
     }
-    if (password) await setCredentialPassword(id, password);
+    if (roles) await setUserRoles(id, mergeAssignableRoles(current.role, roles));
+    if (password) await setUserPassword(id, password);
 
     return updatedUser;
   }

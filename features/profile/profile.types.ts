@@ -105,5 +105,5 @@ export interface CaptainSummary {
 
 /** Shape every profile server action resolves to. */
 export type ActionResult =
-  | { success: true }
+  | { success: true; message?: string }
   | { success: false; error: string; fieldErrors?: Record<string, string[]> };

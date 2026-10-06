@@ -18,6 +18,7 @@ import {
 import { adminThemedSidebarFrame } from "@/shared/admin/admin-header-chrome";
 import { ADMIN_NAV_ITEMS } from "@/shared/lib/constants/navigation-data";
 import { cn } from "@/shared/lib/utils/general-utils";
+import { signOutAndGoHome } from "@/shared/lib/auth/auth-client";
 import { LogOut } from "lucide-react";
 
 const navItemButton =
@@ -159,10 +160,14 @@ export default function AdminSidebar() {
               size="lg"
               className="h-11 rounded-lg px-3 text-base text-destructive/90 transition-colors hover:bg-destructive/10 hover:text-destructive group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:[&_.sidebar-label]:hidden"
             >
-              <Link href="/api/auth/signout" className="flex w-full items-center gap-3">
+              <button
+                type="button"
+                onClick={() => void signOutAndGoHome()}
+                className="flex w-full items-center gap-3"
+              >
                 <LogOut className="h-5 w-5 shrink-0 opacity-90" />
                 <span className="sidebar-label">Sign out</span>
-              </Link>
+              </button>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
