@@ -220,7 +220,6 @@ export default async function TermChartersPage() {
                   index={index}
                   size="md"
                   showPrice={false}
-                  showRating={false}
                 />
               </div>
             ))}

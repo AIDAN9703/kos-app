@@ -8,7 +8,6 @@ import {
   Zap,
   ShieldCheck,
   Fuel,
-  Star,
 } from "lucide-react";
 import { Boat } from "@/shared/lib/types/types";
 import { Pill } from "./detail-ui";
@@ -18,8 +17,6 @@ interface BasicInfoProps {
 }
 
 export function BasicInfo({ boat }: BasicInfoProps) {
-  const totalReviews = boat.totalReviews ?? 0;
-  const hasRating = boat.averageRating != null || totalReviews > 0;
   const facts: { icon: React.ReactNode; text: string }[] = [];
   if (boat.locationLabel)
     facts.push({ icon: <MapPin className="size-4 text-primary" />, text: boat.locationLabel });
@@ -40,19 +37,6 @@ export function BasicInfo({ boat }: BasicInfoProps) {
 
       {/* Compact inline facts */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-foreground/80">
-        {hasRating && (
-          <span className="flex items-center gap-1.5 font-medium">
-            <Star className="size-4 fill-amber-400 text-amber-400" />
-            <span className="font-semibold text-foreground">
-              {boat.averageRating != null ? Number(boat.averageRating).toFixed(1) : "New"}
-            </span>
-            {totalReviews > 0 && (
-              <span className="text-muted-foreground">
-                ({totalReviews} {totalReviews === 1 ? "review" : "reviews"})
-              </span>
-            )}
-          </span>
-        )}
         {facts.map((f, i) => (
           <span key={i} className="flex items-center gap-1.5">
             {f.icon}

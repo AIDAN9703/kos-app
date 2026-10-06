@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Heart, Star, Zap } from "lucide-react";
+import { ChevronLeft, ChevronRight, Heart, Zap } from "lucide-react";
 import { Image as IKImage } from "@imagekit/next";
 
 import { BoatWithTiers } from "@/features/boats/boat.types";
@@ -21,8 +21,6 @@ const SIZE_STYLES: Record<
     meta: string;
     title: string;
     price: string;
-    rating: string;
-    star: string;
     heart: string;
     badge: string;
     badgeIcon: string;
@@ -41,8 +39,6 @@ const SIZE_STYLES: Record<
     meta: "text-xs",
     title: "text-[15px]",
     price: "text-[15px]",
-    rating: "text-sm",
-    star: "h-3.5 w-3.5",
     heart: "h-4 w-4",
     badge: "px-2.5 py-1 text-[11px]",
     badgeIcon: "h-3 w-3",
@@ -60,8 +56,6 @@ const SIZE_STYLES: Record<
     meta: "text-sm",
     title: "text-base",
     price: "text-base",
-    rating: "text-sm",
-    star: "h-4 w-4",
     heart: "h-[18px] w-[18px]",
     badge: "px-2.5 py-1 text-xs",
     badgeIcon: "h-3.5 w-3.5",
@@ -79,8 +73,6 @@ const SIZE_STYLES: Record<
     meta: "text-sm",
     title: "text-lg",
     price: "text-lg",
-    rating: "text-base",
-    star: "h-4 w-4",
     heart: "h-5 w-5",
     badge: "px-3 py-1.5 text-xs",
     badgeIcon: "h-3.5 w-3.5",
@@ -99,7 +91,6 @@ export interface BoatListingCardProps {
   index?: number;
   size?: BoatListingCardSize;
   showPrice?: boolean;
-  showRating?: boolean;
   className?: string;
 }
 
@@ -108,7 +99,6 @@ export default function BoatListingCard({
   index = 0,
   size = "sm",
   showPrice = true,
-  showRating = true,
   className,
 }: BoatListingCardProps) {
   const [imageIndex, setImageIndex] = useState(0);
@@ -118,9 +108,6 @@ export default function BoatListingCard({
 
   const images = [boat.mainImage, ...(boat.galleryImages || [])].filter(Boolean);
   const imageUrl = images[imageIndex] ?? null;
-  const hasRating =
-    showRating &&
-    (boat.averageRating != null || (boat.totalReviews ?? 0) > 0);
   const location =
     boat.locationLabel && boat.locationLabel !== "N/A"
       ? boat.locationLabel
@@ -290,42 +277,18 @@ export default function BoatListingCard({
           )}
         </div>
 
-        {/* Row 3: rating + instant book */}
-        {(hasRating || boat.instantBook) && (
-          <div className="flex items-center justify-between gap-2">
-            {hasRating ? (
-              <div
-                className={cn(
-                  "flex min-w-0 items-center gap-1",
-                  styles.rating,
-                )}
-              >
-                <Star
-                  className={cn(styles.star, "fill-amber-400 text-amber-400")}
-                />
-                <span className="font-medium">
-                  {boat.averageRating?.toFixed(1) ?? "—"}
-                </span>
-                {(boat.totalReviews ?? 0) > 0 && (
-                  <span className="text-muted-foreground">
-                    ({boat.totalReviews})
-                  </span>
-                )}
-              </div>
-            ) : (
-              <span />
-            )}
-            {boat.instantBook && (
-              <span
-                className={cn(
-                  "inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-500 font-semibold text-white",
-                  styles.badge,
-                )}
-              >
-                <Zap className={cn(styles.badgeIcon, "fill-current")} />
-                Instant Book
-              </span>
-            )}
+        {/* Row 3: instant book */}
+        {boat.instantBook && (
+          <div className="flex items-center justify-end gap-2">
+            <span
+              className={cn(
+                "inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-500 font-semibold text-white",
+                styles.badge,
+              )}
+            >
+              <Zap className={cn(styles.badgeIcon, "fill-current")} />
+              Instant Book
+            </span>
           </div>
         )}
       </div>

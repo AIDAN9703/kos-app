@@ -123,7 +123,6 @@ export class UserService {
       captainProfile?: true;
       crewProfile?: true;
       bookings?: { limit: number };
-      reviewsAsReviewer?: { limit: number };
       notifications?: { limit: number; unreadOnly?: boolean };
     }
   ): Promise<UserWithRelations | null> {
@@ -156,12 +155,6 @@ export class UserService {
         }),
         ...(options.crewProfile && {
           crewProfile: { columns: { userId: true, status: true } },
-        }),
-        ...(options.reviewsAsReviewer && {
-          reviewsAsReviewer: {
-            columns: { id: true, rating: true, createdAt: true },
-            limit: options.reviewsAsReviewer.limit,
-          },
         }),
         ...(options.notifications && {
           notifications: {

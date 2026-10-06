@@ -10,6 +10,7 @@ export const bookingTypeEnum = pgEnum("BookingType", [
   "GENERAL_QUOTE", // Home/contact-page quote inquiry
   "BOAT_REQUEST", // Inquiry about a specific boat
   "TERM_CHARTER", // Multi-day term-charter inquiry
+  "MULTI_DAY", // Reserved for multi-day bookings (not built yet)
   "MANUAL", // Admin-logged lead (phone/DM/walk-in)
   "MARKETPLACE", // Ingested from a marketplace (Boatsetter/GetMyBoat)
 ]);

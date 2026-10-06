@@ -19,7 +19,6 @@ import type {
   CrewProfile,
   OwnerProfile,
   Notification,
-  Review,
   CaptainStatus,
   CrewStatus,
 } from "@/database/types";
@@ -101,7 +100,6 @@ export type UserWithRelations = User & {
   bookings?: BookingListItemShared[];
 
   /** Reviews written by this user */
-  reviewsAsReviewer?: Array<Pick<Review, "id" | "rating" | "createdAt">>;
 
   /** User's notifications */
   notifications?: Array<

@@ -442,6 +442,13 @@
       "when": 1791311886764,
       "tag": "0066_drop-legacy-auth",
       "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
+      "when": 1791312978934,
+      "tag": "0067_remove-fake-reviews-and-day-request",
+      "breakpoints": true
     }
   ]
 }
