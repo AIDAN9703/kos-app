@@ -1,7 +1,8 @@
 "use server";
 
 import { ZodError } from "zod";
-import { getAdminSession } from "@/shared/lib/utils/auth-utils";
+import { can, requirePermission } from "@/shared/lib/utils/auth-utils";
+import { requireDealAccess } from "@/features/bookings/lib/deal-access";
 import { bookingService } from "@/features/bookings/services/booking.service";
 import { bookingExpenseLineService } from "@/features/bookings/services/booking-expense-line.service";
 import { bookingOpsService } from "@/features/bookings/services/booking-ops.service";
@@ -67,13 +68,29 @@ export async function createBookingFull(
   rawInput: CreateBookingFullInput
 ): Promise<ActionResponse<CreateBookingFullResult>> {
   try {
-    const adminAuth = await getAdminSession();
-    if (adminAuth.error !== undefined) {
-      return { success: false, error: adminAuth.error };
+    const access = await requirePermission({ booking: ["create"] });
+    if (access.error !== undefined) {
+      return { success: false, error: access.error };
     }
-    const adminId = adminAuth.session.user.id;
+    const adminId = access.session.user.id;
 
-    const input = createBookingFullSchema.parse(rawInput);
+    let input = createBookingFullSchema.parse(rawInput);
+    if (!can(access.session.user, { booking: ["view-all"] })) {
+      // A broker turns only their own inquiries into proposals, every deal they
+      // create is assigned to them, and the company's costs stay admin-only.
+      if (input.dealId) {
+        const deal = await requireDealAccess(input.dealId, "edit");
+        if (deal.error !== undefined) return { success: false, error: deal.error };
+      }
+      input = {
+        ...input,
+        bookings: input.bookings.map((section) => ({
+          ...section,
+          assignedAdminId: adminId,
+          expenseLines: [],
+        })),
+      };
+    }
 
     const sendProposalEmail = input.sendProposalEmail ?? false;
     const sendProposalSms = input.sendProposalSms ?? false;

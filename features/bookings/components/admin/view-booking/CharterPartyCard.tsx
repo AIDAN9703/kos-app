@@ -37,10 +37,13 @@ export function CharterPartyCard({
   members,
   currentBookingId,
   groupName,
+  basePath,
 }: {
   members: CharterPartyMember[];
   currentBookingId: string;
   groupName: string | null;
+  /** "/admin/bookings" or "/brokers/deals". */
+  basePath: string;
 }) {
   const partyTotalCents = members.reduce((sum, m) => sum + (m.totalAmountCents ?? 0), 0);
 
@@ -93,7 +96,7 @@ export function CharterPartyCard({
             ) : (
               <Link
                 key={m.id}
-                href={`/admin/bookings/${m.id}`}
+                href={`${basePath}/${m.id}`}
                 className="block transition-colors hover:bg-primary-soft/40"
               >
                 {row}

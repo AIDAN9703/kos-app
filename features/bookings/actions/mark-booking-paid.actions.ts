@@ -1,11 +1,10 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 
 import { db } from "@/database/db";
 import { bookingPricing } from "@/database/schema";
-import { getAdminSession } from "@/shared/lib/utils/auth-utils";
+import { requireDealAccess, revalidateDeal } from "@/features/bookings/lib/deal-access";
 import { bookingOpsService } from "@/features/bookings/services/booking-ops.service";
 import { bookingService } from "@/features/bookings/services/booking.service";
 import { bookingEventsService } from "@/features/bookings/services/booking-events.service";
@@ -36,7 +35,7 @@ export async function recordBookingManualPaymentAction(
   input: { amountCents: number; method: ManualPaymentMethod; waiveServiceFee: boolean }
 ) {
   try {
-    const authResult = await getAdminSession();
+    const authResult = await requireDealAccess(bookingId, "record-payment");
     if (authResult.error !== undefined) return { success: false as const, error: authResult.error };
     const { amountCents, method, waiveServiceFee } = input;
 
@@ -152,7 +151,7 @@ export async function recordBookingManualPaymentAction(
       // Race loser on the no-overlap constraint: the payment IS recorded, the
       // slot isn't ours. Say so instead of pretending.
       if (isOverlapConstraintError(error)) {
-        revalidatePath(`/admin/bookings/${bookingId}`);
+        revalidateDeal(bookingId);
         return {
           success: false as const,
           error:
@@ -162,8 +161,7 @@ export async function recordBookingManualPaymentAction(
       throw error;
     }
 
-    revalidatePath(`/admin/bookings/${bookingId}`);
-    revalidatePath("/admin/bookings");
+    revalidateDeal(bookingId);
     return { success: true as const };
   } catch (error) {
     console.error("recordBookingManualPaymentAction:", error);

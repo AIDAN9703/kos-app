@@ -38,6 +38,8 @@ export function BreakdownCard({
   estimatedValueCents,
   budgetCents,
   send,
+  canEditExpenses,
+  canRecordPayments,
 }: {
   bookingId: string;
   isInquiry: boolean;
@@ -53,6 +55,9 @@ export function BreakdownCard({
   budgetCents: number | null;
   /** Null when there's no link to send (none yet, or the deal is settled). */
   send: SendToCustomerData | null;
+  /** The company's costs are admin-only. */
+  canEditExpenses: boolean;
+  canRecordPayments: boolean;
 }) {
   const fmt = (c: number) => formatCentsAsCurrency(c, { currency });
 
@@ -92,15 +97,19 @@ export function BreakdownCard({
         <div className="flex flex-wrap items-center justify-between gap-2">
           <CardTitle className="text-lg">Breakdown</CardTitle>
           <div className="flex flex-wrap items-center gap-2">
-            <BookingAddExpenseButton
-              bookingId={bookingId}
-              totalAmountCents={totalAmountCents}
-              serviceFeeCents={serviceFeeCents}
-              opsGmvCents={opsGmvCents}
-              currency={currency}
-              initialLines={expenseLines}
-            />
-            <AdminBookingMakePaymentButton bookingId={bookingId} money={money} />
+            {canEditExpenses ? (
+              <BookingAddExpenseButton
+                bookingId={bookingId}
+                totalAmountCents={totalAmountCents}
+                serviceFeeCents={serviceFeeCents}
+                opsGmvCents={opsGmvCents}
+                currency={currency}
+                initialLines={expenseLines}
+              />
+            ) : null}
+            {canRecordPayments ? (
+              <AdminBookingMakePaymentButton bookingId={bookingId} money={money} />
+            ) : null}
           </div>
         </div>
       </CardHeader>

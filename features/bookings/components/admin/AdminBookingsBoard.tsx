@@ -69,6 +69,7 @@ import {
   assignAdminToBooking,
 } from "@/features/bookings/actions/admin-booking.actions";
 import { useToast } from "@/shared/lib/hooks/use-toast";
+import { useDealsBasePath } from "@/features/bookings/components/admin/deal-links";
 
 interface Admin {
   id: string;
@@ -81,6 +82,11 @@ interface Admin {
 interface AdminBookingsBoardProps {
   bookings: BookingListItem[];
   admins?: Admin[];
+  /**
+   * "broker": the broker portal's board. No company money (expense, revenue)
+   * and no assigning; every row is already the broker's own deal.
+   */
+  view?: "admin" | "broker";
 }
 
 /**
@@ -92,6 +98,16 @@ interface AdminBookingsBoardProps {
  * spare screen width flows into the readable columns (customer, boat, date),
  * not into padding around badges.
  */
+const BROKER_COLUMNS: { key: string; width: string }[] = [
+  { key: "type", width: "12%" },
+  { key: "customer", width: "24%" },
+  { key: "boat", width: "20%" },
+  { key: "datetime", width: "16%" },
+  { key: "gmv", width: "10%" },
+  { key: "source", width: "12%" },
+  { key: "actions", width: "6%" },
+];
+
 const COLUMNS: { key: string; width: string }[] = [
   { key: "type", width: "12%" },
   { key: "customer", width: "18%" },
@@ -155,8 +171,12 @@ function SortableHead({
 export function AdminBookingsBoard({
   bookings,
   admins = [],
+  view = "admin",
 }: AdminBookingsBoardProps) {
   const router = useRouter();
+  const dealsBasePath = useDealsBasePath();
+  const isAdminView = view === "admin";
+  const columns = isAdminView ? COLUMNS : BROKER_COLUMNS;
   const { toast } = useToast();
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
@@ -202,9 +222,14 @@ export function AdminBookingsBoard({
     <TooltipProvider delayDuration={150}>
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
         <div className="min-h-0 flex-1 overflow-auto">
-          <table className="w-full min-w-[1180px] table-fixed caption-bottom text-sm">
+          <table
+            className={cn(
+              "w-full table-fixed caption-bottom text-sm",
+              isAdminView ? "min-w-[1180px]" : "min-w-[900px]"
+            )}
+          >
             <colgroup>
-              {COLUMNS.map((c) => (
+              {columns.map((c) => (
                 <col key={c.key} style={{ width: c.width }} />
               ))}
             </colgroup>
@@ -215,9 +240,13 @@ export function AdminBookingsBoard({
                 <TableHead className={HEAD_CLASS}>Boat</TableHead>
                 <SortableHead label="Date &amp; time" column="date" />
                 <SortableHead label="GMV" column="gmv" align="right" />
-                <TableHead className={cn(HEAD_CLASS, "text-right")}>Expense</TableHead>
-                <TableHead className={cn(HEAD_CLASS, "pr-6 text-right")}>Revenue</TableHead>
-                <TableHead className={cn(HEAD_CLASS, "px-2 text-center")}>Admin</TableHead>
+                {isAdminView ? (
+                  <>
+                    <TableHead className={cn(HEAD_CLASS, "text-right")}>Expense</TableHead>
+                    <TableHead className={cn(HEAD_CLASS, "pr-6 text-right")}>Revenue</TableHead>
+                    <TableHead className={cn(HEAD_CLASS, "px-2 text-center")}>Admin</TableHead>
+                  </>
+                ) : null}
                 <TableHead className={cn(HEAD_CLASS, "pl-4")}>Source</TableHead>
                 <TableHead className="pr-3" aria-label="Actions" />
               </TableRow>
@@ -228,11 +257,12 @@ export function AdminBookingsBoard({
                   key={b.id}
                   booking={b}
                   admins={admins}
+                  companyView={isAdminView}
                   actionLoading={actionLoading}
                   onAssign={(id, adminId) =>
                     runAction(() => assignAdminToBooking(id, adminId), "Admin assigned", id)
                   }
-                  onOpen={(id) => router.push(`/admin/bookings/${id}`)}
+                  onOpen={(id) => router.push(`${dealsBasePath}/${id}`)}
                 />
               ))}
             </TableBody>
@@ -450,12 +480,15 @@ function AssignAdminMenuItems({
 function BookingRow({
   booking,
   admins,
+  companyView,
   actionLoading,
   onAssign,
   onOpen,
 }: {
   booking: BookingListItem;
   admins: Admin[];
+  /** Admin board: show expense, revenue and the assigned admin, and allow assigning. */
+  companyView: boolean;
   actionLoading: string | null;
   onAssign: (id: string, adminId: string) => void;
   onOpen: (id: string) => void;
@@ -610,53 +643,59 @@ function BookingRow({
 
       {/* Money: GMV → expense → revenue (the headline number) */}
       <MoneyCell cents={gmvCents} currency={currency} estimate={isInquiry} />
-      <ExpenseCell booking={booking} currency={currency} />
-      <MoneyCell
-        cents={booking.opsRevenueCents}
-        currency={currency}
-        strong
-        signed
-        className="pr-6"
-      />
+      {companyView ? (
+        <>
+          <ExpenseCell booking={booking} currency={currency} />
+          <MoneyCell
+            cents={booking.opsRevenueCents}
+            currency={currency}
+            strong
+            signed
+            className="pr-6"
+          />
+        </>
+      ) : null}
 
       {/* Assigned admin */}
-      <TableCell className="px-2 py-3 text-center align-top">
-        {adminName ? (
-          <span
-            title={adminName}
-            className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary/15 text-[10px] font-semibold text-foreground"
-          >
-            {adminInitials(adminName) || "?"}
-          </span>
-        ) : unassigned ? (
-          <span onClick={(e) => e.stopPropagation()}>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  title="Assign an admin"
-                  disabled={isLoading}
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-foreground/10 text-sm font-semibold text-muted-foreground transition-colors hover:bg-foreground/20 hover:text-foreground"
-                >
-                  +
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-44">
-                <DropdownMenuLabel>Assign admin</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <AssignAdminMenuItems
-                  admins={admins}
-                  assignedAdminId={booking.assignedAdminId}
-                  disabled={isLoading}
-                  onAssign={(adminId) => onAssign(booking.id, adminId)}
-                />
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </span>
-        ) : (
-          <span className="text-xs text-muted-foreground/40">—</span>
-        )}
-      </TableCell>
+      {companyView ? (
+        <TableCell className="px-2 py-3 text-center align-top">
+          {adminName ? (
+            <span
+              title={adminName}
+              className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary/15 text-[10px] font-semibold text-foreground"
+            >
+              {adminInitials(adminName) || "?"}
+            </span>
+          ) : unassigned ? (
+            <span onClick={(e) => e.stopPropagation()}>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    title="Assign an admin"
+                    disabled={isLoading}
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-foreground/10 text-sm font-semibold text-muted-foreground transition-colors hover:bg-foreground/20 hover:text-foreground"
+                  >
+                    +
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  <DropdownMenuLabel>Assign admin</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <AssignAdminMenuItems
+                    admins={admins}
+                    assignedAdminId={booking.assignedAdminId}
+                    disabled={isLoading}
+                    onAssign={(adminId) => onAssign(booking.id, adminId)}
+                  />
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </span>
+          ) : (
+            <span className="text-xs text-muted-foreground/40">—</span>
+          )}
+        </TableCell>
+      ) : null}
 
       {/* Source */}
       <TableCell className="py-3 pl-4 align-top">
@@ -693,21 +732,25 @@ function BookingRow({
               <Eye className="mr-2 h-4 w-4" />
               Open deal
             </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger disabled={isLoading}>
-                <UserCheck className="mr-2 h-4 w-4" />
-                Assign admin
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent>
-                <AssignAdminMenuItems
-                  admins={admins}
-                  assignedAdminId={booking.assignedAdminId}
-                  disabled={isLoading}
-                  onAssign={(adminId) => onAssign(booking.id, adminId)}
-                />
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
+            {companyView ? (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger disabled={isLoading}>
+                    <UserCheck className="mr-2 h-4 w-4" />
+                    Assign admin
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    <AssignAdminMenuItems
+                      admins={admins}
+                      assignedAdminId={booking.assignedAdminId}
+                      disabled={isLoading}
+                      onAssign={(adminId) => onAssign(booking.id, adminId)}
+                    />
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+              </>
+            ) : null}
           </DropdownMenuContent>
         </DropdownMenu>
       </TableCell>

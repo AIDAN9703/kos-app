@@ -14,8 +14,18 @@ import { adminAc, defaultStatements } from "better-auth/plugins/admin/access";
 export const statement = {
   // user + session management for the admin plugin (list, ban, impersonate…)
   ...defaultStatements,
-  booking: ["view", "view-all", "edit", "price", "refund", "assign"],
-  boat: ["edit", "delete"],
+  booking: [
+    "view", // open deals (a broker: only the ones assigned to them)
+    "view-all", // every deal, whoever it's assigned to
+    "create",
+    "edit",
+    "price",
+    "assign", // choose who a deal is assigned to
+    "record-payment", // money recorded off-card
+    "refund",
+    "view-economics", // the company's costs and margin on a deal
+  ],
+  boat: ["view", "edit", "delete"],
   settings: ["edit"],
 } as const;
 
@@ -24,13 +34,14 @@ export const ac = createAccessControl(statement);
 export const roles = {
   admin: ac.newRole({
     ...adminAc.statements,
-    booking: ["view", "view-all", "edit", "price", "refund", "assign"],
-    boat: ["edit", "delete"],
+    booking: [...statement.booking],
+    boat: [...statement.boat],
     settings: ["edit"],
   }),
-  // Staff who work deals. Not wired into the admin area yet: brokers will see
-  // only the deals assigned to them once the bookings data layer lands.
-  broker: ac.newRole({ booking: ["view", "edit", "price"] }),
+  // Works deals in the broker portal (/brokers): the deals assigned to them,
+  // plus new ones they create. Sees boats to price trips; never the company's
+  // margins, payments, refunds, settings or other people's deals.
+  broker: ac.newRole({ booking: ["view", "create", "edit", "price"], boat: ["view"] }),
   owner: ac.newRole({}),
   captain: ac.newRole({}),
   crew: ac.newRole({}),

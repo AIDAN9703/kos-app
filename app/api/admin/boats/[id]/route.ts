@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { boatService } from "@/features/boats/boat.service";
 import { apiSuccess, apiError } from "@/shared/lib/utils/api-helpers";
-import { getSession } from "@/shared/lib/utils/auth-utils";
+import { requirePermission } from "@/shared/lib/utils/auth-utils";
 
 /**
  * GET /api/admin/boats/[id]
@@ -15,10 +15,9 @@ export async function GET(
     const { id } = await params;
     
     // Admin authentication
-    const session = await getSession();
-    if (!session?.user || !session.user.isAdmin) {
-      return apiError("Admin access required", 403);
-    }
+    // Read-only: brokers see boats to price their deals.
+    const access = await requirePermission({ boat: ["view"] });
+    if (access.error !== undefined) return apiError(access.error, 403);
 
     const boat = await boatService.getBoatById(id);
 

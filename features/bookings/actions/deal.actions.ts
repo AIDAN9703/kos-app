@@ -7,7 +7,6 @@
  * (docs/UNIFIED_BOOKINGS_PLAN.md).
  */
 
-import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 
 import { db } from "@/database/db";
@@ -18,18 +17,13 @@ import { sendProposalEmail } from "@/shared/lib/services/email.service";
 import { sendSms } from "@/shared/lib/services/twilio.service";
 import { getBaseUrl } from "@/shared/lib/utils/base-url";
 import { bookingStatusService } from "@/features/bookings/services/booking-status.service";
-import { getAdminSession } from "@/shared/lib/utils/auth-utils";
+import { requireDealAccess, revalidateDeal } from "@/features/bookings/lib/deal-access";
 
 type DealActionResult = { success: boolean; error?: string; message?: string };
 
 const CONTACT_METHODS = ["EMAIL", "PHONE", "SMS", "IN_PERSON", "OTHER"] as const;
 type ContactMethod = (typeof CONTACT_METHODS)[number];
 
-function revalidateDeal(bookingId: string) {
-  revalidatePath("/admin/bookings");
-  revalidatePath(`/admin/bookings/${bookingId}`);
-  revalidatePath("/admin");
-}
 
 async function getDeal(bookingId: string) {
   const [deal] = await db
@@ -55,7 +49,7 @@ export async function logDealContact(
   content?: string
 ): Promise<DealActionResult & { pipelineAdvanced?: boolean }> {
   try {
-    const adminAuth = await getAdminSession();
+    const adminAuth = await requireDealAccess(bookingId, "edit");
     if (adminAuth.error !== undefined) return { success: false, error: adminAuth.error };
     const session = adminAuth.session;
 
@@ -94,7 +88,7 @@ export async function logDealContact(
 
 export async function addDealNote(bookingId: string, content: string): Promise<DealActionResult> {
   try {
-    const adminAuth = await getAdminSession();
+    const adminAuth = await requireDealAccess(bookingId, "edit");
     if (adminAuth.error !== undefined) return { success: false, error: adminAuth.error };
     const session = adminAuth.session;
 
@@ -121,7 +115,7 @@ export async function addDealNote(bookingId: string, content: string): Promise<D
 /** Archive hides the deal from the default master list (boss's archive bucket). */
 export async function toggleDealArchived(bookingId: string): Promise<DealActionResult> {
   try {
-    const adminAuth = await getAdminSession();
+    const adminAuth = await requireDealAccess(bookingId, "edit");
     if (adminAuth.error !== undefined) return { success: false, error: adminAuth.error };
     const session = adminAuth.session;
 
@@ -158,7 +152,7 @@ export async function toggleDealArchived(bookingId: string): Promise<DealActionR
  */
 export async function shareProposalLink(bookingId: string): Promise<DealActionResult> {
   try {
-    const adminAuth = await getAdminSession();
+    const adminAuth = await requireDealAccess(bookingId, "edit");
     if (adminAuth.error !== undefined) return { success: false, error: adminAuth.error };
     const session = adminAuth.session;
 
@@ -206,7 +200,7 @@ export async function sendProposalUpdate(
   channels: { email: boolean; sms: boolean }
 ): Promise<DealActionResult> {
   try {
-    const adminAuth = await getAdminSession();
+    const adminAuth = await requireDealAccess(bookingId, "edit");
     if (adminAuth.error !== undefined) return { success: false, error: adminAuth.error };
     const session = adminAuth.session;
 
@@ -314,7 +308,7 @@ export async function sendProposalUpdate(
 /** Lose an INQUIRY-stage deal — status CANCELLED with the reason recorded. */
 export async function markDealLost(bookingId: string, reason: string): Promise<DealActionResult> {
   try {
-    const adminAuth = await getAdminSession();
+    const adminAuth = await requireDealAccess(bookingId, "edit");
     if (adminAuth.error !== undefined) return { success: false, error: adminAuth.error };
     const session = adminAuth.session;
 

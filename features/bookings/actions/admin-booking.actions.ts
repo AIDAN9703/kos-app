@@ -4,9 +4,8 @@
  * Admin Booking Actions
  * Server actions for admin to manage bookings
  */
-import { revalidatePath } from "next/cache";
 
-import { getAdminSession } from "@/shared/lib/utils/auth-utils";
+import { requireDealAccess, revalidateDeal } from "@/features/bookings/lib/deal-access";
 
 import { bookingService } from "@/features/bookings/services/booking.service";
 import { bookingCrewService } from "@/features/bookings/services/booking-crew.service";
@@ -20,16 +19,14 @@ import {
 /** Assign admin to booking, or pass null to unassign */
 export async function assignAdminToBooking(bookingId: string, adminId: string | null) {
   try {
-    const authResult = await getAdminSession();
+    const authResult = await requireDealAccess(bookingId, "assign");
     if (authResult.error) return { success: false, error: authResult.error };
     if (!bookingId) {
       return { success: false, error: "Booking ID is required" };
     }
 
     await bookingService.assignAdmin(bookingId, adminId, authResult.session!.user.id!);
-    revalidatePath("/admin/bookings");
-    revalidatePath(`/admin/bookings/${bookingId}`);
-    revalidatePath("/admin"); // dashboard queue shows unassigned leads
+    revalidateDeal(bookingId);
 
     return {
       success: true,
@@ -51,7 +48,7 @@ export async function addBookingCrewMember(
   role?: string | null
 ) {
   try {
-    const authResult = await getAdminSession();
+    const authResult = await requireDealAccess(bookingId, "edit");
     if (authResult.error) return { success: false, error: authResult.error };
     if (!bookingId || !crewUserId) {
       return { success: false, error: "Booking and crew user are required" };
@@ -64,8 +61,7 @@ export async function addBookingCrewMember(
       role ?? null
     );
 
-    revalidatePath("/admin/bookings");
-    revalidatePath(`/admin/bookings/${bookingId}`);
+    revalidateDeal(bookingId);
 
     return { success: true, message: "Crew member added" };
   } catch (error) {
@@ -81,7 +77,7 @@ export async function addBookingCrewMember(
 /** Remove a `booking_crew` row */
 export async function removeBookingCrewMember(bookingId: string, bookingCrewId: string) {
   try {
-    const authResult = await getAdminSession();
+    const authResult = await requireDealAccess(bookingId, "edit");
     if (authResult.error) return { success: false, error: authResult.error };
     if (!bookingId || !bookingCrewId) {
       return { success: false, error: "Booking and crew assignment are required" };
@@ -93,8 +89,7 @@ export async function removeBookingCrewMember(bookingId: string, bookingCrewId: 
       authResult.session!.user.id!
     );
 
-    revalidatePath("/admin/bookings");
-    revalidatePath(`/admin/bookings/${bookingId}`);
+    revalidateDeal(bookingId);
 
     return { success: true, message: "Crew member removed" };
   } catch (error) {
@@ -109,15 +104,14 @@ export async function removeBookingCrewMember(bookingId: string, bookingCrewId: 
 /** Assign captain (`bookings.captain_user_id`), or pass null to unassign */
 export async function assignCaptainToBooking(bookingId: string, captainUserId: string | null) {
   try {
-    const authResult = await getAdminSession();
+    const authResult = await requireDealAccess(bookingId, "edit");
     if (authResult.error) return { success: false, error: authResult.error };
     if (!bookingId) {
       return { success: false, error: "Booking ID is required" };
     }
 
     await bookingService.assignCaptain(bookingId, captainUserId, authResult.session!.user.id!);
-    revalidatePath("/admin/bookings");
-    revalidatePath(`/admin/bookings/${bookingId}`);
+    revalidateDeal(bookingId);
 
     return {
       success: true,
@@ -139,7 +133,7 @@ export async function assignCaptainToBooking(bookingId: string, captainUserId: s
  */
 export async function markBookingBooked(bookingId: string) {
   try {
-    const authResult = await getAdminSession();
+    const authResult = await requireDealAccess(bookingId, "edit");
     if (authResult.error !== undefined) return { success: false, error: authResult.error };
     const adminId = authResult.session.user.id;
 
@@ -193,9 +187,7 @@ export async function markBookingBooked(bookingId: string) {
       }
     }
 
-    revalidatePath("/admin/bookings");
-    revalidatePath(`/admin/bookings/${bookingId}`);
-    revalidatePath("/admin");
+    revalidateDeal(bookingId);
     return { success: true, message: booked > 1 ? `Booked — ${booked} boats locked in` : "Booked — the date is locked in" };
   } catch (error) {
     console.error("Error marking booking booked:", error);
@@ -209,13 +201,12 @@ export async function markBookingBooked(bookingId: string) {
 /** Mark a booked trip as completed (the charter happened). */
 export async function markBookingCompleted(bookingId: string) {
   try {
-    const authResult = await getAdminSession();
+    const authResult = await requireDealAccess(bookingId, "edit");
     if (authResult.error) return { success: false, error: authResult.error };
 
     await bookingStatusService.complete(bookingId, authResult.session!.user.id);
 
-    revalidatePath("/admin/bookings");
-    revalidatePath(`/admin/bookings/${bookingId}`);
+    revalidateDeal(bookingId);
 
     return { success: true, message: "Booking marked as completed" };
   } catch (error) {
@@ -230,7 +221,7 @@ export async function markBookingCompleted(bookingId: string) {
 /** Cancel a booking with a reason (any active status). */
 export async function cancelBooking(bookingId: string, reason: string) {
   try {
-    const authResult = await getAdminSession();
+    const authResult = await requireDealAccess(bookingId, "edit");
     if (authResult.error) return { success: false, error: authResult.error };
 
     const trimmed = reason?.trim();
@@ -238,8 +229,7 @@ export async function cancelBooking(bookingId: string, reason: string) {
 
     await bookingStatusService.cancel(bookingId, trimmed, authResult.session!.user.id);
 
-    revalidatePath("/admin/bookings");
-    revalidatePath(`/admin/bookings/${bookingId}`);
+    revalidateDeal(bookingId);
 
     return { success: true, message: "Booking cancelled" };
   } catch (error) {
@@ -266,7 +256,7 @@ export async function shiftCharterPartyWindows(
   deltaEndMs: number
 ) {
   try {
-    const authResult = await getAdminSession();
+    const authResult = await requireDealAccess(bookingId, "edit");
     if (authResult.error !== undefined) return { success: false, error: authResult.error };
     const adminId = authResult.session.user.id;
 
@@ -310,8 +300,7 @@ export async function shiftCharterPartyWindows(
       }
     }
 
-    revalidatePath("/admin/bookings");
-    revalidatePath(`/admin/bookings/${bookingId}`);
+    revalidateDeal(bookingId);
     return { success: true, moved };
   } catch (error) {
     console.error("Error shifting charter party:", error);
@@ -329,7 +318,7 @@ export async function addBoatToCharterParty(
   input: { boatId: string; pricingTierId: string }
 ) {
   try {
-    const authResult = await getAdminSession();
+    const authResult = await requireDealAccess(bookingId, "edit");
     if (authResult.error !== undefined) return { success: false, error: authResult.error };
 
     const result = await bookingService.addBoatToParty(
@@ -337,8 +326,7 @@ export async function addBoatToCharterParty(
       input,
       authResult.session.user.id
     );
-    revalidatePath("/admin/bookings");
-    revalidatePath(`/admin/bookings/${bookingId}`);
+    revalidateDeal(bookingId);
     return { success: true, siblingId: result.siblingId };
   } catch (error) {
     console.error("Error adding boat to party:", error);

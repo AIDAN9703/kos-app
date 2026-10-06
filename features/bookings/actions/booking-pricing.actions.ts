@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
@@ -11,7 +10,7 @@ import { bookingEventsService } from "@/features/bookings/services/booking-event
 import { bookingPricingService } from "@/features/bookings/services/booking-pricing.service";
 import { bookingService } from "@/features/bookings/services/booking.service";
 import { paymentService } from "@/features/payments/payment.service";
-import { getAdminSession } from "@/shared/lib/utils/auth-utils";
+import { requireDealAccess, revalidateDeal } from "@/features/bookings/lib/deal-access";
 import {
   calculateBookingPriceCents,
   serviceFeeFromSnapshot,
@@ -45,12 +44,6 @@ const bookingPricingUpdateSchema = z.object({
   addOns: z.array(addOnInputSchema),
 });
 
-function revalidateBooking(bookingId: string) {
-  revalidatePath("/admin/bookings");
-  revalidatePath(`/admin/bookings/${bookingId}`);
-  revalidatePath("/admin");
-}
-
 /**
  * The fee this booking was priced with. Settings can change after a proposal
  * goes out; re-pricing must not silently move a customer's fee, so use the
@@ -72,7 +65,7 @@ export async function updateBookingPricing(
   bookingId: string,
   rawInput: unknown
 ): Promise<ActionResult> {
-  const adminAuth = await getAdminSession();
+  const adminAuth = await requireDealAccess(bookingId, "price");
   if (adminAuth.error !== undefined) return { success: false, error: adminAuth.error };
 
   const parsed = bookingPricingUpdateSchema.safeParse(rawInput);
@@ -185,7 +178,7 @@ export async function updateBookingPricing(
       changedFields: ["pricing"],
     });
 
-    revalidateBooking(bookingId);
+    revalidateDeal(bookingId);
     return { success: true };
   } catch (error) {
     console.error("updateBookingPricing failed:", error);

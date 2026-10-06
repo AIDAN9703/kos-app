@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 
 import { bookingService } from "@/features/bookings/services/booking.service";
 import { alertTeam } from "@/features/bookings/lib/team-alerts";
@@ -9,6 +8,7 @@ import {
   availabilityService,
   SlotUnavailableError,
 } from "@/features/availability/services/availability.service";
+import { revalidateDeal } from "@/features/bookings/lib/deal-access";
 
 type StartPaymentResult =
   | { success: true; checkoutUrl: string }
@@ -96,8 +96,7 @@ export async function requestProposalChangesAction(
       note: "Update the trip on the booking page, then resend — it's the same link.",
     });
 
-    revalidatePath("/admin/bookings");
-    revalidatePath("/admin");
+    revalidateDeal(bookingId);
 
     return { success: true };
   } catch (error) {

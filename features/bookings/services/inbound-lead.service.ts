@@ -2,7 +2,7 @@ import { db } from "@/database/db";
 import { bookings } from "@/database/schema";
 import { bookingEventsService } from "@/features/bookings/services/booking-events.service";
 import { sendAdminAlertEmail } from "@/shared/lib/services/email.service";
-import { revalidatePath } from "next/cache";
+import { revalidateDeal } from "@/features/bookings/lib/deal-access";
 
 type MarketplaceSourceValue = "BOATSETTER" | "GETMYBOAT";
 
@@ -286,8 +286,7 @@ export async function processMarketplaceEmail(
         : undefined,
   }).catch((e) => console.error("Team alert (marketplace lead) failed:", e));
 
-  revalidatePath("/admin/bookings");
-  revalidatePath("/admin");
+  revalidateDeal();
 
   return { dealId: created.id, method };
 }

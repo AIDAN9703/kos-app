@@ -66,6 +66,13 @@ export async function requireAdmin(): Promise<AppSession> {
   return session;
 }
 
+/** The broker portal (/brokers). Admins may open it too. */
+export async function requireBrokerPortal(): Promise<AppSession> {
+  const session = await requireAuth();
+  if (!session.user.isBroker && !session.user.isAdmin) redirect("/profile");
+  return session;
+}
+
 /** The /owner portal. */
 export async function requireOwner(): Promise<AppSession> {
   const session = await requireAuth();

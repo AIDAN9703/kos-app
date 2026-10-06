@@ -28,14 +28,10 @@ import { calculateBookingPriceCents } from "@/shared/lib/utils/pricing-utils";
 import { dollarsToCents } from "@/shared/lib/utils/money-utils";
 import { getAppSettings } from "@/features/app-settings/app-settings.service";
 import { getSession } from "@/shared/lib/utils/auth-utils";
+import { revalidateDeal } from "@/features/bookings/lib/deal-access";
 
 /** Event type for all intake events — matches the backfill's `lead.created`. */
 const LEAD_CREATED_EVENT = "lead.created";
-
-function revalidateDealSurfaces() {
-  revalidatePath("/admin/bookings");
-  revalidatePath("/admin");
-}
 
 async function logLeadCreated(
   bookingId: string,
@@ -186,7 +182,7 @@ export async function createGeneralLead(data: GeneralLeadInput) {
         ],
       });
     }
-    revalidateDealSurfaces();
+    revalidateDeal();
 
     return {
       success: true,
@@ -289,7 +285,7 @@ export async function createTermCharterLead(data: TermCharterLeadInput) {
         ],
       });
     }
-    revalidateDealSurfaces();
+    revalidateDeal();
 
     return {
       success: true,
@@ -452,7 +448,7 @@ export async function createBoatLead(data: BoatLeadInput) {
         ],
       });
     }
-    revalidateDealSurfaces();
+    revalidateDeal();
     revalidatePath(`/boats/${boatId}`);
 
     return {

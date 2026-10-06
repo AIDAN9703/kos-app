@@ -44,8 +44,11 @@ export default async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const hasSessionCookie = Boolean(getSessionCookie(req));
 
-  const isAdminPage = pathname.startsWith("/admin");
-  const isAdminApi = pathname.startsWith("/api/admin");
+  // Admin pages are admins only. The admin API is open to staff (admins and
+  // brokers); each route then checks its own permission (brokers may read
+  // boats to price deals, nothing else).
+  const isAdminPage = pathname === "/admin" || pathname.startsWith("/admin/");
+  const isAdminApi = pathname.startsWith("/api/admin/");
   if (isAdminPage || isAdminApi) {
     const session = hasSessionCookie ? await auth.api.getSession({ headers: req.headers }) : null;
     if (!session) {
@@ -53,7 +56,8 @@ export default async function proxy(req: NextRequest) {
         ? NextResponse.json({ error: "Authentication required" }, { status: 401 })
         : redirectToSignIn(req);
     }
-    if (!session.user.isAdmin) {
+    const allowed = isAdminApi ? session.user.isAdmin || session.user.isBroker : session.user.isAdmin;
+    if (!allowed) {
       return isAdminApi
         ? NextResponse.json({ error: "Admin access required" }, { status: 403 })
         : NextResponse.redirect(new URL("/403", req.url));
@@ -61,8 +65,11 @@ export default async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // Customer profile and owner portal (role checks happen in the layouts)
-  if (pathname.startsWith("/profile") || pathname === "/owner" || pathname.startsWith("/owner/")) {
+  // Signed-in areas (role checks happen in each layout): profile, owner and broker portals
+  const signedInArea = ["/profile", "/owner", "/brokers"].some(
+    (area) => pathname === area || pathname.startsWith(`${area}/`)
+  );
+  if (signedInArea) {
     if (!hasSessionCookie) return redirectToSignIn(req);
   }
 

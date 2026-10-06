@@ -9,6 +9,7 @@ import {
   PackagePlus,
   Settings,
   Sparkles,
+  Handshake,
   type LucideIcon,
 } from "lucide-react";
 
@@ -299,6 +300,16 @@ export const ADMIN_NAV_ITEMS: AdminMainNavItem[] = [
     label: "Settings",
     href: "/admin/settings",
     icon: Settings,
+    iconClassName: "h-5 w-5",
+  },
+];
+
+/** The broker portal (/brokers): their deals, and nothing of the company's. */
+export const BROKER_NAV_ITEMS: AdminMainNavItem[] = [
+  {
+    label: "My deals",
+    href: "/brokers",
+    icon: Handshake,
     iconClassName: "h-5 w-5",
   },
 ];

@@ -80,7 +80,18 @@ function getAdminLabel(admin: AdminOption | undefined): string {
   return name || admin.email || admin.username || "Unknown";
 }
 
-export function AdminBookingFilter({ admins }: { admins: AdminOption[] }) {
+export function AdminBookingFilter({
+  admins,
+  variant = "admin",
+}: {
+  admins: AdminOption[];
+  /**
+   * "broker": the broker portal. No assignment controls (every deal there is
+   * theirs) and no calendar (it reads every boat's bookings).
+   */
+  variant?: "admin" | "broker";
+}) {
+  const showAssignment = variant === "admin";
   const [filters, setFilters] = useQueryStates(bookingSearchParams, {
     clearOnDefault: true,
     shallow: false,
@@ -175,24 +186,26 @@ export function AdminBookingFilter({ admins }: { admins: AdminOption[] }) {
     <div className="space-y-2 pb-3">
       <AdminToolbar
         trailing={
-          <div
-            role="tablist"
-            aria-label="Bookings view"
-            className="inline-flex h-10 items-center rounded-full bg-muted p-1"
-          >
-            <ViewToggleButton
-              active={filters.view === "table"}
-              label="Table"
-              icon={LayoutList}
-              onClick={() => updateFilter({ view: "table" })}
-            />
-            <ViewToggleButton
-              active={filters.view === "calendar"}
-              label="Calendar"
-              icon={CalendarDays}
-              onClick={() => updateFilter({ view: "calendar" })}
-            />
-          </div>
+          showAssignment ? (
+            <div
+              role="tablist"
+              aria-label="Bookings view"
+              className="inline-flex h-10 items-center rounded-full bg-muted p-1"
+            >
+              <ViewToggleButton
+                active={filters.view === "table"}
+                label="Table"
+                icon={LayoutList}
+                onClick={() => updateFilter({ view: "table" })}
+              />
+              <ViewToggleButton
+                active={filters.view === "calendar"}
+                label="Calendar"
+                icon={CalendarDays}
+                onClick={() => updateFilter({ view: "calendar" })}
+              />
+            </div>
+          ) : undefined
         }
       >
         <FilterSearch
@@ -201,23 +214,27 @@ export function AdminBookingFilter({ admins }: { admins: AdminOption[] }) {
           placeholder="Search by customer, boat, email, phone..."
         />
 
-        {/* Ownership scope — same segmented pills as the inquiries page */}
-        <div className="flex h-10 items-center rounded-full bg-muted p-1">
-          {(
-            [
-              { value: null, label: "All" },
-              { value: "mine", label: "My bookings" },
-              { value: "unassigned", label: "Unassigned" },
-            ] as const
-          ).map((tab) => (
-            <SegmentedPill
-              key={tab.label}
-              active={filters.scope === tab.value}
-              label={tab.label}
-              onClick={() => updateFilter({ scope: tab.value })}
-            />
-          ))}
-        </div>
+        {showAssignment ? (
+          <>
+            {/* Ownership scope — same segmented pills as the inquiries page */}
+            <div className="flex h-10 items-center rounded-full bg-muted p-1">
+              {(
+                [
+                  { value: null, label: "All" },
+                  { value: "mine", label: "My bookings" },
+                  { value: "unassigned", label: "Unassigned" },
+                ] as const
+              ).map((tab) => (
+                <SegmentedPill
+                  key={tab.label}
+                  active={filters.scope === tab.value}
+                  label={tab.label}
+                  onClick={() => updateFilter({ scope: tab.value })}
+                />
+              ))}
+            </div>
+          </>
+        ) : null}
 
         {/* Trip-date scope */}
         <div className="flex h-10 items-center rounded-full bg-muted p-1">
@@ -280,17 +297,19 @@ export function AdminBookingFilter({ admins }: { admins: AdminOption[] }) {
               renderLabel={friendlyEnumLabel}
             />
           </FilterField>
-          <FilterField icon={User} label="Assigned admin">
-            <FilterSelect
-              value={filters.assignedAdminId}
-              onChange={(v) => updateFilter({ assignedAdminId: v })}
-              options={adminIds}
-              placeholder="Any admin"
-              allLabel="Any admin"
-              width="w-full"
-              renderLabel={(id) => getAdminLabel(findAdmin(id))}
-            />
-          </FilterField>
+          {showAssignment ? (
+            <FilterField icon={User} label="Assigned admin">
+              <FilterSelect
+                value={filters.assignedAdminId}
+                onChange={(v) => updateFilter({ assignedAdminId: v })}
+                options={adminIds}
+                placeholder="Any admin"
+                allLabel="Any admin"
+                width="w-full"
+                renderLabel={(id) => getAdminLabel(findAdmin(id))}
+              />
+            </FilterField>
+          ) : null}
           <FilterField icon={CalendarIcon} label="Date range" className="sm:col-span-2">
             <div className="grid grid-cols-2 gap-2">
               <Input

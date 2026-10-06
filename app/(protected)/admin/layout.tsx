@@ -6,7 +6,7 @@ import { QueryProvider } from "@/shared/lib/providers/QueryProvider";
 import { SidebarInset, SidebarProvider } from "@/shared/components/ui/sidebar";
 import KBar from "@/shared/admin/components/kbar";
 import { cookies } from "next/headers";
-import "./admin-theme.css";
+import "@/shared/admin/admin-theme.css";
 import "@/shared/admin/admin-fullcalendar.css";
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {

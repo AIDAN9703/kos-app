@@ -1,16 +1,13 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { bookingExpenseLineService } from "@/features/bookings/services/booking-expense-line.service";
 import type { BookingExpenseLineInput } from "@/features/bookings/booking-expense.types";
-import { getSession } from "@/shared/lib/utils/auth-utils";
+import { requireDealAccess, revalidateDeal } from "@/features/bookings/lib/deal-access";
 
 export async function getBookingExpenseLines(bookingId: string) {
   try {
-    const session = await getSession();
-    if (!session?.user?.isAdmin) {
-      return { success: false as const, error: "Admin access required" };
-    }
+    const access = await requireDealAccess(bookingId, "view-economics");
+    if (access.error !== undefined) return { success: false as const, error: access.error };
 
     const lines = await bookingExpenseLineService.getLines(bookingId);
     return { success: true as const, lines };
@@ -25,10 +22,8 @@ export async function getBookingExpenseLines(bookingId: string) {
 
 export async function getBookingExpenseDefaults(bookingId: string) {
   try {
-    const session = await getSession();
-    if (!session?.user?.isAdmin) {
-      return { success: false as const, error: "Admin access required" };
-    }
+    const access = await requireDealAccess(bookingId, "view-economics");
+    if (access.error !== undefined) return { success: false as const, error: access.error };
 
     const defaults = await bookingExpenseLineService.getDefaultsForBooking(bookingId);
     return { success: true as const, defaults };
@@ -46,14 +41,11 @@ export async function saveBookingExpenseLines(
   lines: BookingExpenseLineInput[]
 ) {
   try {
-    const session = await getSession();
-    if (!session?.user?.isAdmin) {
-      return { success: false as const, error: "Admin access required" };
-    }
+    const access = await requireDealAccess(bookingId, "view-economics");
+    if (access.error !== undefined) return { success: false as const, error: access.error };
 
     const saved = await bookingExpenseLineService.saveLines(bookingId, lines);
-    revalidatePath(`/admin/bookings/${bookingId}`);
-    revalidatePath("/admin/bookings");
+    revalidateDeal(bookingId);
 
     return { success: true as const, lines: saved };
   } catch (error) {

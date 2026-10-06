@@ -37,6 +37,7 @@ import type { BookingAddOnInput } from "@/features/bookings/booking.types";
 import type { BookingExpenseCategory } from "@/database/types";
 import type { DealPrefill } from "@/features/bookings/lib/deal-prefill";
 import type { BookingDatePrefill } from "@/features/bookings/lib/booking-create-date-prefill";
+import { useDealsBasePath } from "@/features/bookings/components/admin/deal-links";
 
 type ExpenseRow = {
   key: string;
@@ -122,7 +123,6 @@ export function BookingComposer({
   onSuccess,
 }: {
   pricingTiers: PricingTierOption[];
-  /** Sales-agent choices — the same admin list the board's assign menu uses. */
   /** Present when pricing an INQUIRY deal — that row upgrades in place. */
   dealPrefill?: DealPrefill | null;
   /** Calendar deep-link (?date=YYYY-MM-DD) prefill for scratch creates. */
@@ -131,6 +131,7 @@ export function BookingComposer({
   onSuccess?: (bookingId?: string) => void;
 }) {
   const router = useRouter();
+  const dealsBasePath = useDealsBasePath();
   const { toast } = useToast();
   const [pending, startTransition] = useTransition();
   const [step, setStep] = useState(0);
@@ -345,7 +346,7 @@ export function BookingComposer({
         const isParty = sections.length > 1;
         const viewAction = (
           <ToastAction asChild altText="View booking">
-            <Link href={`/admin/bookings/${bookingId}`}>View booking</Link>
+            <Link href={`${dealsBasePath}/${bookingId}`}>View booking</Link>
           </ToastAction>
         );
         // The row is saved either way; only claim "sent" when it actually went.
@@ -373,7 +374,7 @@ export function BookingComposer({
           });
         }
         if (onSuccess) onSuccess(bookingId);
-        else router.push(`/admin/bookings/${bookingId}`);
+        else router.push(`${dealsBasePath}/${bookingId}`);
       } else {
         setSubmitError(result.error);
         toast({
@@ -385,6 +386,7 @@ export function BookingComposer({
     });
   }, [
     dealPrefill?.dealId,
+    dealsBasePath,
     isDealMode,
     sections,
     effectiveContact,

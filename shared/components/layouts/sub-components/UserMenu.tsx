@@ -15,7 +15,7 @@ import { signOutAndGoHome } from "@/shared/lib/auth/auth-client";
 import type { SessionUser } from "@/shared/lib/auth/session-user";
 import { NavigationData } from "@/shared/lib/constants/navigation-data";
 import { DefaultUserAvatarFallback } from "@/shared/lib/utils/user-utils";
-import { Settings, HelpCircle, LogOut } from "lucide-react";
+import { Settings, HelpCircle, LogOut, Handshake } from "lucide-react";
 
 interface UserMenuProps {
   user: SessionUser | undefined | null;
@@ -65,6 +65,17 @@ export default function UserMenu({ user, navigationData }: UserMenuProps) {
 
             {/* Section 2: Account & Help */}
             <div>
+              {user.isBroker ? (
+                <DropdownMenuItem
+                  className="cursor-pointer py-2.5 text-base font-normal text-muted-foreground hover:bg-gray-50 rounded-lg focus:bg-gray-50"
+                  asChild
+                >
+                  <Link href="/brokers" className="flex items-center gap-3">
+                    <Handshake className="h-5 w-5 text-gray-600" />
+                    <span>Broker portal</span>
+                  </Link>
+                </DropdownMenuItem>
+              ) : null}
               <DropdownMenuItem
                 className="cursor-pointer py-2.5 text-base font-normal text-muted-foreground hover:bg-gray-50 rounded-lg focus:bg-gray-50"
                 asChild

@@ -4,40 +4,28 @@
 
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { type ActionResponse } from "@/shared/lib/types/types";
 import { bookingService } from "@/features/bookings/services/booking.service";
 import { bookingSingleFieldUpdateSchema } from "@/features/bookings/booking-single-field-update";
 import type { BookingDetails } from "@/features/bookings/booking.types";
-import { getSession } from "@/shared/lib/utils/auth-utils";
+import { requireDealAccess, revalidateDeal } from "@/features/bookings/lib/deal-access";
 
 /**
- * Admin: update exactly one booking column (validated per-field).
+ * Update exactly one booking column (validated per-field). Admins, or the
+ * broker the deal is assigned to.
  */
 export async function updateBookingSingleField(
   id: string,
   rawUpdate: unknown
 ): Promise<ActionResponse<{ booking: BookingDetails }>> {
-  const session = await getSession();
-
-  if (!session?.user) {
-    return { success: false, error: "Authentication required" };
-  }
-
-  if (!session?.user?.isAdmin) {
-    return { success: false, error: "Admin access required" };
-  }
+  const access = await requireDealAccess(id, "edit");
+  if (access.error !== undefined) return { success: false, error: access.error };
 
   try {
-    const actorId = session.user.id;
-    if (!actorId) {
-      return { success: false, error: "Admin user id missing" };
-    }
-
+    const actorId = access.session.user.id;
     const update = bookingSingleFieldUpdateSchema.parse(rawUpdate);
     const booking = await bookingService.applyBookingSingleFieldUpdate(id, update, actorId);
-    revalidatePath("/admin/bookings");
-    revalidatePath(`/admin/bookings/${id}`);
+    revalidateDeal(id);
     return { success: true, data: { booking } };
   } catch (error) {
     console.error("Error updating booking field:", error);

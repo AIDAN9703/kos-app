@@ -52,6 +52,8 @@ interface DealActionsMenuProps {
   isArchived?: boolean;
   assignedAdminId?: string | null;
   admins?: DealAdminOption[];
+  /** Admins choose who a deal is assigned to; brokers don't see the menu. */
+  canAssign?: boolean;
   /** Current admin's user id — powers "Assign to me". */
   currentUserId?: string | null;
 }
@@ -68,6 +70,7 @@ export function DealActionsMenu({
   isArchived = false,
   assignedAdminId = null,
   admins = [],
+  canAssign = true,
   currentUserId = null,
 }: DealActionsMenuProps) {
   const router = useRouter();
@@ -113,7 +116,7 @@ export function DealActionsMenu({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-60">
-          {!isSettled ? (
+          {!isSettled && canAssign ? (
             <>
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger className="gap-2">
