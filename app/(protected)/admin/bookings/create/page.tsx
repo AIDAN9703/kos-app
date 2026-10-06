@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { BookingComposer } from "@/features/bookings/components/admin/booking-forms/BookingComposer";
-import { boatService } from "@/features/boats/boat.service";
+import { getBoatTiers } from "@/features/boats/boat.data";
 import { bookingService } from "@/features/bookings/services/booking.service";
 import { buildDealPrefillForBookingForm } from "@/features/bookings/lib/deal-prefill";
 import { buildDatePrefillForBookingForm } from "@/features/bookings/lib/booking-create-date-prefill";
@@ -17,7 +17,7 @@ export default async function AdminBookingCreatePage({ searchParams }: Props) {
   const targetDealId = (dealId ?? inquiryId)?.trim();
 
   const [pricingTiers, deal] = await Promise.all([
-    boatService.getAllActivePricingTiers(),
+    getBoatTiers(),
     targetDealId ? bookingService.getBookingById(targetDealId) : Promise.resolve(null),
   ]);
 

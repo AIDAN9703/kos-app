@@ -5,7 +5,7 @@
 
 import superjson from 'superjson';
 import { type ApiResponse } from '@/shared/lib/types/api.types';
-import type { BoatForAdminSelect } from '@/features/boats/boat.types';
+import type { BoatForAdminSelect, BoatTier } from '@/features/boats/boat.types';
 
 export const boatsApi = {
   /**
@@ -56,19 +56,19 @@ export const boatsApi = {
   },
 
   /**
-   * Fetch pricing tiers for a boat
+   * Fetch a boat's active pricing tiers
    * Calls: GET /api/admin/boats/[id]/pricing-tiers
    */
-  async getBoatPricingTiers(boatId: string): Promise<Array<{ id: string; hours: number; price: number; name: string | null; description: string | null; isActive: boolean; isDefault: boolean }>> {
+  async getBoatPricingTiers(boatId: string): Promise<BoatTier[]> {
     const response = await fetch(`/api/admin/boats/${boatId}/pricing-tiers`);
-    
+
     if (!response.ok) {
       throw new Error(`Failed to fetch pricing tiers: ${response.statusText}`);
     }
 
     const json = await response.json();
-    const parsed = superjson.deserialize<ApiResponse<Array<{ id: string; hours: number; price: number; name: string | null; description: string | null; isActive: boolean; isDefault: boolean }>>>(json);
-    
+    const parsed = superjson.deserialize<ApiResponse<BoatTier[]>>(json);
+
     if (!parsed.success || !parsed.data) {
       return [];
     }

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Calendar, Edit } from "lucide-react";
-import { getBoatById } from "@/features/boats/actions/boat-actions";
+import { getBoatDetail } from "@/features/boats/boat.data";
 import { AdminBoatProfileHeader } from "@/features/boats/components/AdminBoatProfileHeader";
 import { AdminBoatDetails } from "@/features/boats/components/AdminBoatDetails";
 import { Button } from "@/shared/components/ui/button";
@@ -14,7 +14,7 @@ export default async function BoatDetailPage({ params }: BoatDetailPageProps) {
   const resolvedParams = await params;
   const boatId = resolvedParams.id;
 
-  const boatData = await getBoatById(boatId);
+  const boatData = await getBoatDetail(boatId);
 
   if (!boatData) {
     notFound();

@@ -1,20 +1,20 @@
 "use client";
 
 import React, { createContext, useContext } from "react";
-import { BoatWithTiers } from "@/features/boats/boat.types";
+import type { PublicBoat } from "@/features/boats/boat.types";
 
 interface BoatProviderProps {
-  boat: BoatWithTiers;
+  boat: PublicBoat;
   children: React.ReactNode;
 }
 
-const BoatContext = createContext<BoatWithTiers | null>(null);
+const BoatContext = createContext<PublicBoat | null>(null);
 
 export default function BoatProvider({ boat, children }: BoatProviderProps) {
   return <BoatContext.Provider value={boat}>{children}</BoatContext.Provider>;
 }
 
-export function useBoat(): BoatWithTiers {
+export function useBoat(): PublicBoat {
   const ctx = useContext(BoatContext);
   if (!ctx) {
     throw new Error("useBoat must be used within BoatProvider");

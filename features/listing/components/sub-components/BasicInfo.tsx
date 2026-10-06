@@ -9,11 +9,11 @@ import {
   ShieldCheck,
   Fuel,
 } from "lucide-react";
-import { Boat } from "@/shared/lib/types/types";
+import type { PublicBoat } from "@/features/boats/boat.types";
 import { Pill } from "./detail-ui";
 
 interface BasicInfoProps {
-  boat: Boat;
+  boat: PublicBoat;
 }
 
 export function BasicInfo({ boat }: BasicInfoProps) {

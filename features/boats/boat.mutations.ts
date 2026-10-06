@@ -1,74 +1,52 @@
-/**
- * Boats Mutations (Server Actions) - CUD Operations Only
- */
-
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { type ActionResponse } from "@/shared/lib/types/types";
+import { revalidatePath, updateTag } from "next/cache";
+
+import * as boatData from "@/features/boats/boat.data";
 import { type CreateBoatInput, type UpdateBoatInput } from "@/features/boats/boat.validation";
-import { boatService } from "@/features/boats/boat.service";
-import { BoatWithTiers } from "./boat.types";
-import { getAdminSession } from "@/shared/lib/utils/auth-utils";
-
-// ========================================
-// CORE CUD OPERATIONS
-// ========================================
+import { type ActionResponse } from "@/shared/lib/types/types";
+import { actionError } from "@/shared/lib/utils/action-helpers";
 
 /**
- * Create new boat
+ * Boat server actions: thin wrappers over boat.data.ts, which checks access
+ * and validates the input. Each one refreshes the pages that show boats.
  */
-export async function createBoat(boatData: CreateBoatInput): Promise<ActionResponse<BoatWithTiers>> {
-  const admin = await getAdminSession();
-  if (admin.error !== undefined) return { success: false, error: admin.error };
 
-  try {
-    const newBoat = await boatService.createBoat(boatData);
-
-    revalidatePath('/admin/boats');
-    return { success: true, data: newBoat };
-  } catch (error) {
-    console.error("Error creating boat:", error);
-    return { success: false, error: "Failed to create boat" };
-  }
-}
-
-/**
- * Update boat (partial updates allowed)
- */
-export async function updateBoat(
-  id: string, 
-  updates: Partial<UpdateBoatInput>
-): Promise<ActionResponse<BoatWithTiers>> {
-  const admin = await getAdminSession();
-  if (admin.error !== undefined) return { success: false, error: admin.error };
-
-  try {
-    const updatedBoat = await boatService.updateBoat(id, updates);
-
-    revalidatePath('/admin/boats');
+function revalidateBoat(id?: string) {
+  updateTag(boatData.PUBLIC_BOATS_TAG);
+  revalidatePath("/admin/boats");
+  if (id) {
     revalidatePath(`/admin/boats/${id}`);
-    return { success: true, data: updatedBoat };
-  } catch (error) {
-    console.error("Error updating boat:", error);
-    const message = error instanceof Error ? error.message : "Failed to update boat";
-    return { success: false, error: message };
+    revalidatePath(`/boats/${id}`);
   }
 }
 
-/**
- * Delete boat
- */
-export async function deleteBoat(id: string): Promise<ActionResponse<{ message: string }>> {
-  const admin = await getAdminSession();
-  if (admin.error !== undefined) return { success: false, error: admin.error };
-
+export async function createBoat(input: CreateBoatInput): Promise<ActionResponse<{ id: string }>> {
   try {
-    await boatService.deleteBoat(id);
-    revalidatePath('/admin/boats');
-    return { success: true, data: { message: "Boat deleted successfully" } };
+    const boat = await boatData.createBoat(input);
+    revalidateBoat(boat.id);
+    return { success: true, data: boat };
   } catch (error) {
-    console.error("Error deleting boat:", error);
-    return { success: false, error: "Failed to delete boat" };
+    return actionError(error, "Failed to create boat");
+  }
+}
+
+export async function updateBoat(id: string, input: UpdateBoatInput): Promise<ActionResponse<null>> {
+  try {
+    await boatData.updateBoat(id, input);
+    revalidateBoat(id);
+    return { success: true, data: null };
+  } catch (error) {
+    return actionError(error, "Failed to update boat");
+  }
+}
+
+export async function deleteBoat(id: string): Promise<ActionResponse<null>> {
+  try {
+    await boatData.deleteBoat(id);
+    revalidateBoat(id);
+    return { success: true, data: null };
+  } catch (error) {
+    return actionError(error, "Failed to delete boat");
   }
 }

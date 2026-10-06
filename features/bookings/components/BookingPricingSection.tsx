@@ -3,7 +3,8 @@
 import { Zap } from "lucide-react";
 
 import { formatCurrency } from "@/shared/lib/utils/general-utils";
-import { SafeBoatData, PricingTier } from "@/features/bookings/booking.types";
+import type { SafeBoatData } from "@/features/bookings/booking.types";
+import type { BoatTier } from "@/features/boats/boat.types";
 import {
   calculateBookingPriceCents,
   formatServiceFee,
@@ -21,7 +22,7 @@ export interface PricingSectionAddOn {
 
 interface BookingPricingSectionProps {
   boat: SafeBoatData;
-  selectedTier: PricingTier;
+  selectedTier: BoatTier;
   /** The card fee from app settings (rate + fixed), passed down from the server page. */
   serviceFee: ServiceFee;
   showHeading?: boolean;

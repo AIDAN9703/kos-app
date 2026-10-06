@@ -1,8 +1,8 @@
 import { MapPin } from "lucide-react";
-import { Boat } from "@/shared/lib/types/types";
+import type { PublicBoat } from "@/features/boats/boat.types";
 
 interface DestinationsProps {
-  boat: Boat;
+  boat: PublicBoat;
 }
 
 export function Destinations({ boat }: DestinationsProps) {

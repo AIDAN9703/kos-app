@@ -11,7 +11,8 @@ import { cn, formatTime12Hour } from "@/shared/lib/utils/general-utils";
 import { BookingRequest } from "@/features/_validation/validations";
 import type { BookingPickerLayout } from "../shared/booking-picker-layout";
 
-import { useBookingForm, type BookingBoat } from "./useBookingForm";
+import { useBookingForm } from "./useBookingForm";
+import type { PublicBoat } from "@/features/boats/boat.types";
 import { BookingCalendar } from "./BookingCalendar";
 import { BookingTimeList } from "./BookingTimeList";
 import {
@@ -28,7 +29,7 @@ import type { ServiceFee } from "@/shared/lib/utils/pricing-utils";
 export type BookingVariant = "instant" | "request";
 
 interface BookingFormProps {
-  boat: BookingBoat;
+  boat: PublicBoat;
   /** The card fee from app settings (rate + fixed), passed down from the server page. */
   serviceFee: ServiceFee;
   /** `instant` → payment flow, `request` → inquiry flow. Defaults to the boat's `instantBook` flag. */

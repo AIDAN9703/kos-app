@@ -24,10 +24,10 @@ import { useSearchURL } from "@/features/search/hooks/useSearchURL";
 import { usePagination } from "@/shared/lib/hooks/usePagination";
 import { parseStringParam } from "@/shared/lib/utils/search-params-utils";
 import { cn } from "@/shared/lib/utils/general-utils";
-import { BoatWithTiers } from "@/features/boats/boat.types";
+import type { BoatCard } from "@/features/boats/boat.types";
 
 interface SearchResultsProps {
-  initialResults: BoatWithTiers[];
+  initialResults: BoatCard[];
   totalCount: number;
   currentPage: number;
   totalPages: number;

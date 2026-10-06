@@ -5,16 +5,19 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/shared/lib/auth/auth";
+import { AccessDenied } from "@/shared/lib/errors";
 import { rolesCan, type PermissionRequest, type Role } from "@/shared/lib/auth/permissions";
 import type { SessionUser } from "@/shared/lib/auth/session-user";
 
 /**
  * The only way server code asks "who is signed in, and may they do this?".
  *
+ * - Data layer (*.data.ts): assertSignedIn / assertCan throw AccessDenied.
+ *   Every read and write that pages, routes and actions use goes through one.
  * - Pages and layouts: requireAuth / requireAdmin / requireOwner / requireCaptain
  *   (redirect when not allowed).
- * - Server actions and API routes: getSession / getAdminSession /
- *   getAuthenticatedUserId (return an error instead of redirecting).
+ * - Server actions and API routes not yet on the data layer: getAdminSession /
+ *   requirePermission / getAuthenticatedUserId (return an error instead).
  *
  * proxy.ts only does a quick "is there a session cookie" redirect; the real
  * check is always one of these.
@@ -40,6 +43,20 @@ export function hasRole(user: SessionUser, role: Role): boolean {
 /** May this person do it? e.g. can(user, { booking: ["view-all"] }). */
 export function can(user: SessionUser, request: PermissionRequest): boolean {
   return rolesCan(user.roles, request);
+}
+
+/** Data layer: the signed-in person, or AccessDenied (401). */
+export async function assertSignedIn(): Promise<SessionUser> {
+  const session = await getSession();
+  if (!session) throw new AccessDenied("Not authenticated", 401);
+  return session.user;
+}
+
+/** Data layer: a signed-in person allowed to do this, or AccessDenied. */
+export async function assertCan(request: PermissionRequest): Promise<SessionUser> {
+  const user = await assertSignedIn();
+  if (!can(user, request)) throw new AccessDenied();
+  return user;
 }
 
 /** Server actions and API routes: the session when allowed, otherwise an error. */

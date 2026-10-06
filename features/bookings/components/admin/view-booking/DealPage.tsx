@@ -24,7 +24,7 @@ import { DealActionsMenu } from "@/features/bookings/components/admin/view-booki
 import { CreateProposalModal } from "@/features/bookings/components/admin/view-booking/CreateProposalModal";
 import { ActivityComposer } from "@/features/bookings/components/admin/view-booking/ActivityComposer";
 import { buildDealPrefillForBookingForm } from "@/features/bookings/lib/deal-prefill";
-import { boatService } from "@/features/boats/boat.service";
+import { getBoatTiers } from "@/features/boats/boat.data";
 import { BookingActivityTimeline } from "@/features/bookings/components/admin/view-booking/BookingActivityTimeline";
 import {
   CharterPartyCard,
@@ -110,20 +110,9 @@ export async function DealPage({ id, viewer }: { id: string; viewer: DealViewer 
     // Inquiries get every boat's tiers (Create proposal); priced deals get
     // their own boat's tiers for the Edit trip form.
     booking.bookingStatus === "INQUIRY"
-      ? boatService.getAllActivePricingTiers()
+      ? getBoatTiers()
       : booking.boatId
-        ? boatService.getBoatPricingTiers(booking.boatId).then((tiers) =>
-            tiers
-              .filter((t) => t.isActive)
-              .map((t) => ({
-                id: t.id,
-                boatId: t.boatId,
-                hours: t.hours,
-                price: t.price,
-                name: t.name,
-                isDefault: t.isDefault,
-              }))
-          )
+        ? getBoatTiers(booking.boatId)
         : Promise.resolve([]),
     // Charter party: sibling boats sailing under the same group.
     booking.bookingGroupId ? bookingService.getChargeableParty(id) : Promise.resolve(null),

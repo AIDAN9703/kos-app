@@ -1,7 +1,4 @@
-// Location data for map and search
-import { BoatWithTiers, BoatLocation } from "@/features/boats/boat.types";
-// Re-export database types for convenience (backward compatibility)
-export type { Boat } from "@/database/types";
+import type { BoatCard, BoatLocation } from "@/features/boats/boat.types";
 export type { BoatLocation } from "@/features/boats/boat.types";
 
 export interface LocationData {
@@ -26,20 +23,6 @@ export interface LocationData {
   isValid: boolean;
 }
 
-// Define the Pricing Tier type separately for clarity
-export interface PricingTier {
-  id: string;
-  boatId: string;
-  hours: number;
-  price: number;
-  name?: string | null;
-  description?: string | null;
-  isActive: boolean;
-  isDefault?: boolean | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
 // Search params type for filtering boats
 export type SearchParamsType = {
   [key: string]: string | string[] | undefined;
@@ -59,7 +42,7 @@ export type SearchParamsType = {
 
 // Search results type
 export interface SearchResults {
-  boats: BoatWithTiers[];
+  boats: BoatCard[];
   totalCount: number;
   totalPages: number;
   locations: BoatLocation[]; 

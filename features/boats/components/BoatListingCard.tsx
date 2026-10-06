@@ -6,9 +6,9 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight, Heart, Zap } from "lucide-react";
 import { Image as IKImage } from "@imagekit/next";
 
-import { BoatWithTiers } from "@/features/boats/boat.types";
+import type { BoatCard } from "@/features/boats/boat.types";
 import { getImageKitProps } from "@/shared/lib/services/imagekit.service";
-import { getBoatStartingHourlyLabel } from "@/shared/lib/utils/pricing-utils";
+import { formatStartingHourly } from "@/shared/lib/utils/pricing-utils";
 import { cn } from "@/shared/lib/utils/general-utils";
 
 export type BoatListingCardSize = "sm" | "md" | "lg";
@@ -87,7 +87,7 @@ const SIZE_STYLES: Record<
 };
 
 export interface BoatListingCardProps {
-  boat: BoatWithTiers;
+  boat: BoatCard;
   index?: number;
   size?: BoatListingCardSize;
   showPrice?: boolean;
@@ -272,7 +272,7 @@ export default function BoatListingCard({
                 styles.price,
               )}
             >
-              {getBoatStartingHourlyLabel(boat)}
+              {formatStartingHourly(boat.startingHourlyRate)}
             </p>
           )}
         </div>

@@ -11,12 +11,11 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/shared/components/ui/drawer";
-import { getBoatStartingHourlyLabel } from "@/shared/lib/utils/pricing-utils";
-import { BoatWithTiers } from "@/features/boats/boat.types";
+import { formatStartingHourly, startingHourlyRate } from "@/shared/lib/utils/pricing-utils";
+import type { PublicBoat } from "@/features/boats/boat.types";
 import { cn } from "@/shared/lib/utils/general-utils";
 
 import { BookingForm } from "./BookingForm";
-import type { BookingBoat } from "./useBookingForm";
 import type { ServiceFee } from "@/shared/lib/utils/pricing-utils";
 
 /**
@@ -27,12 +26,12 @@ export function MobileBookingDrawer({
   boat,
   serviceFee,
 }: {
-  boat: BookingBoat;
+  boat: PublicBoat;
   /** The card fee from app settings (rate + fixed), passed down from the server page. */
   serviceFee: ServiceFee;
 }) {
   const [open, setOpen] = useState(false);
-  const startingHourly = getBoatStartingHourlyLabel(boat as BoatWithTiers);
+  const startingHourly = formatStartingHourly(startingHourlyRate(boat.pricingTiers));
 
   return (
     <>

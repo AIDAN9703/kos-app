@@ -3,7 +3,7 @@ import { Metadata } from "next";
 
 import SearchPageClient from "@/features/search/components/SearchPageClient";
 import SearchSkeleton from "@/features/search/components/SearchSkeleton";
-import { searchBoats } from "@/features/search/actions/search-actions";
+import { searchBoats } from "@/features/search/search.data";
 import {
   normalizeSearchParams,
   parseNumberParam,

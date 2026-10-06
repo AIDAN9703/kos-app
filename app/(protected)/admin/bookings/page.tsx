@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { bookingService } from "@/features/bookings/services/booking.service";
-import { boatService } from "@/features/boats/boat.service";
+import { getBoatTiers } from "@/features/boats/boat.data";
 import { userService } from "@/features/users/user.service";
 import { bookingSearchParamsCache } from "@/features/bookings/searchParams";
 import { AdminBookingFilter } from "@/features/bookings/components/admin/AdminBookingFilter";
@@ -23,7 +23,7 @@ export default async function BookingsPage({
 
   const [admins, pricingTiers] = await Promise.all([
     userService.getAdmins(),
-    boatService.getAllActivePricingTiers(),
+    getBoatTiers(),
   ]);
 
   const filter = (

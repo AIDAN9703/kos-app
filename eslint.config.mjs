@@ -22,6 +22,27 @@ const eslintConfig = [
     },
   },
   {
+    // Data layer boundary: pages, routes, actions and components read and
+    // change data through a *.data.ts file, which checks who's asking. Only
+    // data files and other services may use the query layer below them.
+    // Areas are added here as they move onto the data layer.
+    files: ["**/*.{ts,tsx}"],
+    ignores: ["features/**/*.data.ts", "features/**/*.service.ts", "features/**/services/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "@/features/boats/boat.service",
+              message: "Use @/features/boats/boat.data — it checks who's asking.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     ignores: [".next/**", "node_modules/**", "public/**"],
   },
 ];

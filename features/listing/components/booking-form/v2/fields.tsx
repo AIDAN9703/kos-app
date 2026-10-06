@@ -10,14 +10,13 @@ import {
   TooltipTrigger,
 } from "@/shared/components/ui/tooltip";
 import { cn, formatCurrency } from "@/shared/lib/utils/general-utils";
-import { PricingTier } from "@/shared/lib/types/types";
+import type { BoatTier, PublicBoatAddOn } from "@/features/boats/boat.types";
 import {
   calculateBookingPriceCents,
   formatServiceFee,
   type ServiceFee,
 } from "@/shared/lib/utils/pricing-utils";
 import { centsToDollars, dollarsToCents, formatCentsAsCurrency } from "@/shared/lib/utils/money-utils";
-import type { ResolvedBoatAddOn } from "@/features/add-ons/add-on.types";
 import type { BookingPickerLayout } from "../shared/booking-picker-layout";
 
 /* -------------------------------------------------------------------------- */
@@ -176,7 +175,7 @@ export function InfoTooltip({ label, children }: { label: string; children: Reac
 /*  Price header                                                               */
 /* -------------------------------------------------------------------------- */
 
-export function PriceHeader({ tier, currency }: { tier: PricingTier | null; currency: string }) {
+export function PriceHeader({ tier, currency }: { tier: BoatTier | null; currency: string }) {
   return (
     <div className="mb-5 flex items-end justify-between">
       <div className="flex items-baseline gap-1.5">
@@ -208,7 +207,7 @@ export function DurationPills({
   onChange,
   currency,
 }: {
-  tiers: PricingTier[];
+  tiers: BoatTier[];
   value: string;
   onChange: (id: string) => void;
   currency: string;
@@ -392,7 +391,7 @@ export function PriceBreakdown({
   currency,
   serviceFee,
 }: {
-  tier: PricingTier;
+  tier: BoatTier;
   cleaningFee: number;
   currency: string;
   /** The card fee from app settings (rate + fixed), passed down from the server page. */
@@ -434,7 +433,7 @@ export function AddOnsPicker({
   onChange,
   currency,
 }: {
-  addOns: ResolvedBoatAddOn[];
+  addOns: PublicBoatAddOn[];
   quantities: Record<string, number>;
   onChange: (addOnId: string, quantity: number) => void;
   currency: string;

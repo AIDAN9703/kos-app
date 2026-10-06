@@ -111,8 +111,7 @@ function addHours(iso: string, hours: number): string {
 
 async function fetchActiveTiers(boatId: string): Promise<TierOption[]> {
   try {
-    const rows = await boatsApi.getBoatPricingTiers(boatId);
-    return rows.filter((t) => t.isActive);
+    return await boatsApi.getBoatPricingTiers(boatId);
   } catch {
     return [];
   }

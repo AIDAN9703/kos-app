@@ -1,11 +1,11 @@
-import { Boat } from "@/shared/lib/types/types";
+import type { PublicBoat } from "@/features/boats/boat.types";
 import { MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { formatCurrency } from "@/shared/lib/utils/general-utils";
 import { Fact } from "./detail-ui";
 
 interface BookingDetailsProps {
-  boat: Boat;
+  boat: PublicBoat;
 }
 
 const DEFAULT_CANCELLATION = `Cancellations are handled case by case — we'll always work with you to find a solution (weather, safety concerns, and other unforeseen circumstances included).`;

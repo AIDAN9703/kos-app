@@ -7,6 +7,7 @@
 
 import { NextResponse } from 'next/server';
 import superjson from 'superjson';
+import { UserFacingError } from '@/shared/lib/errors';
 
 /**
  * Success response with data (uses SuperJSON for Date serialization)
@@ -77,6 +78,17 @@ export function apiError(error: string, status: number = 500) {
     },
     { status }
   );
+}
+
+/**
+ * Error response for whatever the data layer threw: access and rule errors
+ * keep their message and status; anything else is logged as a 500.
+ * Usage: catch (error) { return apiErrorFrom(error, "Failed to fetch boat") }
+ */
+export function apiErrorFrom(error: unknown, fallback: string) {
+  if (error instanceof UserFacingError) return apiError(error.message, error.status);
+  console.error(fallback, error);
+  return apiError(fallback);
 }
 
 /**

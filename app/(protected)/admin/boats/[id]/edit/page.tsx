@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getBoatById } from "@/features/boats/actions/boat-actions";
+import { getBoatDetail } from "@/features/boats/boat.data";
 import { addOnService } from "@/features/add-ons/add-on.service";
 import {
   type CreateBoatInput,
@@ -34,7 +34,7 @@ export default async function AdminBoatEditPage({
 // Separate component for data fetching to enable Suspense
 async function BoatFormWithData({ boatId }: { boatId: string }) {
   const [boatData, availableAddOns] = await Promise.all([
-    getBoatById(boatId),
+    getBoatDetail(boatId),
     addOnService.getActiveAddOns(),
   ]);
 

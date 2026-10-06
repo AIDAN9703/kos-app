@@ -10,10 +10,10 @@ import {
   CarouselItem,
   type CarouselApi,
 } from "@/shared/components/ui/carousel";
-import { BoatWithTiers } from "@/features/boats/boat.types";
+import type { BoatCard } from "@/features/boats/boat.types";
 
 interface FeaturedFleetProps {
-  boats: BoatWithTiers[];
+  boats: BoatCard[];
 }
 
 export default function FeaturedFleet({ boats }: FeaturedFleetProps) {

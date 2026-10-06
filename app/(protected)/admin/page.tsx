@@ -1,4 +1,4 @@
-import { boatService } from "@/features/boats/boat.service";
+import { getBoatTiers } from "@/features/boats/boat.data";
 import {
   getAdminWorkload,
   getFleetLeaders,
@@ -24,7 +24,7 @@ export default async function AdminDashboardPage() {
     activity,
   ] = await Promise.all([
     getUpcomingTrips(30),
-    boatService.getAllActivePricingTiers(),
+    getBoatTiers(),
     getRevenueTrend(12),
     getLeadIntake(30),
     getFleetLeaders(5),

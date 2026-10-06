@@ -64,9 +64,8 @@ export default function BookingDetailsClient({
   // Resolve against the boat's offerings for the displayed breakdown:
   // complimentary auto-included + selected paid.
   const previewAddOns = useMemo(() => {
-    const offered = (boat.boatAddOns ?? []).filter((a) => a.isActive);
     const qtyById = new Map(selectedAddOns.map((s) => [s.addOnId, s.quantity]));
-    return offered
+    return boat.boatAddOns
       .map((a) => {
         if (a.isComplimentary) {
           return { name: a.name, quantity: 1, total: 0, isComplimentary: true };
@@ -85,10 +84,7 @@ export default function BookingDetailsClient({
 
   // Interactive add-on selection lives on THIS page. Quantities are written back
   // to the `addOns` URL param so they survive refresh + the sign-in round-trip.
-  const offeredAddOns = useMemo(
-    () => (boat.boatAddOns ?? []).filter((a) => a.isActive),
-    [boat.boatAddOns],
-  );
+  const offeredAddOns = boat.boatAddOns;
   const hasAddOns = offeredAddOns.length > 0;
   const addOnQuantities = useMemo(
     () => Object.fromEntries(selectedAddOns.map((s) => [s.addOnId, s.quantity])),

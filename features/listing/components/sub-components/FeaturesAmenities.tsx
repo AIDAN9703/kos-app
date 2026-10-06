@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Boat } from "@/shared/lib/types/types";
+import type { PublicBoat } from "@/features/boats/boat.types";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/shared/lib/utils/general-utils";
 import { CheckList } from "./detail-ui";
 
 interface FeaturesAmenitiesProps {
-  boat: Boat;
+  boat: PublicBoat;
 }
 
 const INITIAL = 9;

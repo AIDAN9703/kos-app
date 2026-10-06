@@ -1,4 +1,4 @@
-import { boatService } from "@/features/boats/boat.service";
+import { listBoats } from "@/features/boats/boat.data";
 import { boatSearchParamsCache } from "@/features/boats/searchParams";
 import { AdminBoatFilter } from "@/features/boats/components/AdminBoatFilter";
 import { AdminBoatTablePagination } from "@/features/boats/components/AdminBoatTablePagination";
@@ -14,7 +14,7 @@ export default async function BoatsPage({
   await boatSearchParamsCache.parse(searchParams);
   const params = boatSearchParamsCache.all();
 
-  const result = await boatService.getAllBoats({
+  const result = await listBoats({
     search: params.search || undefined,
     category: params.category ?? undefined,
     featured: params.featured ?? undefined,

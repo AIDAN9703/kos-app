@@ -1,29 +1,15 @@
 import { formatCurrency } from "./general-utils";
 import { type Cents } from "./money-utils";
-import { BoatWithTiers } from "@/features/boats/boat.types";
 
-/**
- * Compute the lowest price-per-hour across active tiers for "from $X+/hr" display
- */
-export function getBoatStartingHourlyRate(boat: BoatWithTiers): number {
-  const activeTiers = boat.pricingTiers?.filter((tier) => tier.isActive) ?? [];
-  if (activeTiers.length > 0) {
-    const minPerHour = activeTiers.reduce((min, tier) => {
-      const hours = Math.max(1, tier.hours || 0);
-      const perHour = tier.price / hours;
-      return perHour < min ? perHour : min;
-    }, Infinity);
-    return Number.isFinite(minPerHour) ? Math.max(0, Math.round(minPerHour)) : 0;
-  }
-  return 0;
+/** Lowest price per hour across a boat's active tiers, for "from $450+/hour". */
+export function startingHourlyRate(tiers: { hours: number; price: number }[]): number {
+  const minPerHour = Math.min(...tiers.map((tier) => tier.price / Math.max(1, tier.hours)));
+  return Number.isFinite(minPerHour) ? Math.max(0, Math.round(minPerHour)) : 0;
 }
 
-/**
- * Convenience formatter for UI labels like "from $450+/hr"
- */
-export function getBoatStartingHourlyLabel(boat: BoatWithTiers): string {
-  const hourly = getBoatStartingHourlyRate(boat);
-  return `${formatCurrency(hourly)}+/hour`;
+/** "$450+/hour" */
+export function formatStartingHourly(rate: number): string {
+  return `${formatCurrency(rate)}+/hour`;
 }
 
 // ========================================

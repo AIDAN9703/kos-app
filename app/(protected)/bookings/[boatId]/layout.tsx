@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { notFound } from "next/navigation";
-import { getBoatById } from "@/features/boats/actions/boat-actions";
+import { getPublicBoat } from "@/features/boats/boat.data";
 import BoatProvider from "@/features/bookings/components/BoatProvider";
 import BookingNavbar from "@/features/bookings/components/BookingNavbar";
 
@@ -15,7 +15,7 @@ interface BookingLayoutProps {
 
 export default async function BookingLayout({ children, auth, params }: BookingLayoutProps) {
   const { boatId } = await params;
-  const boat = await getBoatById(boatId);
+  const boat = await getPublicBoat(boatId);
   if (!boat) {
     notFound();
   }

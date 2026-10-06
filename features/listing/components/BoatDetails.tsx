@@ -1,5 +1,5 @@
 import { Info, Sparkles, Navigation, Ship, ClipboardCheck, BadgeInfo } from "lucide-react";
-import { Boat } from "@/shared/lib/types/types";
+import type { PublicBoat } from "@/features/boats/boat.types";
 import { BasicInfo } from "./sub-components/BasicInfo";
 import { Description } from "./sub-components/Description";
 import { BoatSpecs } from "./sub-components/BoatSpecs";
@@ -10,7 +10,7 @@ import { GoodToKnow } from "./sub-components/GoodToKnow";
 import { Section } from "./sub-components/detail-ui";
 
 interface BoatDetailsProps {
-  boat: Boat;
+  boat: PublicBoat;
 }
 
 export default function BoatDetails({ boat }: BoatDetailsProps) {

@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import type { SearchParams } from "next/dist/server/request/search-params";
 
 import { bookingService } from "@/features/bookings/services/booking.service";
-import { boatService } from "@/features/boats/boat.service";
+import { getBoatTiers } from "@/features/boats/boat.data";
 import { bookingSearchParamsCache } from "@/features/bookings/searchParams";
 import { AdminBookingFilter } from "@/features/bookings/components/admin/AdminBookingFilter";
 import { BookingsHeaderCta } from "@/features/bookings/components/admin/BookingsHeaderCta";
@@ -43,7 +43,7 @@ export default async function BrokerDealsPage({ searchParams }: { searchParams: 
       limit: params.limit,
     }),
     bookingService.getBookingTypeCounts(scopeFilters),
-    boatService.getAllActivePricingTiers(),
+    getBoatTiers(),
   ]);
 
   return (

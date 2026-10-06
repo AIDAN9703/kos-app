@@ -5,13 +5,13 @@ import Image from "next/image";
 import { Calendar, Clock, MapPin, Users, Zap } from "lucide-react";
 
 import type { SafeBoatData } from "@/features/bookings/booking.types";
-import { PricingTier } from "@/shared/lib/types/types";
+import type { BoatTier } from "@/features/boats/boat.types";
 import { formatDate, formatTime12Hour } from "@/shared/lib/utils/general-utils";
 import { parseDateTimeInBoatTimezone } from "@/shared/lib/utils/date-helpers";
 
 interface BookingSummaryProps {
   boat: SafeBoatData;
-  selectedTier: PricingTier | null;
+  selectedTier: BoatTier | null;
   bookingData: {
     startDateTime: string | null;
     numberOfPassengers: number;

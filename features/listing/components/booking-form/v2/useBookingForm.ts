@@ -7,17 +7,8 @@ import {
   bookingRequestSchema,
   BookingRequest,
 } from "@/features/_validation/validations";
-import { Boat, PricingTier } from "@/shared/lib/types/types";
+import type { BoatTier, PublicBoat } from "@/features/boats/boat.types";
 import { createDateTimeISO } from "@/shared/lib/utils/date-helpers";
-
-export type BookingBoat = Boat & { pricingTiers?: PricingTier[] | null };
-
-/** Bookable tiers, cheapest-duration first. */
-function getActivePricingTiers(boat: BookingBoat): PricingTier[] {
-  return (
-    boat.pricingTiers?.filter((t) => t.isActive).sort((a, b) => a.hours - b.hours) ?? []
-  );
-}
 
 /**
  * Booking form state, kept deliberately small.
@@ -26,12 +17,9 @@ function getActivePricingTiers(boat: BookingBoat): PricingTier[] {
  * from them (combined in the boat's timezone) — there's no pending/commit dance.
  * When either is missing, `startDateTime` is cleared so the form stays invalid.
  */
-export function useBookingForm({ boat }: { boat: BookingBoat }) {
-  const activeTiers = useMemo(
-    () => getActivePricingTiers(boat),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [boat.pricingTiers]
-  );
+export function useBookingForm({ boat }: { boat: PublicBoat }) {
+  // Bookable tiers, shortest first (the data layer only sends active ones).
+  const activeTiers = boat.pricingTiers;
 
   const form = useForm<BookingRequest>({
     resolver: zodResolver(bookingRequestSchema),
@@ -60,8 +48,8 @@ export function useBookingForm({ boat }: { boat: BookingBoat }) {
   }, [date, time]);
 
   const pricingTierId = form.watch("pricingTierId");
-  const selectedTier = useMemo<PricingTier | null>(
-    () => boat.pricingTiers?.find((t) => t.id === pricingTierId) ?? null,
+  const selectedTier = useMemo<BoatTier | null>(
+    () => boat.pricingTiers.find((t) => t.id === pricingTierId) ?? null,
     [boat.pricingTiers, pricingTierId]
   );
 

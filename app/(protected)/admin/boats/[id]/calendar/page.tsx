@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { getBoatById } from "@/features/boats/actions/boat-actions";
+import { getBoatDetail } from "@/features/boats/boat.data";
 import { BoatCalendarView } from "@/features/boats/components/admin/BoatCalendarView";
 import { getBoatExternalCalendars } from "@/features/availability/actions/external-calendar.queries";
 import { buildFeedUrl } from "@/shared/lib/calendar/feed-tokens";
@@ -13,7 +13,7 @@ interface BoatCalendarPageProps {
 
 export default async function BoatCalendarPage({ params }: BoatCalendarPageProps) {
   const { id: boatId } = await params;
-  const boat = await getBoatById(boatId);
+  const boat = await getBoatDetail(boatId);
 
   if (!boat) {
     notFound();

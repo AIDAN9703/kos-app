@@ -11,8 +11,20 @@ Update the date when you re-verify. Claims here were checked, not assumed.
 Neon Postgres · Better Auth · Stripe Checkout · Resend (email) · Twilio (OTP) ·
 ImageKit (media) · Google Maps/Places · shadcn/ui + Tailwind v4 · react-query + nuqs.
 
-**Layering:** `app/` routes → `features/*/actions` (server actions, Zod-validated) →
-`features/*/services` (DB access) → `database/schema`. Shared UI/helpers in `shared/`.
+**Layering:** `app/` pages, API routes and `"use server"` actions → `features/*/*.data.ts`
+(the data layer) → `features/*/*.service.ts` (queries) → `database/schema`. Shared
+UI/helpers in `shared/`.
+
+**Data layer (in progress, one area at a time).** A `*.data.ts` file is the only way
+pages, routes and actions read or change an area's data. Every function checks who is
+asking (`assertSignedIn` / `assertCan` in `shared/lib/utils/auth-utils.ts`, which throw
+`AccessDenied`) and returns the narrowest shape for that viewer: the public gets active
+boats and public columns only, brokers never see payouts or owner contact. Actions stay
+thin: call the data function, refresh pages, and turn errors into `{ success: false }`
+with `actionError`; routes use `apiErrorFrom`. An ESLint `no-restricted-imports` rule
+blocks importing a migrated area's service from anywhere else. **Done:** boats + search.
+**Next:** bookings/deals, users/profiles/owner, then availability, payments, blog,
+add-ons, settings, dashboard; finally the rule extends to `@/database/db`.
 
 **Features:** bookings, boats, availability, payments, users, profiles, listing,
 search, blog, add-ons, auth, admin, booking-groups, app-settings, `_marketing`.
@@ -161,8 +173,8 @@ auto-generated and not editable; partial refunds record against the lead booking
 **🟡 Google Maps loads via `window.google` polling** instead of a proper provider.
 
 **Not built:** contract e-signature, Google Calendar push to captains, QuickBooks sync,
-owner-payout automation, customer-submitted reviews (the 577 `review` rows are seed data;
-real testimonials come from Google).
+owner-payout automation, customer-submitted reviews (the `review` table is empty since
+migration 0067; homepage testimonials come from Google).
 
 **Tech debt:** repo-wide lint sits at 255 problems (136 errors / 119 warnings) — all
 pre-existing: refs-during-render in AdminBookingsCalendar, set-state-in-effect in

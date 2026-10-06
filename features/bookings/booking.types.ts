@@ -23,9 +23,6 @@ import type {
   AdminNoteType,
 } from "@/database/types";
 
-// Re-export PricingTier for convenience (also used by boats feature)
-export type { PricingTier } from "@/shared/lib/types/types";
-
 // Re-export relevant database types
 export type {
   BookingStatus,

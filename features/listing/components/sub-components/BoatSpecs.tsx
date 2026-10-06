@@ -1,8 +1,8 @@
-import { Boat } from "@/shared/lib/types/types";
+import type { PublicBoat } from "@/features/boats/boat.types";
 import { Fact } from "./detail-ui";
 
 interface BoatSpecsProps {
-  boat: Boat;
+  boat: PublicBoat;
 }
 
 export function BoatSpecs({ boat }: BoatSpecsProps) {

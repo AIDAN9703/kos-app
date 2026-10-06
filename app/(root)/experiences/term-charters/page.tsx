@@ -2,10 +2,8 @@ import { Metadata } from "next";
 import { Users, MapPin, Shield, CheckCircle, Anchor } from "lucide-react";
 import ExperienceLayout from "@/features/_marketing/experiences/components/ExperienceLayout";
 import RequestTermCharter from "./RequestTermCharter";
-import { db } from "@/database/db";
-import { boats } from "@/database/schema";
-import { eq, and } from "drizzle-orm";
-import { BoatWithTiers } from "@/features/boats/boat.types";
+import { getTermCharterBoats } from "@/features/boats/boat.data";
+import type { BoatCard } from "@/features/boats/boat.types";
 import BoatListingCard from "@/features/boats/components/BoatListingCard";
 
 export const metadata: Metadata = {
@@ -68,24 +66,11 @@ const benefits = [
   },
 ];
 
-// Function to get term charter boats
-async function getTermCharterBoats(): Promise<BoatWithTiers[]> {
-  try {
-    const results = await db
-      .select()
-      .from(boats)
-      .where(and(eq(boats.termCharter, true), eq(boats.active, true)))
-      .limit(9);
-
-    return results as unknown as BoatWithTiers[];
-  } catch (error) {
+export default async function TermChartersPage() {
+  const termCharterBoats = await getTermCharterBoats().catch((error): BoatCard[] => {
     console.error("Error fetching term charter boats:", error);
     return [];
-  }
-}
-
-export default async function TermChartersPage() {
-  const termCharterBoats = await getTermCharterBoats();
+  });
 
   return (
     <ExperienceLayout
