@@ -5,16 +5,16 @@
  * admin, captain need, amount range, search) and uses the visible window
  * (`start` / `end` provided by FullCalendar) as the date filter.
  *
- * Auth: admin only.
+ * Auth: through listDeals — admins see every deal, a broker only theirs.
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { bookingService } from "@/features/bookings/services/booking.service";
+import { listDeals } from "@/features/bookings/deal.data";
 import { bookingStatusEnum, bookingTypeEnum } from "@/database/schema";
 import { PAYMENT_DISPLAY_STATUSES } from "@/shared/lib/utils/payment-display";
 import { format as formatDate } from "date-fns";
 import type { BookingListItem } from "@/features/bookings/booking.types";
-import { getAdminSession } from "@/shared/lib/utils/auth-utils";
+import { apiErrorFrom } from "@/shared/lib/utils/api-helpers";
 
 type EnumValue<T extends readonly string[]> = T[number];
 
@@ -62,11 +62,6 @@ function buildSummary(b: BookingListItem): string {
 
 export async function GET(request: NextRequest) {
   try {
-    const admin = await getAdminSession();
-    if (admin.error !== undefined) {
-      return NextResponse.json({ error: "Admin access required" }, { status: 403 });
-    }
-
     const { searchParams } = new URL(request.url);
     const start = searchParams.get("start");
     const end = searchParams.get("end");
@@ -80,7 +75,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Invalid date range" }, { status: 400 });
     }
 
-    const result = await bookingService.getAllBookings({
+    const result = await listDeals({
       search: searchParams.get("search") || undefined,
       bookingStatus: readEnum(searchParams.get("bookingStatus"), bookingStatusEnum.enumValues),
       paymentStatus: readEnum(searchParams.get("paymentStatus"), PAYMENT_DISPLAY_STATUSES),
@@ -135,10 +130,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(events);
   } catch (error) {
-    console.error("[admin/bookings/calendar-events]", error);
-    return NextResponse.json(
-      { error: "Failed to fetch calendar events" },
-      { status: 500 },
-    );
+    return apiErrorFrom(error, "Failed to fetch calendar events");
   }
 }

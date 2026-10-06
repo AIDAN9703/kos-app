@@ -107,6 +107,52 @@ export class BoatService {
       .orderBy(asc(boatPricingTiers.hours));
   }
 
+  /**
+   * An active boat and one of its active tiers — what a customer's booking or
+   * inquiry is priced from. Null unless both are bookable, so a tier from
+   * another boat, or a retired one, can't set the price.
+   */
+  async getBookableTier(boatId: string, tierId: string) {
+    const [row] = await db
+      .select({
+        boat: {
+          id: boats.id,
+          name: boats.name,
+          ownerId: boats.ownerId,
+          mainImage: boats.mainImage,
+          cleaningFee: boats.cleaningFee,
+          depositAmount: boats.depositAmount,
+          instantBook: boats.instantBook,
+          crewRequired: boats.crewRequired,
+          currency: boats.currency,
+        },
+        tier: {
+          id: boatPricingTiers.id,
+          name: boatPricingTiers.name,
+          hours: boatPricingTiers.hours,
+          price: boatPricingTiers.price,
+        },
+      })
+      .from(boatPricingTiers)
+      .innerJoin(boats, eq(boatPricingTiers.boatId, boats.id))
+      .where(
+        and(
+          eq(boatPricingTiers.id, tierId),
+          eq(boatPricingTiers.boatId, boatId),
+          eq(boatPricingTiers.isActive, true),
+          eq(boats.active, true)
+        )
+      )
+      .limit(1);
+    return row ?? null;
+  }
+
+  /** Any boat's name (for messages); null when there's no such boat. */
+  async getBoatName(id: string): Promise<string | null> {
+    const [row] = await db.select({ name: boats.name }).from(boats).where(eq(boats.id, id)).limit(1);
+    return row?.name ?? null;
+  }
+
   /** Add-ons a boat currently offers, at their effective price. */
   async getOfferedAddOns(boatId: string): Promise<PublicBoatAddOn[]> {
     const offered = await this.getBoatAddOns(boatId);

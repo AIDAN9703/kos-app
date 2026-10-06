@@ -11,8 +11,8 @@ import "@/shared/admin/admin-theme.css";
 
 /**
  * The broker portal: the admin area's shell and deal screens, limited to the
- * broker's own deals (every action re-checks that in
- * features/bookings/lib/deal-access.ts).
+ * broker's own deals (every read and action re-checks that in
+ * features/bookings/deal.data.ts).
  */
 export default async function BrokerLayout({ children }: { children: ReactNode }) {
   await requireBrokerPortal();

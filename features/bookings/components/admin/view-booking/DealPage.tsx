@@ -1,5 +1,3 @@
-import { notFound } from "next/navigation";
-
 import { formatDistanceToNowStrict } from "date-fns";
 import { DealHeaderCard } from "@/features/bookings/components/admin/view-booking/DealHeaderCard";
 import { DealRequestCard } from "@/features/bookings/components/admin/view-booking/DealRequestCard";
@@ -24,24 +22,13 @@ import { DealActionsMenu } from "@/features/bookings/components/admin/view-booki
 import { CreateProposalModal } from "@/features/bookings/components/admin/view-booking/CreateProposalModal";
 import { ActivityComposer } from "@/features/bookings/components/admin/view-booking/ActivityComposer";
 import { buildDealPrefillForBookingForm } from "@/features/bookings/lib/deal-prefill";
-import { getBoatTiers } from "@/features/boats/boat.data";
 import { BookingActivityTimeline } from "@/features/bookings/components/admin/view-booking/BookingActivityTimeline";
 import {
   CharterPartyCard,
   type CharterPartyMember,
 } from "@/features/bookings/components/admin/view-booking/CharterPartyCard";
 import { BOOKING_EVENT_TYPES } from "@/features/bookings/booking-events.constants";
-
-import { bookingService } from "@/features/bookings/services/booking.service";
-import { bookingExpenseLineService } from "@/features/bookings/services/booking-expense-line.service";
-import { bookingOpsService } from "@/features/bookings/services/booking-ops.service";
-import { bookingEventsService } from "@/features/bookings/services/booking-events.service";
-import { bookingCrewService } from "@/features/bookings/services/booking-crew.service";
-import { paymentService } from "@/features/payments/payment.service";
-import { captainProfileService } from "@/features/profiles/captain-profile.service";
-import { crewProfileService } from "@/features/profiles/crew-profile.service";
-import { userService } from "@/features/users/user.service";
-
+import type { DealPageData } from "@/features/bookings/deal.data";
 import type { BookingActivityEventEntry } from "@/features/bookings/booking.types";
 
 const PAYMENT_LABELS: Record<string, string> = {
@@ -59,19 +46,6 @@ const PAYMENT_METHOD_LABELS: Record<string, string> = {
   MANUAL: "Off-card",
 };
 
-/** What the person opening the deal may see and do (admin vs broker). */
-export interface DealViewer {
-  userId: string;
-  /** Where deal links point: "/admin/bookings" or "/brokers/deals". */
-  basePath: string;
-  /** Choose who the deal is assigned to. */
-  canAssign: boolean;
-  /** The company's costs and margin: Revenue card, expenses, Stripe links. */
-  canSeeEconomics: boolean;
-  /** Record money received off-card. */
-  canRecordPayments: boolean;
-}
-
 /**
  * ONE page for every deal. The same cards in the same places at every stage;
  * a card appears when it has something to show. Inquiry: header, what they
@@ -81,42 +55,22 @@ export interface DealViewer {
  * form — trip, pricing, add-ons, more boats — so all editing is on the left.
  * Nothing is shown twice.
  */
-export async function DealPage({ id, viewer }: { id: string; viewer: DealViewer }) {
-  const booking = await bookingService.getBookingById(id);
-  if (!booking) {
-    notFound();
-  }
-
-  const [
+export async function DealPage({ deal }: { deal: DealPageData }) {
+  const {
+    viewer,
+    booking,
     ops,
     expenseLines,
-    rawEvents,
-    bookingPayments,
+    events: rawEvents,
+    payments: bookingPayments,
     captains,
-    bookingCrewRows,
+    crew: bookingCrewRows,
     crewPool,
     admins,
     pricingTiers,
     party,
-  ] = await Promise.all([
-    viewer.canSeeEconomics ? bookingOpsService.getByBookingId(id) : Promise.resolve(null),
-    viewer.canSeeEconomics ? bookingExpenseLineService.getLines(id) : Promise.resolve([]),
-    bookingEventsService.listByBookingId(id),
-    paymentService.getBookingPayments(id),
-    captainProfileService.getCaptainsForAssignment(),
-    bookingCrewService.listByBookingId(id),
-    crewProfileService.getCrewForAssignment(),
-    viewer.canAssign ? userService.getAdmins() : Promise.resolve([]),
-    // Inquiries get every boat's tiers (Create proposal); priced deals get
-    // their own boat's tiers for the Edit trip form.
-    booking.bookingStatus === "INQUIRY"
-      ? getBoatTiers()
-      : booking.boatId
-        ? getBoatTiers(booking.boatId)
-        : Promise.resolve([]),
-    // Charter party: sibling boats sailing under the same group.
-    booking.bookingGroupId ? bookingService.getChargeableParty(id) : Promise.resolve(null),
-  ]);
+  } = deal;
+  const id = booking.id;
 
   const partyMembers: CharterPartyMember[] =
     party && party.length > 1

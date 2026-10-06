@@ -1,6 +1,6 @@
 "use server";
 
-import { getOrCreateCheckoutUrl } from "@/features/bookings/actions/stripe-checkout";
+import { getOrCreateCheckoutUrl } from "@/features/bookings/services/checkout.service";
 import { getAuthenticatedUserId } from "@/shared/lib/utils/auth-utils";
 import { getTrip } from "../profile.queries";
 

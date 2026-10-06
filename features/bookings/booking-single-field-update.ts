@@ -6,6 +6,7 @@
 import * as z from "zod";
 import { toDateOrNull } from "@/shared/lib/utils/date-helpers";
 import type { BookingDetails } from "@/features/bookings/booking.types";
+import { UserFacingError } from "@/shared/lib/errors";
 
 export const bookingSingleFieldUpdateSchema = z.discriminatedUnion("field", [
   z.object({
@@ -86,11 +87,11 @@ export function bookingRowPatchFromSingleFieldUpdate(
     }
     case "tripWindow": {
       const start = toDateOrNull(update.value.startDateTime);
-      if (!start) throw new Error("Invalid start date/time");
+      if (!start) throw new UserFacingError("Invalid start date/time");
       const end =
         update.value.endDateTime === null ? null : toDateOrNull(update.value.endDateTime);
       if (end && end.getTime() <= start.getTime()) {
-        throw new Error("End time must be after the start time.");
+        throw new UserFacingError("End time must be after the start time.");
       }
       return { startDateTime: start, endDateTime: end };
     }

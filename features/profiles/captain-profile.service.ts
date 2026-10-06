@@ -44,6 +44,23 @@ export class CaptainProfileService {
       .limit(200);
   }
 
+  /** May this person be put on a trip as captain? (an active captain profile) */
+  async isAssignable(userId: string): Promise<boolean> {
+    const [row] = await db
+      .select({ id: users.id })
+      .from(captainProfiles)
+      .innerJoin(users, eq(captainProfiles.userId, users.id))
+      .where(
+        and(
+          eq(users.id, userId),
+          eq(captainProfiles.status, "ACTIVE"),
+          eq(users.status, "ACTIVE")
+        )
+      )
+      .limit(1);
+    return row != null;
+  }
+
   /** Captain profiles for admin (no pagination — fleet pool is small). */
   async listForAdmin(filters: {
     search?: string | null;

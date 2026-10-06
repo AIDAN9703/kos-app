@@ -38,7 +38,7 @@ import {
   cancelBooking,
   markBookingBooked,
   markBookingCompleted,
-} from "@/features/bookings/actions/admin-booking.actions";
+} from "@/features/bookings/actions/deal.actions";
 import { markDealLost, toggleDealArchived } from "@/features/bookings/actions/deal.actions";
 
 export interface DealAdminOption {

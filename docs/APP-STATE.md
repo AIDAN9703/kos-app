@@ -22,9 +22,18 @@ asking (`assertSignedIn` / `assertCan` in `shared/lib/utils/auth-utils.ts`, whic
 boats and public columns only, brokers never see payouts or owner contact. Actions stay
 thin: call the data function, refresh pages, and turn errors into `{ success: false }`
 with `actionError`; routes use `apiErrorFrom`. An ESLint `no-restricted-imports` rule
-blocks importing a migrated area's service from anywhere else. **Done:** boats + search.
-**Next:** bookings/deals, users/profiles/owner, then availability, payments, blog,
-add-ons, settings, dashboard; finally the rule extends to `@/database/db`.
+blocks importing a migrated area's service from anywhere else (files not yet moved are
+listed there as temporary exceptions).
+
+- **Done:** boats + search (`boat.data.ts`, `search.data.ts`); bookings —
+  `deal.data.ts` + `deal-money.data.ts` (staff; a broker acts only on deals assigned to
+  them, and on a charter party only when every boat is theirs; economics are stripped
+  for anyone without `view-economics`), `proposal.data.ts` (the proposal link's token is
+  the credential), `booking-request.data.ts` (public forms + Instant Book; prices only
+  from the boat's active tiers).
+- **Next:** users/profiles/owner portal/phone sign-in, then availability, payments
+  (Stripe webhook/verify), blog, add-ons, settings, dashboard, assistant; finally the
+  rule extends to `@/database/db`.
 
 **Features:** bookings, boats, availability, payments, users, profiles, listing,
 search, blog, add-ons, auth, admin, booking-groups, app-settings, `_marketing`.

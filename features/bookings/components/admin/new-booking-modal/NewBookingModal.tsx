@@ -29,6 +29,7 @@ export function NewBookingModal({
   triggerSize = "sm",
   defaultOpen = false,
   onCloseComplete,
+  canLinkAccounts = false,
 }: {
   pricingTiers: PricingTierOption[];
   triggerLabel?: string;
@@ -36,6 +37,8 @@ export function NewBookingModal({
   triggerSize?: "sm" | "default" | "lg";
   defaultOpen?: boolean;
   onCloseComplete?: () => void;
+  /** Offer "Existing account" (admins; the account picker needs the user list). */
+  canLinkAccounts?: boolean;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(defaultOpen);
@@ -74,6 +77,7 @@ export function NewBookingModal({
           </DialogHeader>
           <BookingComposer
             pricingTiers={pricingTiers}
+            canLinkAccounts={canLinkAccounts}
             onSuccess={() => {
               handleClose();
               router.refresh();

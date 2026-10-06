@@ -1,3 +1,5 @@
+import "server-only";
+
 /**
  * Shared helpers for booking operations
  * Centralizes boat + tier fetching to avoid duplication

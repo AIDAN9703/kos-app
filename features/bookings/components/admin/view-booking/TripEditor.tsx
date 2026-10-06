@@ -28,12 +28,12 @@ import { boatsApi } from "@/features/boats/boat.api";
 import type { BoatForAdminSelect } from "@/features/boats/boat.types";
 import type { BookingAddOn, BookingAddOnInput } from "@/features/bookings/booking.types";
 import type { CustomerMoney } from "@/features/bookings/lib/booking-money";
-import { updateBookingSingleField } from "@/features/bookings/booking.mutations";
-import { updateBookingPricing } from "@/features/bookings/actions/booking-pricing.actions";
 import {
   addBoatToCharterParty,
   shiftCharterPartyWindows,
-} from "@/features/bookings/actions/admin-booking.actions";
+  updateBookingPricing,
+  updateBookingSingleField,
+} from "@/features/bookings/actions/deal.actions";
 import { AddOnsFields } from "@/features/bookings/components/admin/booking-forms/shared/AddOnsFields";
 import { formatServiceFee, serviceFeeOn } from "@/shared/lib/utils/pricing-utils";
 import { reanchorWallTime } from "@/features/bookings/components/admin/booking-forms/shared/BookingSectionFields";

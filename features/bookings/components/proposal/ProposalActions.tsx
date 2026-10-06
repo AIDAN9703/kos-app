@@ -56,10 +56,10 @@ export function ProposalActions({ publicToken, payment, totalPaidCents }: Propos
     setError(null);
     startTransition(async () => {
       const result = await startProposalPayment(publicToken, chargeType);
-      if (result.success) {
-        window.location.href = result.checkoutUrl;
+      if (result.success && result.data) {
+        window.location.href = result.data.checkoutUrl;
       } else {
-        setError(result.error);
+        setError(result.error ?? "We couldn't open the payment page. Please try again, or contact us.");
       }
     });
   };

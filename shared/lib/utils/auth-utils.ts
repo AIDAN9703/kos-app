@@ -45,10 +45,10 @@ export function can(user: SessionUser, request: PermissionRequest): boolean {
   return rolesCan(user.roles, request);
 }
 
-/** Data layer: the signed-in person, or AccessDenied (401). */
-export async function assertSignedIn(): Promise<SessionUser> {
+/** Data layer: the signed-in person, or AccessDenied (401) with this message. */
+export async function assertSignedIn(message = "Not authenticated"): Promise<SessionUser> {
   const session = await getSession();
-  if (!session) throw new AccessDenied("Not authenticated", 401);
+  if (!session) throw new AccessDenied(message, 401);
   return session.user;
 }
 

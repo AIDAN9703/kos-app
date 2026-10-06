@@ -318,6 +318,20 @@ export class UserService {
     
     return admins;
   }
+
+  /** May a deal be assigned to this person? (an active admin or broker, as in getAdmins) */
+  async isAssignableStaff(userId: string): Promise<boolean> {
+    const [row] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(and(
+        eq(users.id, userId),
+        or(hasRoleSql("admin"), hasRoleSql("broker")),
+        eq(users.status, 'ACTIVE')
+      ))
+      .limit(1);
+    return row != null;
+  }
 }
 
 // Export singleton instance

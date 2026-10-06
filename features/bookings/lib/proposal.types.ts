@@ -47,7 +47,6 @@ export interface ProposalData {
   updatedAt: Date | null;
   id: string;
   customerName: string;
-  customerEmail: string;
   startDateTime: Date;
   endDateTime: Date | null;
   numberOfPassengers: number;

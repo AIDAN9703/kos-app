@@ -15,7 +15,7 @@ import { Button } from "@/shared/components/ui/button";
 import { calculateBookingPriceCents, type ServiceFee } from "@/shared/lib/utils/pricing-utils";
 import { dollarsToCents, formatCentsAsCurrency } from "@/shared/lib/utils/money-utils";
 import { toast } from "@/shared/lib/hooks/use-toast";
-import { createBoatLead } from "@/features/bookings/actions/lead-intake.actions";
+import { createBoatLead } from "@/features/bookings/actions/booking-request.actions";
 import type { BoatMemberInquiryContactFormData } from "@/shared/lib/validation/inquiry";
 import InquiryContactForm from "@/features/bookings/components/lead-intake/InquiryContactForm";
 import type { BookingAuthModalView } from "@/features/bookings/components/BookingAuthSection";
@@ -127,8 +127,7 @@ export default function BoatInquiryDetailsClient({
           ...contact,
         });
 
-        if (result.success && result.bookingId) {
-          // CRM sync happens server-side inside createBoatLead.
+        if (result.success && result.data) {
           setSubmitted(true);
           toast({
             title: "Request submitted",

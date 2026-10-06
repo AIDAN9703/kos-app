@@ -13,7 +13,9 @@ import type { ActionResponse } from "@/shared/lib/types/types";
 export function actionError(error: unknown, fallback: string): ActionResponse<never> {
   if (error instanceof UserFacingError) return { success: false, error: error.message };
   if (error instanceof ZodError) {
-    return { success: false, error: error.issues[0]?.message ?? "Invalid input" };
+    const issue = error.issues[0];
+    const path = issue?.path.filter(Boolean).join(".");
+    return { success: false, error: issue ? (path ? `${path}: ${issue.message}` : issue.message) : "Invalid input" };
   }
   console.error(fallback, error);
   return { success: false, error: fallback };

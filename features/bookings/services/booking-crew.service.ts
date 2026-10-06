@@ -1,3 +1,5 @@
+import "server-only";
+
 /**
  * Booking ↔ crew assignments (junction table).
  */

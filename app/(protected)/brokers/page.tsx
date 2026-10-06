@@ -1,8 +1,8 @@
 import { Suspense } from "react";
 import type { SearchParams } from "next/dist/server/request/search-params";
 
-import { bookingService } from "@/features/bookings/services/booking.service";
 import { getBoatTiers } from "@/features/boats/boat.data";
+import { getDealTypeCounts, getDealViewer, listDeals } from "@/features/bookings/deal.data";
 import { bookingSearchParamsCache } from "@/features/bookings/searchParams";
 import { AdminBookingFilter } from "@/features/bookings/components/admin/AdminBookingFilter";
 import { BookingsHeaderCta } from "@/features/bookings/components/admin/BookingsHeaderCta";
@@ -10,11 +10,12 @@ import { BookingTypeStrip } from "@/features/bookings/components/admin/BookingTy
 import { AdminBookingsBoard } from "@/features/bookings/components/admin/AdminBookingsBoard";
 import { AdminBookingTablePagination } from "@/features/bookings/components/admin/AdminBookingTablePagination";
 import { AdminListShell } from "@/shared/admin/components/AdminListShell";
-import { requireBrokerPortal } from "@/shared/lib/utils/auth-utils";
 
-/** The broker's deals: the same board as the admin area, only rows assigned to them. */
+/**
+ * The broker's deals: the same board as the admin area. The data layer only
+ * returns the deals assigned to them, without the company's economics.
+ */
 export default async function BrokerDealsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
-  const session = await requireBrokerPortal();
   await bookingSearchParamsCache.parse(searchParams);
   const params = bookingSearchParamsCache.all();
   const nowIso = new Date().toISOString();
@@ -23,12 +24,11 @@ export default async function BrokerDealsPage({ searchParams }: { searchParams: 
     search: params.search || undefined,
     dateFrom: params.dateFrom ?? (params.time === "upcoming" ? nowIso : undefined),
     dateTo: params.dateTo ?? (params.time === "past" ? nowIso : undefined),
-    assignedAdminId: session.user.id,
     archivedView: params.bookingStatus ? undefined : (params.archived ?? false),
   };
 
-  const [result, typeCounts, pricingTiers] = await Promise.all([
-    bookingService.getAllBookings({
+  const [result, typeCounts, pricingTiers, viewer] = await Promise.all([
+    listDeals({
       ...scopeFilters,
       bookingStatus: params.bookingStatus ?? undefined,
       paymentStatus: params.paymentStatus ?? undefined,
@@ -42,8 +42,9 @@ export default async function BrokerDealsPage({ searchParams }: { searchParams: 
       page: params.page,
       limit: params.limit,
     }),
-    bookingService.getBookingTypeCounts(scopeFilters),
+    getDealTypeCounts(scopeFilters),
     getBoatTiers(),
+    getDealViewer(),
   ]);
 
   return (
@@ -55,7 +56,7 @@ export default async function BrokerDealsPage({ searchParams }: { searchParams: 
             {result.totalCount.toLocaleString()} {result.totalCount === 1 ? "deal" : "deals"}
           </p>
         </div>
-        <BookingsHeaderCta pricingTiers={pricingTiers} />
+        <BookingsHeaderCta pricingTiers={pricingTiers} canLinkAccounts={viewer.canLinkAccounts} />
       </header>
       <BookingTypeStrip counts={typeCounts.counts} total={typeCounts.total} />
       <div className="flex min-h-0 flex-1 flex-col">

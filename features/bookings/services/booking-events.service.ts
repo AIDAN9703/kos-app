@@ -1,3 +1,5 @@
+import "server-only";
+
 /**
  * Append-only booking activity log (audit + notes + contacts).
  */

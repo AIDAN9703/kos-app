@@ -7,7 +7,7 @@ import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { useToast } from "@/shared/lib/hooks/use-toast";
 import { adminInitials } from "@/shared/lib/utils/people-display";
-import { updateBookingSingleField } from "@/features/bookings/booking.mutations";
+import { updateBookingSingleField } from "@/features/bookings/actions/deal.actions";
 import { useBookingEditMode } from "@/features/bookings/components/admin/view-booking/BookingEditMode";
 
 /**

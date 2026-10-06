@@ -1,8 +1,10 @@
+import "server-only";
+
 import { db } from "@/database/db";
 import { bookings } from "@/database/schema";
 import { bookingEventsService } from "@/features/bookings/services/booking-events.service";
 import { sendAdminAlertEmail } from "@/shared/lib/services/email.service";
-import { revalidateDeal } from "@/features/bookings/lib/deal-access";
+import { revalidateDeal } from "@/features/bookings/lib/revalidate-deal";
 
 type MarketplaceSourceValue = "BOATSETTER" | "GETMYBOAT";
 

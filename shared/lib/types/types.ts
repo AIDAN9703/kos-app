@@ -52,6 +52,8 @@ export type ActionResponse<T> = {
   success: boolean;
   data?: T;
   error?: string;
+  /** What to tell the person on success (toast text). */
+  message?: string;
 };
 
  

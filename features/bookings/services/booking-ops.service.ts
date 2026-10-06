@@ -1,3 +1,5 @@
+import "server-only";
+
 /**
  * Booking Ops Service
  * Manages operational/admin fields for bookings (Excel workflow fields)

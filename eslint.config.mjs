@@ -7,6 +7,21 @@ import prettier from "eslint-config-prettier";
  * replaces the old FlatCompat wrapper, which crashed ESLint 9 with a
  * circular-structure error.
  */
+/** Query layers that only the data layer may import. */
+const dataLayerPaths = [
+  {
+    name: "@/features/boats/boat.service",
+    message: "Use @/features/boats/boat.data — it checks who's asking.",
+  },
+];
+const dataLayerPatterns = [
+  {
+    group: ["@/features/bookings/services/*"],
+    message:
+      "Use the bookings data layer (deal.data, deal-money.data, proposal.data, booking-request.data) — it checks who's asking.",
+  },
+];
+
 const eslintConfig = [
   ...nextCoreWebVitals,
   ...nextTypescript,
@@ -29,17 +44,23 @@ const eslintConfig = [
     files: ["**/*.{ts,tsx}"],
     ignores: ["features/**/*.data.ts", "features/**/*.service.ts", "features/**/services/**"],
     rules: {
-      "no-restricted-imports": [
-        "error",
-        {
-          paths: [
-            {
-              name: "@/features/boats/boat.service",
-              message: "Use @/features/boats/boat.data — it checks who's asking.",
-            },
-          ],
-        },
-      ],
+      "no-restricted-imports": ["error", { paths: dataLayerPaths, patterns: dataLayerPatterns }],
+    },
+  },
+  {
+    // Not on the data layer yet — remove each file as its area moves over.
+    files: [
+      "app/api/webhook/stripe/route.ts",
+      "app/api/stripe/verify/route.ts",
+      "app/api/inbound-email/route.ts",
+      "features/profile/actions/trip.actions.ts",
+      "features/bookings/lib/confirm-paid-booking.ts",
+      "features/users/claim-guest-bookings.ts",
+      "features/admin/dashboard.ts",
+      "features/admin/assistant/tools.ts",
+    ],
+    rules: {
+      "no-restricted-imports": ["error", { paths: dataLayerPaths }],
     },
   },
   {

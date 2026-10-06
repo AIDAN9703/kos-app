@@ -1,6 +1,7 @@
 import { db } from "@/database/db";
 import { boats, bookings, boatBlocking, boatExternalCalendarEvents } from "@/database/schema";
 import { eq, and, ne, lt, gt, inArray } from "drizzle-orm";
+import { pgErrorCode, UserFacingError } from "@/shared/lib/errors";
 
 /**
  * Availability — ONE definition of "is this slot free", used by every
@@ -38,10 +39,10 @@ export interface CalendarDay {
 }
 
 /** Thrown by assertSlotAvailable when the slot is taken. */
-export class SlotUnavailableError extends Error {
+export class SlotUnavailableError extends UserFacingError {
   readonly conflicts: AvailabilityConflict[];
   constructor(conflicts: AvailabilityConflict[]) {
-    super("This time slot is no longer available. Please choose a different time.");
+    super("This time slot is no longer available. Please choose a different time.", 409);
     this.name = "SlotUnavailableError";
     this.conflicts = conflicts;
   }
@@ -52,9 +53,7 @@ export class SlotUnavailableError extends Error {
  * firing (Postgres error 23P01) — the race-loser signal.
  */
 export function isOverlapConstraintError(error: unknown): boolean {
-  if (typeof error !== "object" || error === null) return false;
-  const e = error as { code?: string; message?: string };
-  return e.code === "23P01" || /booking_no_overlap/.test(e.message ?? "");
+  return pgErrorCode(error) === "23P01";
 }
 
 class AvailabilityService {

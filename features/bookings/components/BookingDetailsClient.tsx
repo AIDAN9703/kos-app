@@ -179,17 +179,17 @@ export default function BookingDetailsClient({
           ...(selectedAddOns.length > 0 ? { addOns: selectedAddOns } : {}),
         };
 
-        const { createInstantBooking } = await import("@/features/bookings/actions/instant");
+        const { createInstantBooking } = await import("@/features/bookings/actions/booking-request.actions");
         const result = await createInstantBooking(payload);
 
-        if (result?.success && "paymentUrl" in result && result.paymentUrl) {
-          window.location.href = result.paymentUrl;
+        if (result.success && result.data) {
+          window.location.href = result.data.paymentUrl;
           return;
         }
 
         toast({
           title: "Could not start checkout",
-          description: result?.error ?? "Please try again.",
+          description: result.error ?? "Please try again.",
           variant: "destructive",
         });
       } catch (error) {

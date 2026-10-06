@@ -1,3 +1,5 @@
+import "server-only";
+
 /**
  * Booking Status Service
  *
@@ -12,6 +14,7 @@ import { bookings, bookingStatusHistory } from "@/database/schema";
 import { eq } from "drizzle-orm";
 import { bookingEventsService } from "@/features/bookings/services/booking-events.service";
 import type { BookingStatus, BookingStatusHistory } from "@/database/types";
+import { UserFacingError } from "@/shared/lib/errors";
 
 // ============================================================================
 // TYPES
@@ -84,12 +87,12 @@ export class BookingStatusService {
     // Get current status
     const currentStatus = await this.getCurrentStatus(bookingId);
     if (currentStatus === null) {
-      throw new Error(`Booking not found: ${bookingId}`);
+      throw new UserFacingError("Booking not found", 404);
     }
 
     // Validate transition
     if (!isValidStatusTransition(currentStatus, newStatus)) {
-      throw new Error(
+      throw new UserFacingError(
         `Invalid status transition: ${currentStatus} → ${newStatus}. ` +
           `Valid transitions from ${currentStatus}: ${VALID_TRANSITIONS[currentStatus].join(", ") || "none"}`
       );
@@ -220,9 +223,9 @@ export class BookingStatusService {
     }
   ): Promise<BookingStatusHistory> {
     const currentStatus = await this.getCurrentStatus(bookingId);
-    if (currentStatus === null) throw new Error(`Booking not found: ${bookingId}`);
+    if (currentStatus === null) throw new UserFacingError("Booking not found", 404);
     if (currentStatus !== "PROPOSED")
-      throw new Error(`Only a proposal can be marked booked (status: ${currentStatus})`);
+      throw new UserFacingError(`Only a proposal can be marked booked (status: ${currentStatus})`);
 
     await db
       .update(bookings)

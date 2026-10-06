@@ -1,17 +1,15 @@
+import "server-only";
+
 /**
- * Booking Service Layer
- * Single source of truth for all booking database operations
+ * Booking queries. Server-only and not access-checked: pages, routes and
+ * actions go through the data layer (deal.data.ts, proposal.data.ts,
+ * booking-request.data.ts), which checks who's asking first.
  *
- * ARCHITECTURE:
- * - Uses transactions for multi-table operations
- * - Delegates to specialized services (pricing, status, notes, payments)
- * - All monetary values are in CENTS
- *
- * RELATED SERVICES:
- * - BookingPricingService - manages booking_pricing table
- * - BookingStatusService - manages status transitions and history
- * - BookingNotesService - manages admin notes
- * - PaymentService - manages payments (in features/payments)
+ * - No transactions (neon-http): multi-step writes are sequential and safe
+ *   to re-run.
+ * - Delegates to the pricing, status and events services, and to payments
+ *   (features/payments).
+ * - All money is in CENTS.
  */
 
 import { db } from "@/database/db";
@@ -44,7 +42,7 @@ import {
   bookingRowPatchFromSingleFieldUpdate,
 } from "@/features/bookings/booking-single-field-update";
 import { type PaginatedBookingsResponse, type BookingListItem, type BookingDetails, type BookingAddOn } from "@/features/bookings/booking.types";
-import { type Booking, type BookingSource, type BookingType } from "@/database/types";
+import { type Booking, type BookingSource, type BookingType, type NewBooking } from "@/database/types";
 import {
   calculateBookingPriceCents,
   serviceFeeFromSnapshot,
@@ -60,13 +58,14 @@ import { bookingPricingService } from "@/features/bookings/services/booking-pric
 import { bookingStatusService } from "@/features/bookings/services/booking-status.service";
 import { bookingEventsService } from "@/features/bookings/services/booking-events.service";
 import { BOOKING_EVENT_TYPES } from "@/features/bookings/booking-events.constants";
-import { fetchBoatAndTier, fetchBoatsAndTiersBulk } from "@/features/bookings/booking-helpers";
+import { fetchBoatAndTier, fetchBoatsAndTiersBulk } from "@/features/bookings/services/booking-helpers";
 import { getAppSettings } from "@/features/app-settings/app-settings.service";
 import {
   availabilityService,
   isOverlapConstraintError,
   SlotUnavailableError,
 } from "@/features/availability/services/availability.service";
+import { UserFacingError } from "@/shared/lib/errors";
 
 /**
  * Stage rule shared by the list filter and the type-count strip: an
@@ -104,8 +103,9 @@ async function assertBoatWindowFree(
         .map((c) => c.reason)
         .filter(Boolean)
         .join("; ");
-      throw new Error(
-        `${boatName} isn't available for that window${why ? ` (${why})` : ""}. Pick another time or boat.`
+      throw new UserFacingError(
+        `${boatName} isn't available for that window${why ? ` (${why})` : ""}. Pick another time or boat.`,
+        409
       );
     }
     throw error;
@@ -149,7 +149,7 @@ export class BookingService {
         : tier
           ? calculateEndDateTime(startDateTime, tier.hours)
           : null;
-      if (!endDateTime) throw new Error("End date & time is required for custom pricing");
+      if (!endDateTime) throw new UserFacingError("End date & time is required for custom pricing");
       await assertBoatWindowFree(
         boat.id,
         boat.name,
@@ -184,7 +184,7 @@ export class BookingService {
 
       const basePrice = tier ? (b.basePrice ?? tier.price) : b.basePrice;
       if (basePrice == null || basePrice < 0)
-        throw new Error("Base price is required and must be positive");
+        throw new UserFacingError("Base price is required and must be positive");
 
       const { startDateTime, endDateTime } = windows[i];
 
@@ -259,7 +259,7 @@ export class BookingService {
           )
           .returning({ id: bookings.id, bookingType: bookings.bookingType });
         if (!upgraded) {
-          throw new Error(
+          throw new UserFacingError(
             "This deal is no longer at the inquiry stage — it may have just been priced by another admin. Refresh to see the latest."
           );
         }
@@ -393,7 +393,6 @@ export class BookingService {
     return {
       id: first.id,
       customerName: first.customerName,
-      customerEmail: first.customerEmail,
       // Freshness stamp for the public page — latest edit across the party.
       updatedAt: proposalBookings.reduce<Date | null>(
         (latest, b) =>
@@ -545,7 +544,7 @@ export class BookingService {
   ): Promise<{ bookingId: string; customerName: string }> {
     const proposalBookings = await this.getProposalBookingsByPublicToken(publicToken);
     if (!proposalBookings || proposalBookings.length === 0) {
-      throw new Error("Proposal not found");
+      throw new UserFacingError("Proposal not found", 404);
     }
 
     for (const b of proposalBookings) {
@@ -1271,13 +1270,13 @@ export class BookingService {
     adminId: string | null
   ): Promise<{ siblingId: string; groupId: string }> {
     const lead = await this.getBookingById(bookingId);
-    if (!lead) throw new Error(`Booking not found: ${bookingId}`);
+    if (!lead) throw new UserFacingError("Booking not found", 404);
     if (!["PROPOSED", "BOOKED"].includes(lead.bookingStatus)) {
-      throw new Error("Only a priced booking can grow into a charter party");
+      throw new UserFacingError("Only a priced booking can grow into a charter party");
     }
-    if (!lead.startDateTime) throw new Error("Set the trip dates before adding a boat");
+    if (!lead.startDateTime) throw new UserFacingError("Set the trip dates before adding a boat");
     if (!lead.customerName || !lead.customerEmail) {
-      throw new Error("Add the customer's name and email before adding a boat");
+      throw new UserFacingError("Add the customer's name and email before adding a boat");
     }
 
     const { boatsById, tiersById } = await fetchBoatsAndTiersBulk(
@@ -1286,8 +1285,8 @@ export class BookingService {
     );
     const boat = boatsById.get(input.boatId);
     const tier = tiersById.get(input.pricingTierId);
-    if (!boat) throw new Error("Boat not found");
-    if (!tier || tier.boatId !== input.boatId) throw new Error("Pick a pricing option for this boat");
+    if (!boat) throw new UserFacingError("Boat not found", 404);
+    if (!tier || tier.boatId !== input.boatId) throw new UserFacingError("Pick a pricing option for this boat");
 
     // First extra boat creates the container.
     let groupId = lead.bookingGroupId ?? null;
@@ -1471,7 +1470,7 @@ export class BookingService {
   ): Promise<BookingDetails> {
     const current = await this.getBookingById(id);
     if (!current) {
-      throw new Error(`Booking not found: ${id}`);
+      throw new UserFacingError("Booking not found", 404);
     }
 
     const previousValue = auditSnapshotForBookingField(update.field, current);
@@ -1534,6 +1533,139 @@ export class BookingService {
     }
 
     return next;
+  }
+
+  // ==========================================================================
+  // DEAL BOOKKEEPING (small reads and writes behind the deal data layer)
+  // ==========================================================================
+
+  /** Who each booking is assigned to — the input to every deal access check. */
+  async getAssignments(bookingIds: string[]): Promise<{ id: string; assignedAdminId: string | null }[]> {
+    if (bookingIds.length === 0) return [];
+    return db
+      .select({ id: bookings.id, assignedAdminId: bookings.assignedAdminId })
+      .from(bookings)
+      .where(inArray(bookings.id, bookingIds));
+  }
+
+  /** This booking's charter party: its own id plus every group sibling's. */
+  async getPartyIds(bookingId: string): Promise<string[]> {
+    const [row] = await db
+      .select({ id: bookings.id, bookingGroupId: bookings.bookingGroupId })
+      .from(bookings)
+      .where(eq(bookings.id, bookingId))
+      .limit(1);
+    if (!row) return [];
+    if (!row.bookingGroupId) return [row.id];
+    const siblings = await db
+      .select({ id: bookings.id })
+      .from(bookings)
+      .where(eq(bookings.bookingGroupId, row.bookingGroupId));
+    return siblings.map((s) => s.id);
+  }
+
+  /** The pipeline flags the deal actions act on. */
+  async getDealState(bookingId: string) {
+    const [deal] = await db
+      .select({
+        id: bookings.id,
+        bookingStatus: bookings.bookingStatus,
+        firstContactedAt: bookings.firstContactedAt,
+        archivedAt: bookings.archivedAt,
+      })
+      .from(bookings)
+      .where(eq(bookings.id, bookingId))
+      .limit(1);
+    return deal ?? null;
+  }
+
+  /** Stamp the deal's first contact. True only for the call that stamped it. */
+  async markFirstContacted(bookingId: string): Promise<boolean> {
+    const now = new Date();
+    const stamped = await db
+      .update(bookings)
+      .set({ firstContactedAt: now, updatedAt: now })
+      .where(and(eq(bookings.id, bookingId), isNull(bookings.firstContactedAt)))
+      .returning({ id: bookings.id });
+    return stamped.length > 0;
+  }
+
+  async setArchived(bookingId: string, archived: boolean): Promise<void> {
+    await db
+      .update(bookings)
+      .set({ archivedAt: archived ? new Date() : null, updatedAt: new Date() })
+      .where(eq(bookings.id, bookingId));
+  }
+
+  /** What sending or sharing the proposal link needs. */
+  async getProposalLinkInfo(bookingId: string) {
+    const [row] = await db
+      .select({
+        id: bookings.id,
+        publicToken: bookings.publicToken,
+        publishedAt: bookings.publishedAt,
+        bookingStatus: bookings.bookingStatus,
+        customerName: bookings.customerName,
+        customerEmail: bookings.customerEmail,
+        customerPhone: bookings.customerPhone,
+        bookingGroupId: bookings.bookingGroupId,
+        boatName: boats.name,
+      })
+      .from(bookings)
+      .leftJoin(boats, eq(bookings.boatId, boats.id))
+      .where(eq(bookings.id, bookingId))
+      .limit(1);
+    return row ?? null;
+  }
+
+  /** Publish the proposal link. True only for the call that published it. */
+  async markPublished(bookingId: string): Promise<boolean> {
+    const now = new Date();
+    const published = await db
+      .update(bookings)
+      .set({ publishedAt: now, updatedAt: now })
+      .where(and(eq(bookings.id, bookingId), isNull(bookings.publishedAt)))
+      .returning({ id: bookings.id });
+    return published.length > 0;
+  }
+
+  /** The tier and add-ons a re-priced deal is quoted with. */
+  async setQuoteSelection(
+    bookingId: string,
+    selection: { pricingTierId: string | null; addOns: BookingAddOn[] }
+  ): Promise<void> {
+    await db
+      .update(bookings)
+      .set({
+        pricingTierId: selection.pricingTierId,
+        addOns: selection.addOns.length > 0 ? selection.addOns : null,
+        updatedAt: new Date(),
+      })
+      .where(eq(bookings.id, bookingId));
+  }
+
+  /** Each booking's total and card fee (party economics). */
+  async getPricingTotals(bookingIds: string[]) {
+    if (bookingIds.length === 0) return [];
+    return db
+      .select({
+        bookingId: bookingPricing.bookingId,
+        totalAmountCents: bookingPricing.totalAmountCents,
+        serviceFeeCents: bookingPricing.serviceFeeCents,
+      })
+      .from(bookingPricing)
+      .where(inArray(bookingPricing.bookingId, bookingIds));
+  }
+
+  /** A new INQUIRY from a public form (no pricing, no calendar hold). */
+  async createInquiry(
+    values: Omit<NewBooking, "id" | "bookingStatus" | "createdAt" | "updatedAt">
+  ): Promise<{ id: string }> {
+    const [deal] = await db
+      .insert(bookings)
+      .values({ ...values, bookingStatus: "INQUIRY" })
+      .returning({ id: bookings.id });
+    return deal;
   }
 
   /**

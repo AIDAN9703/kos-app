@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CalendarDays, Users, DollarSign, Globe, Anchor } from "lucide-react";
-import { createTermCharterLead } from "@/features/bookings/actions/lead-intake.actions";
+import { createTermCharterLead } from "@/features/bookings/actions/booking-request.actions";
 import { toast } from "@/shared/lib/hooks/use-toast";
 import { termCharterInquirySchema, type TermCharterFormData } from "@/shared/lib/validation/inquiry";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/components/ui/card";
@@ -70,7 +70,6 @@ export default function RequestTermCharter() {
         const result = await createTermCharterLead(values);
 
         if (result.success) {
-          // CRM sync happens server-side inside createTermCharterLead.
           toast({ title: "Request Submitted", description: "Our specialists will contact you soon!" });
           form.reset();
         } else {

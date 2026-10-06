@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Plus, Send, Trash2 } from "lucide-react";
 
-import { createBookingFull } from "@/features/bookings/actions/create-booking-full.actions";
+import { createBookingFull } from "@/features/bookings/actions/deal.actions";
 import { useToast } from "@/shared/lib/hooks/use-toast";
 import { ToastAction } from "@/shared/components/ui/toast";
 
@@ -121,6 +121,7 @@ export function BookingComposer({
   dealPrefill = null,
   datePrefill = null,
   onSuccess,
+  canLinkAccounts = false,
 }: {
   pricingTiers: PricingTierOption[];
   /** Present when pricing an INQUIRY deal — that row upgrades in place. */
@@ -129,6 +130,8 @@ export function BookingComposer({
   datePrefill?: BookingDatePrefill | null;
   /** Called after a successful create — lets a hosting modal close/refresh. */
   onSuccess?: (bookingId?: string) => void;
+  /** Offer "Existing account" (admins; the account picker needs the user list). */
+  canLinkAccounts?: boolean;
 }) {
   const router = useRouter();
   const dealsBasePath = useDealsBasePath();
@@ -424,7 +427,7 @@ export function BookingComposer({
       {/* ── Step 1: Customer ── */}
       {step === 0 && (
         <div className="space-y-4">
-          {!isDealMode && (
+          {canLinkAccounts && !isDealMode && (
             <div className="flex gap-2">
               <ModePill active={customerMode === "guest"} onClick={() => setCustomerMode("guest")}>
                 Guest
@@ -438,7 +441,7 @@ export function BookingComposer({
             </div>
           )}
 
-          {customerMode === "existing" && !isDealMode ? (
+          {canLinkAccounts && customerMode === "existing" && !isDealMode ? (
             <div className="space-y-3">
               <div className="space-y-2">
                 <Label>Account</Label>

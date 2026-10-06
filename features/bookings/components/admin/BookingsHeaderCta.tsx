@@ -13,8 +13,10 @@ import type { PricingTierOption } from "@/features/bookings/components/admin/boo
  */
 export function BookingsHeaderCta({
   pricingTiers,
+  canLinkAccounts,
 }: {
   pricingTiers: PricingTierOption[];
+  canLinkAccounts: boolean;
 }) {
   const [filters, setFilters] = useQueryStates(bookingSearchParams, {
     clearOnDefault: true,
@@ -24,6 +26,7 @@ export function BookingsHeaderCta({
   return (
     <NewBookingModal
       pricingTiers={pricingTiers}
+      canLinkAccounts={canLinkAccounts}
       triggerLabel="Add booking"
       triggerClassName="gap-1.5 rounded-full px-5 shadow-sm"
       defaultOpen={filters.newBooking === true}

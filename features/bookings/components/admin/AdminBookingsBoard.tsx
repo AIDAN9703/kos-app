@@ -67,7 +67,7 @@ import { useQueryStates } from "nuqs";
 import { bookingSearchParams } from "@/features/bookings/searchParams";
 import {
   assignAdminToBooking,
-} from "@/features/bookings/actions/admin-booking.actions";
+} from "@/features/bookings/actions/deal.actions";
 import { useToast } from "@/shared/lib/hooks/use-toast";
 import { useDealsBasePath } from "@/features/bookings/components/admin/deal-links";
 

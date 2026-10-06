@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { createGeneralLead } from "@/features/bookings/actions/lead-intake.actions";
+import { createGeneralLead } from "@/features/bookings/actions/booking-request.actions";
 import { toast } from "@/shared/lib/hooks/use-toast";
 import { requestToBookSchema, type RequestToBookFormData } from "@/shared/lib/validation/inquiry";
 
@@ -98,7 +98,6 @@ export default function RequestToBook({ source = "HOME_PAGE" }: RequestToBookPro
       });
 
       if (result.success) {
-        // CRM sync happens server-side inside createGeneralLead.
         toast({
           title: "Request Submitted",
           description: result.message ?? "We'll contact you soon!",

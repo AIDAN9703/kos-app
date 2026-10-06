@@ -17,7 +17,7 @@ import {
 import {
   addBookingCrewMember,
   removeBookingCrewMember,
-} from "@/features/bookings/actions/admin-booking.actions";
+} from "@/features/bookings/actions/deal.actions";
 import { useToast } from "@/shared/lib/hooks/use-toast";
 
 export type CrewAssignmentMember = {

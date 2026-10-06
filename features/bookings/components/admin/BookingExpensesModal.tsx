@@ -25,7 +25,7 @@ import {
   getBookingExpenseDefaults,
   getBookingExpenseLines,
   saveBookingExpenseLines,
-} from "@/features/bookings/actions/booking-expense.actions";
+} from "@/features/bookings/actions/deal.actions";
 import {
   EXPENSE_CATEGORIES,
   EXPENSE_CATEGORY_LABELS,
@@ -127,7 +127,7 @@ export function BookingExpensesModal({
           });
           return;
         }
-        lines = result.lines;
+        lines = result.data ?? [];
       }
 
       if (lines.length > 0) {
@@ -146,9 +146,10 @@ export function BookingExpensesModal({
         return;
       }
 
-      if (defaultsResult.defaults.length > 0) {
+      const defaults = defaultsResult.data ?? [];
+      if (defaults.length > 0) {
         setRows(
-          defaultsResult.defaults.map((line) =>
+          defaults.map((line) =>
             lineToDraft({
               id: null,
               bookingId,

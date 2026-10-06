@@ -1,7 +1,11 @@
 import { Suspense } from "react";
-import { bookingService } from "@/features/bookings/services/booking.service";
 import { getBoatTiers } from "@/features/boats/boat.data";
-import { userService } from "@/features/users/user.service";
+import {
+  getAssignableStaff,
+  getDealTypeCounts,
+  getDealViewer,
+  listDeals,
+} from "@/features/bookings/deal.data";
 import { bookingSearchParamsCache } from "@/features/bookings/searchParams";
 import { AdminBookingFilter } from "@/features/bookings/components/admin/AdminBookingFilter";
 import { BookingsHeaderCta } from "@/features/bookings/components/admin/BookingsHeaderCta";
@@ -11,7 +15,6 @@ import { AdminBookingTablePagination } from "@/features/bookings/components/admi
 import { AdminBookingsCalendar } from "@/features/bookings/components/admin/AdminBookingsCalendar";
 import { AdminListShell } from "@/shared/admin/components/AdminListShell";
 import { SearchParams } from "next/dist/server/request/search-params";
-import { getSession } from "@/shared/lib/utils/auth-utils";
 
 export default async function BookingsPage({
   searchParams,
@@ -21,9 +24,10 @@ export default async function BookingsPage({
   await bookingSearchParamsCache.parse(searchParams);
   const params = bookingSearchParamsCache.all();
 
-  const [admins, pricingTiers] = await Promise.all([
-    userService.getAdmins(),
+  const [admins, pricingTiers, viewer] = await Promise.all([
+    getAssignableStaff(),
     getBoatTiers(),
+    getDealViewer(),
   ]);
 
   const filter = (
@@ -34,7 +38,9 @@ export default async function BookingsPage({
 
   // ONE way in: Add booking. Phone/DM inquiries go through the same door —
   // an inquiry is just a booking at its first stage, not a separate thing.
-  const headerCta = <BookingsHeaderCta pricingTiers={pricingTiers} />;
+  const headerCta = (
+    <BookingsHeaderCta pricingTiers={pricingTiers} canLinkAccounts={viewer.canLinkAccounts} />
+  );
 
   if (params.view === "calendar") {
     return (
@@ -49,7 +55,6 @@ export default async function BookingsPage({
     );
   }
 
-  const session = await getSession();
   const nowIso = new Date().toISOString();
 
   // Base filters shared by the list AND the type-count strip (the strip omits
@@ -58,10 +63,8 @@ export default async function BookingsPage({
     search: params.search || undefined,
     dateFrom: params.dateFrom ?? (params.time === "upcoming" ? nowIso : undefined),
     dateTo: params.dateTo ?? (params.time === "past" ? nowIso : undefined),
-    assignedAdminId:
-      params.scope === "mine"
-        ? (session?.user?.id ?? undefined)
-        : (params.assignedAdminId ?? undefined),
+    mine: params.scope === "mine" || undefined,
+    assignedAdminId: params.scope === "mine" ? undefined : (params.assignedAdminId ?? undefined),
     unassignedOnly: params.scope === "unassigned" || undefined,
     // An explicit status filter searches everything; otherwise bucket by pill.
     archivedView: params.bookingStatus ? undefined : (params.archived ?? false),
@@ -70,7 +73,7 @@ export default async function BookingsPage({
   // ONE table, one query: every deal — inquiry to completed charter — is a
   // booking row. The type command strip filters by bookingType.
   const [result, typeCounts] = await Promise.all([
-    bookingService.getAllBookings({
+    listDeals({
       ...scopeFilters,
       bookingStatus: params.bookingStatus ?? undefined,
       paymentStatus: params.paymentStatus ?? undefined,
@@ -84,7 +87,7 @@ export default async function BookingsPage({
       page: params.page,
       limit: params.limit,
     }),
-    bookingService.getBookingTypeCounts(scopeFilters),
+    getDealTypeCounts(scopeFilters),
   ]);
 
   return (

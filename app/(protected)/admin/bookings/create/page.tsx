@@ -2,8 +2,7 @@ import { redirect } from "next/navigation";
 
 import { BookingComposer } from "@/features/bookings/components/admin/booking-forms/BookingComposer";
 import { getBoatTiers } from "@/features/boats/boat.data";
-import { bookingService } from "@/features/bookings/services/booking.service";
-import { buildDealPrefillForBookingForm } from "@/features/bookings/lib/deal-prefill";
+import { getDealViewer, getInquiryForProposal } from "@/features/bookings/deal.data";
 import { buildDatePrefillForBookingForm } from "@/features/bookings/lib/booking-create-date-prefill";
 
 type Props = {
@@ -16,9 +15,10 @@ export default async function AdminBookingCreatePage({ searchParams }: Props) {
   const { dealId, inquiryId, date } = await searchParams;
   const targetDealId = (dealId ?? inquiryId)?.trim();
 
-  const [pricingTiers, deal] = await Promise.all([
+  const [pricingTiers, deal, viewer] = await Promise.all([
     getBoatTiers(),
-    targetDealId ? bookingService.getBookingById(targetDealId) : Promise.resolve(null),
+    targetDealId ? getInquiryForProposal(targetDealId) : Promise.resolve(null),
+    getDealViewer(),
   ]);
 
   // Only INQUIRY-status deals get priced through this form. A deal that's
@@ -27,7 +27,7 @@ export default async function AdminBookingCreatePage({ searchParams }: Props) {
   if (deal && deal.bookingStatus !== "INQUIRY") {
     redirect(`/admin/bookings/${deal.id}`);
   }
-  const dealPrefill = deal ? buildDealPrefillForBookingForm(deal) : null;
+  const dealPrefill = deal?.prefill ?? null;
   const datePrefill =
     !dealPrefill && date?.trim() ? buildDatePrefillForBookingForm(date.trim()) : null;
 
@@ -47,6 +47,7 @@ export default async function AdminBookingCreatePage({ searchParams }: Props) {
           plain scratch. Add a second boat to create a charter party. */}
       <BookingComposer
         pricingTiers={pricingTiers}
+        canLinkAccounts={viewer.canLinkAccounts}
         dealPrefill={dealPrefill}
         datePrefill={datePrefill}
       />

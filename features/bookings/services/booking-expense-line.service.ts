@@ -1,3 +1,5 @@
+import "server-only";
+
 /**
  * Booking Expense Line Service
  * Manages typed expense breakdown per booking; aggregates ALL lines (owner

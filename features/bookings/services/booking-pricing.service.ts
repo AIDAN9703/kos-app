@@ -1,3 +1,5 @@
+import "server-only";
+
 /**
  * Booking Pricing Service
  * 
@@ -51,6 +53,8 @@ export interface UpdateBookingPricingInput {
   discountCode?: string | null;
   depositAmountCents?: Cents | null;
   totalAmountCents?: Cents;
+  /** Paid off-card: the card fee drops out of what the customer owes. */
+  serviceFeeWaived?: boolean;
   depositDueDate?: Date | null;
   remainderDueDate?: Date | null;
 }

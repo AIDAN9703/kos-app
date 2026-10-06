@@ -18,7 +18,7 @@ import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
 import { useToast } from "@/shared/lib/hooks/use-toast";
-import { recordBookingManualPaymentAction } from "@/features/bookings/actions/mark-booking-paid.actions";
+import { recordBookingManualPaymentAction } from "@/features/bookings/actions/deal.actions";
 import {
   MANUAL_PAYMENT_METHODS,
   MANUAL_PAYMENT_METHOD_LABELS,

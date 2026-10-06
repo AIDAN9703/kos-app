@@ -42,6 +42,19 @@ export class CrewProfileService {
       .limit(200);
   }
 
+  /** May this person be put on a trip as crew? (an active crew profile) */
+  async isAssignable(userId: string): Promise<boolean> {
+    const [row] = await db
+      .select({ id: users.id })
+      .from(crewProfiles)
+      .innerJoin(users, eq(crewProfiles.userId, users.id))
+      .where(
+        and(eq(users.id, userId), eq(crewProfiles.status, "ACTIVE"), eq(users.status, "ACTIVE"))
+      )
+      .limit(1);
+    return row != null;
+  }
+
   /** Crew profiles for admin (no pagination — crew pool is small). */
   async listForAdmin(filters: {
     search?: string | null;

@@ -1,3 +1,5 @@
+import "server-only";
+
 /**
  * Stripe Checkout for every non-instant card payment: the public proposal
  * page, the customer's trip page, and the payment links admins send.

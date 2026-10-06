@@ -14,7 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/components/ui/dialog";
-import { assignCaptainToBooking } from "@/features/bookings/actions/admin-booking.actions";
+import { assignCaptainToBooking } from "@/features/bookings/actions/deal.actions";
 import { useToast } from "@/shared/lib/hooks/use-toast";
 
 export type CaptainAssignmentOption = {
