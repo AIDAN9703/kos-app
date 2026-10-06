@@ -10,6 +10,8 @@ import { getOrCreateCheckoutUrl } from "@/features/bookings/services/checkout.se
 import * as profileService from "@/features/profile/profile.service";
 import type { AccountUser, CaptainSummary, TripDetail, TripSummary } from "@/features/profile/profile.types";
 import { auth } from "@/shared/lib/auth/auth";
+import { getOrCreateStripeCustomer, getStripe } from "@/shared/lib/services/stripe.service";
+import { getBaseUrl } from "@/shared/lib/utils/base-url";
 import { displayName } from "@/shared/lib/auth/session-user";
 import { AccessDenied, InvalidFields, UserFacingError } from "@/shared/lib/errors";
 import { assertSignedIn, hasRole } from "@/shared/lib/utils/auth-utils";
@@ -253,4 +255,15 @@ export async function startMyTripPayment(bookingId: string, chargeType: "deposit
     throw new UserFacingError("This trip doesn't have a deposit option.");
   }
   return getOrCreateCheckoutUrl(bookingId, { chargeType });
+}
+
+/** A Stripe billing portal session for the person's invoices and receipts. Returns its URL. */
+export async function openMyBillingPortal(): Promise<string> {
+  const me = await assertSignedIn("Authentication required");
+  const customerId = await getOrCreateStripeCustomer(me.email, me.name, me.id);
+  const portal = await getStripe().billingPortal.sessions.create({
+    customer: customerId,
+    return_url: `${getBaseUrl()}/profile/bookings`,
+  });
+  return portal.url;
 }

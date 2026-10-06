@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { getBoatDetail } from "@/features/boats/boat.data";
 import { BoatCalendarView } from "@/features/boats/components/admin/BoatCalendarView";
-import { getBoatExternalCalendars } from "@/features/availability/actions/external-calendar.queries";
+import { listExternalCalendars } from "@/features/availability/availability.data";
 import { buildFeedUrl } from "@/shared/lib/calendar/feed-tokens";
 import { getBaseUrl } from "@/shared/lib/utils/base-url";
 
@@ -32,7 +32,7 @@ export default async function BoatCalendarPage({ params }: BoatCalendarPageProps
       "Add CALENDAR_FEED_SECRET to .env.local (any long random string), then restart the dev server.";
   }
 
-  const externalCalendars = await getBoatExternalCalendars(boatId);
+  const externalCalendars = await listExternalCalendars(boatId);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">

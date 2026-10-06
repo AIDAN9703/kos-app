@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 
-import type { AdminWorkload } from "@/features/admin/dashboard";
+import type { AdminWorkload } from "@/features/admin/dashboard.types";
 import { adminInitials } from "@/shared/lib/utils/people-display";
 import { cn } from "@/shared/lib/utils/general-utils";
 import { formatCentsCompact } from "@/shared/lib/utils/money-utils";

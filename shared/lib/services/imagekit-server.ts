@@ -4,7 +4,7 @@ import ImageKit from "imagekit";
  * Server-only ImageKit client (uploads, file management).
  *
  * Never import this from client components — the private key must stay on the
- * server. Client-safe URL helpers live in `imagekit.service.ts`.
+ * server. Client-safe URL helpers live in `shared/lib/utils/imagekit.ts`.
  */
 let client: ImageKit | null = null;
 

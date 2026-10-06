@@ -1,10 +1,10 @@
 import { Suspense } from "react";
 import BookingDetailsClientLoader from "@/features/bookings/components/BookingDetailsClientLoader";
-import { getAppSettings } from "@/features/app-settings/app-settings.service";
+import { getServiceFee } from "@/features/app-settings/app-settings.data";
 import { getSession } from "@/shared/lib/utils/auth-utils";
 
 export default async function BookingDetailsPage() {
-  const [session, settings] = await Promise.all([getSession(), getAppSettings()]);
+  const [session, serviceFee] = await Promise.all([getSession(), getServiceFee()]);
 
   return (
     <Suspense
@@ -16,7 +16,7 @@ export default async function BookingDetailsPage() {
     >
       <BookingDetailsClientLoader
         user={session?.user || null}
-        serviceFee={settings.serviceFee}
+        serviceFee={serviceFee}
       />
     </Suspense>
   );

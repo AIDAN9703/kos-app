@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { getBoatDetail } from "@/features/boats/boat.data";
-import { addOnService } from "@/features/add-ons/add-on.service";
+import { listActiveAddOns } from "@/features/add-ons/add-on.data";
 import {
   type CreateBoatInput,
   type PricingTierInput,
@@ -35,7 +35,7 @@ export default async function AdminBoatEditPage({
 async function BoatFormWithData({ boatId }: { boatId: string }) {
   const [boatData, availableAddOns] = await Promise.all([
     getBoatDetail(boatId),
-    addOnService.getActiveAddOns(),
+    listActiveAddOns(),
   ]);
 
   if (!boatData) {

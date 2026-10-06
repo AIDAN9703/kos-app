@@ -1,13 +1,13 @@
 import { Suspense } from "react";
 
-import { getAppSettings } from "@/features/app-settings/app-settings.service";
+import { getServiceFee } from "@/features/app-settings/app-settings.data";
 import BoatInquiryDetailsClient, {
   type InquiryCurrentUser,
 } from "@/features/bookings/components/lead-intake/BoatInquiryDetailsClient";
 import { getSession } from "@/shared/lib/utils/auth-utils";
 
 export default async function BoatInquiryPage() {
-  const [settings, session] = await Promise.all([getAppSettings(), getSession()]);
+  const [serviceFee, session] = await Promise.all([getServiceFee(), getSession()]);
 
   // Signed-in visitors submit as their account ("Welcome back"); guests get
   // the in-page auth gate. The route itself stays publicly reachable so the
@@ -31,7 +31,7 @@ export default async function BoatInquiryPage() {
       }
     >
       <BoatInquiryDetailsClient
-        serviceFee={settings.serviceFee}
+        serviceFee={serviceFee}
         currentUser={currentUser}
       />
     </Suspense>

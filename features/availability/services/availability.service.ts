@@ -1,3 +1,5 @@
+import "server-only";
+
 import { db } from "@/database/db";
 import { boats, bookings, boatBlocking, boatExternalCalendarEvents } from "@/database/schema";
 import { eq, and, ne, lt, gt, inArray } from "drizzle-orm";

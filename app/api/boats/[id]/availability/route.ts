@@ -1,35 +1,19 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { availabilityService } from '@/features/availability/services/availability.service';
+import { NextRequest, NextResponse } from "next/server";
+import { getBusyWindows } from "@/features/availability/availability.data";
+import { apiErrorFrom } from "@/shared/lib/utils/api-helpers";
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+/**
+ * GET /api/boats/[id]/availability?startDate=...&endDate=...
+ * When the boat is taken in a window — busy times only, nothing about who
+ * or why (the booking form's time slots).
+ */
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id: boatId } = await params;
-    const { searchParams } = new URL(request.url);
-    
-    const startDate = searchParams.get('startDate');
-    const endDate = searchParams.get('endDate');
-    const excludeBookingId = searchParams.get('excludeBookingId');
-    
-    if (!startDate || !endDate) {
-      return NextResponse.json({ error: 'Missing date range' }, { status: 400 });
-    }
-
-    const availability = await availabilityService.checkTimeSlotAvailability(
-      boatId,
-      new Date(startDate),
-      new Date(endDate),
-      excludeBookingId || undefined
-    );
-
-    return NextResponse.json(availability);
+    const { id } = await params;
+    const search = request.nextUrl.searchParams;
+    const busy = await getBusyWindows(id, search.get("startDate"), search.get("endDate"));
+    return NextResponse.json({ conflicts: busy });
   } catch (error) {
-    console.error('Error checking availability:', error);
-    return NextResponse.json(
-      { error: 'Failed to check availability' }, 
-      { status: 500 }
-    );
+    return apiErrorFrom(error, "Failed to check availability");
   }
-} 
+}

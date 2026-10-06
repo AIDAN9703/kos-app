@@ -4,7 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { animate, motion } from "framer-motion";
 import { Area, AreaChart, ResponsiveContainer } from "recharts";
 
-import type { RevenueMonth } from "@/features/admin/dashboard";
+import type { RevenueMonth } from "@/features/admin/dashboard.types";
 import type { BookingListItem } from "@/features/bookings/booking.types";
 import { readinessGaps } from "@/features/bookings/lib/trip-readiness";
 import { cn } from "@/shared/lib/utils/general-utils";

@@ -9,7 +9,7 @@ import {
   isOverlapConstraintError,
 } from "@/features/availability/services/availability.service";
 import { paymentService } from "@/features/payments/payment.service";
-import { confirmPaidBooking } from "@/features/bookings/lib/confirm-paid-booking";
+import { confirmPaidBooking } from "@/features/bookings/services/confirm-paid-booking.service";
 import { sendBookingConfirmationEmail } from "@/shared/lib/services/email.service";
 import { alertTeam } from "@/features/bookings/lib/team-alerts";
 import { formatCentsAsCurrency } from "@/shared/lib/utils/money-utils";

@@ -2,37 +2,18 @@
 
 import { revalidatePath } from "next/cache";
 
-import { getAdminSession } from "@/shared/lib/utils/auth-utils";
-import { type ActionResponse } from "@/shared/lib/types/types";
-import { saveAppSettings } from "@/features/app-settings/app-settings.service";
-import { updateAppSettingsSchema } from "@/features/app-settings/app-settings.validation";
+import * as settings from "@/features/app-settings/app-settings.data";
 import type { AppSettings } from "@/features/app-settings/app-settings.types";
+import { type ActionResponse } from "@/shared/lib/types/types";
+import { actionError } from "@/shared/lib/utils/action-helpers";
 
-export async function updateAppSettings(
-  raw: unknown
-): Promise<ActionResponse<AppSettings>> {
-  const adminAuth = await getAdminSession();
-  if (adminAuth.error !== undefined) {
-    return { success: false, error: adminAuth.error };
-  }
-
-  const parsed = updateAppSettingsSchema.safeParse(raw);
-  if (!parsed.success) {
-    return {
-      success: false,
-      error: parsed.error.issues.map((i) => i.message).join(", "),
-    };
-  }
-
+/** Save the settings page (admins). A thin wrapper over app-settings.data.ts. */
+export async function updateAppSettings(raw: unknown): Promise<ActionResponse<AppSettings>> {
   try {
-    const settings = await saveAppSettings(
-      parsed.data,
-      adminAuth.session.user.id
-    );
+    const saved = await settings.updateSettings(raw);
     revalidatePath("/admin/settings");
-    return { success: true, data: settings };
+    return { success: true, data: saved };
   } catch (error) {
-    console.error("Error updating app settings:", error);
-    return { success: false, error: "Failed to update settings" };
+    return actionError(error, "Failed to update settings");
   }
 }

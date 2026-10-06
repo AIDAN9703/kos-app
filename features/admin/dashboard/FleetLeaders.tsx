@@ -5,7 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Ship } from "lucide-react";
 
-import type { FleetLeader } from "@/features/admin/dashboard";
+import type { FleetLeader } from "@/features/admin/dashboard.types";
 import { formatCentsCompact } from "@/shared/lib/utils/money-utils";
 
 /** This month's earning boats — rank, photo, share bar. Admins know boats by sight. */

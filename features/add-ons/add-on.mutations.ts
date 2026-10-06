@@ -2,72 +2,39 @@
 
 import { revalidatePath } from "next/cache";
 
-import { type ActionResponse } from "@/shared/lib/types/types";
-import { addOnService } from "@/features/add-ons/add-on.service";
-import {
-  createAddOnSchema,
-  updateAddOnSchema,
-} from "@/features/add-ons/add-on.validation";
+import * as addOns from "@/features/add-ons/add-on.data";
 import type { AddOn } from "@/features/add-ons/add-on.types";
-import { getAdminSession } from "@/shared/lib/utils/auth-utils";
+import { type ActionResponse } from "@/shared/lib/types/types";
+import { actionError } from "@/shared/lib/utils/action-helpers";
 
-function zodMessage(error: { issues: { message: string }[] }): string {
-  return error.issues.map((i) => i.message).join(", ");
-}
+/** Add-on catalog actions (admins). Thin wrappers over add-on.data.ts. */
 
 export async function createAddOn(raw: unknown): Promise<ActionResponse<AddOn>> {
-  const admin = await getAdminSession();
-  if (admin.error !== undefined) return { success: false, error: admin.error };
-
-  const parsed = createAddOnSchema.safeParse(raw);
-  if (!parsed.success) {
-    return { success: false, error: zodMessage(parsed.error) };
-  }
-
   try {
-    const addOn = await addOnService.createAddOn(parsed.data);
+    const addOn = await addOns.createAddOn(raw);
     revalidatePath("/admin/add-ons");
     return { success: true, data: addOn };
   } catch (error) {
-    console.error("Error creating add-on:", error);
-    return { success: false, error: "Failed to create add-on" };
+    return actionError(error, "Failed to create add-on");
   }
 }
 
-export async function updateAddOn(
-  id: string,
-  raw: unknown
-): Promise<ActionResponse<AddOn>> {
-  const admin = await getAdminSession();
-  if (admin.error !== undefined) return { success: false, error: admin.error };
-
-  const parsed = updateAddOnSchema.safeParse(raw);
-  if (!parsed.success) {
-    return { success: false, error: zodMessage(parsed.error) };
-  }
-
+export async function updateAddOn(id: string, raw: unknown): Promise<ActionResponse<AddOn>> {
   try {
-    const addOn = await addOnService.updateAddOn(id, parsed.data);
+    const addOn = await addOns.updateAddOn(id, raw);
     revalidatePath("/admin/add-ons");
     return { success: true, data: addOn };
   } catch (error) {
-    console.error("Error updating add-on:", error);
-    return { success: false, error: "Failed to update add-on" };
+    return actionError(error, "Failed to update add-on");
   }
 }
 
-export async function deleteAddOn(
-  id: string
-): Promise<ActionResponse<{ message: string }>> {
-  const admin = await getAdminSession();
-  if (admin.error !== undefined) return { success: false, error: admin.error };
-
+export async function deleteAddOn(id: string): Promise<ActionResponse<null>> {
   try {
-    await addOnService.deleteAddOn(id);
+    await addOns.deleteAddOn(id);
     revalidatePath("/admin/add-ons");
-    return { success: true, data: { message: "Add-on deleted" } };
+    return { success: true, data: null, message: "Add-on deleted" };
   } catch (error) {
-    console.error("Error deleting add-on:", error);
-    return { success: false, error: "Failed to delete add-on" };
+    return actionError(error, "Failed to delete add-on");
   }
 }

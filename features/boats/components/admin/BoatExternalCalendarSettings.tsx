@@ -22,7 +22,7 @@ import {
   setExternalCalendarEnabled,
   syncExternalCalendarNow,
 } from "@/features/availability/actions/external-calendar.actions";
-import type { ExternalCalendarListItem } from "@/features/availability/actions/external-calendar.queries";
+import type { ExternalCalendarListItem } from "@/features/availability/availability.types";
 
 interface BoatExternalCalendarSettingsProps {
   boatId: string;
@@ -97,7 +97,7 @@ export function BoatExternalCalendarSettings({
           title: "Calendar connected",
           description: result.error
             ? result.error
-            : `Imported ${result.eventCount ?? 0} busy block(s).`,
+            : `Imported ${result.data?.eventCount ?? 0} busy block(s).`,
           variant: result.error ? "destructive" : undefined,
         });
         setName("");
@@ -116,7 +116,7 @@ export function BoatExternalCalendarSettings({
 
   async function runAction(
     id: string,
-    fn: () => Promise<{ success: boolean; error?: string; eventCount?: number }>,
+    fn: () => Promise<{ success: boolean; error?: string; data?: { eventCount?: number } }>,
     successTitle: string,
     successDescription?: (eventCount?: number) => string
   ) {
@@ -126,7 +126,7 @@ export function BoatExternalCalendarSettings({
       if (result.success) {
         toast({
           title: successTitle,
-          description: successDescription?.(result.eventCount),
+          description: successDescription?.(result.data?.eventCount),
         });
         router.refresh();
       } else {

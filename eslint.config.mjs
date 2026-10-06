@@ -7,30 +7,26 @@ import prettier from "eslint-config-prettier";
  * replaces the old FlatCompat wrapper, which crashed ESLint 9 with a
  * circular-structure error.
  */
-/** Query layers that only the data layer may import. */
-const dataLayerPaths = [
-  {
-    name: "@/features/boats/boat.service",
-    message: "Use @/features/boats/boat.data — it checks who's asking.",
-  },
-];
-const dataLayerPatterns = [
-  {
-    group: ["@/features/bookings/services/*"],
-    message:
-      "Use the bookings data layer (deal.data, deal-money.data, proposal.data, booking-request.data) — it checks who's asking.",
-  },
-  {
-    group: [
-      "@/features/users/*.service",
-      "@/features/profiles/*.service",
-      "@/features/profile/*.service",
-      "@/features/owner-dashboard/*.service",
-    ],
-    message:
-      "Use the data layer (user.data, profiles.data, profile.data, owner.data) — it checks who's asking.",
-  },
-];
+/**
+ * The data layer boundary. Pages, routes, actions and components read and
+ * change data through a *.data.ts file, which checks who's asking; only data
+ * files and services may use a service, and only services may use the
+ * database client.
+ */
+const databaseClient = {
+  name: "@/database/db",
+  message: "Only services (*.service.ts, services/) may use the database client.",
+};
+const servicesOnlyForData = {
+  group: [
+    "@/features/**/*.service",
+    "@/features/**/services/*",
+    // The marketing site's "services" pages are UI, not data services.
+    "!@/features/_marketing/**",
+    "@/shared/lib/services/stripe.service",
+  ],
+  message: "Use a *.data.ts file — it checks who's asking. Only data files and services may use services.",
+};
 
 const eslintConfig = [
   ...nextCoreWebVitals,
@@ -47,35 +43,27 @@ const eslintConfig = [
     },
   },
   {
-    // Data layer boundary: pages, routes, actions and components read and
-    // change data through a *.data.ts file, which checks who's asking. Only
-    // data files and other services may use the query layer below them.
-    // Areas are added here as they move onto the data layer.
     files: ["**/*.{ts,tsx}"],
-    // Better Auth's config is infrastructure: its hooks may call services.
+    // Services may use the database; Better Auth's config is infrastructure
+    // (its hooks call services); migrations live under database/.
     ignores: [
       "features/**/*.data.ts",
       "features/**/*.service.ts",
-      "features/**/services/**",
+      "features/bookings/services/**",
+      "features/availability/services/**",
+      "shared/lib/services/**",
       "shared/lib/auth/auth.ts",
+      "database/**",
     ],
     rules: {
-      "no-restricted-imports": ["error", { paths: dataLayerPaths, patterns: dataLayerPatterns }],
+      "no-restricted-imports": ["error", { paths: [databaseClient], patterns: [servicesOnlyForData] }],
     },
   },
   {
-    // Not on the data layer yet — remove each file as its area moves over.
-    files: [
-      "app/api/webhook/stripe/route.ts",
-      "app/api/stripe/verify/route.ts",
-      "app/api/inbound-email/route.ts",
-      "features/profile/actions/trip.actions.ts",
-      "features/bookings/lib/confirm-paid-booking.ts",
-      "features/admin/dashboard.ts",
-      "features/admin/assistant/tools.ts",
-    ],
+    // Data files call services, never the database directly.
+    files: ["features/**/*.data.ts"],
     rules: {
-      "no-restricted-imports": ["error", { paths: dataLayerPaths }],
+      "no-restricted-imports": ["error", { paths: [databaseClient] }],
     },
   },
   {

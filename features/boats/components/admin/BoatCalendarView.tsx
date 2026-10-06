@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 
 import { BoatCalendarSyncModal } from "@/features/boats/components/admin/BoatCalendarSyncModal";
-import type { ExternalCalendarListItem } from "@/features/availability/actions/external-calendar.queries";
+import type { ExternalCalendarListItem } from "@/features/availability/availability.types";
 import { BookingCalendarEvent } from "@/features/bookings/booking.types";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";

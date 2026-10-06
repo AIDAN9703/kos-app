@@ -1,7 +1,9 @@
 import "server-only";
 
+import { eq } from "drizzle-orm";
+
 import { db } from "@/database/db";
-import { bookings } from "@/database/schema";
+import { bookings, inboundEmails } from "@/database/schema";
 import { bookingEventsService } from "@/features/bookings/services/booking-events.service";
 import { sendAdminAlertEmail } from "@/shared/lib/services/email.service";
 import { revalidateDeal } from "@/features/bookings/lib/revalidate-deal";
@@ -291,4 +293,33 @@ export async function processMarketplaceEmail(
   revalidateDeal();
 
   return { dealId: created.id, method };
+}
+
+// ============================================================================
+// THE INBOX (raw emails, stored before anything is parsed)
+// ============================================================================
+
+/** Store a received email once (deduped on message id); null when it was already stored. */
+export async function storeInboundEmail(email: {
+  messageId: string;
+  fromAddress: string;
+  toAddress: string | null;
+  subject: string;
+  rawHtml: string | null;
+  rawText: string | null;
+}): Promise<{ id: string } | null> {
+  const [stored] = await db
+    .insert(inboundEmails)
+    .values({ ...email, receivedAt: new Date() })
+    .onConflictDoNothing({ target: inboundEmails.messageId })
+    .returning({ id: inboundEmails.id });
+  return stored ?? null;
+}
+
+/** Record what became of a stored email (ignored, parsed into a deal, or failed). */
+export async function setInboundEmailOutcome(
+  id: string,
+  outcome: { parseStatus: "IGNORED" | ParseMethod; dealId?: string | null; error?: string | null }
+): Promise<void> {
+  await db.update(inboundEmails).set(outcome).where(eq(inboundEmails.id, id));
 }

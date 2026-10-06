@@ -1,3 +1,5 @@
+import "server-only";
+
 /**
  * Booking Group Service
  * A group ties multiple boat bookings into one charter party. Creation is the

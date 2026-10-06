@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import BlogForm from "@/features/blog/components/BlogForm";
-import { blogService } from "@/features/blog/blog.service";
+import { getPost } from "@/features/blog/blog.data";
 
 interface EditBlogPageProps {
   params: Promise<{
@@ -11,7 +11,7 @@ interface EditBlogPageProps {
 export default async function EditBlogPage({ params }: EditBlogPageProps) {
   // Await params for Next.js 15 compatibility
   const resolvedParams = await params;
-  const post = await blogService.getPostById(resolvedParams.id);
+  const post = await getPost(resolvedParams.id);
 
   if (!post) {
     notFound();

@@ -83,7 +83,7 @@ export async function getOrCreateStripeCustomer(
  * Extract PaymentIntent ID from Stripe value (string or expanded object).
  * Use for session.payment_intent, invoice payments, etc.
  */
-export function extractPaymentIntentId(
+function extractPaymentIntentId(
   value: string | Stripe.PaymentIntent | null | undefined
 ): string | undefined {
   if (!value) return undefined;

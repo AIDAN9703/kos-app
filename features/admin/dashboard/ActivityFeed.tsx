@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { formatDistanceToNowStrict } from "date-fns";
 import { Bot, Sparkles, UserRound } from "lucide-react";
 
-import type { ActivityItem } from "@/features/admin/dashboard";
+import type { ActivityItem } from "@/features/admin/dashboard.types";
 import { cn } from "@/shared/lib/utils/general-utils";
 
 /** Color by what happened: money green, sends gold, customer actions sky, else neutral. */

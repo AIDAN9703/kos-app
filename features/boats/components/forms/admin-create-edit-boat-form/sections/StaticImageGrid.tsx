@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Image as IKImage } from "@imagekit/next";
-import { getImageKitProps } from "@/shared/lib/services/imagekit.service";
+import { getImageKitProps } from "@/shared/lib/utils/imagekit";
 
 interface StaticImageGridProps {
   images: string[];

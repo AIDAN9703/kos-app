@@ -4,7 +4,7 @@ import { Check, Copy } from "lucide-react";
 import { useState } from "react";
 
 import { BoatExternalCalendarSettings } from "@/features/boats/components/admin/BoatExternalCalendarSettings";
-import type { ExternalCalendarListItem } from "@/features/availability/actions/external-calendar.queries";
+import type { ExternalCalendarListItem } from "@/features/availability/availability.types";
 import { Button } from "@/shared/components/ui/button";
 import {
   Dialog,

@@ -49,7 +49,7 @@ const VALID_TRANSITIONS: Record<BookingStatus, BookingStatus[]> = {
 /**
  * Check if a status transition is valid
  */
-export function isValidStatusTransition(
+function isValidStatusTransition(
   fromStatus: BookingStatus,
   toStatus: BookingStatus
 ): boolean {

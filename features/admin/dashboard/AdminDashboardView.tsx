@@ -10,7 +10,7 @@ import type {
   FleetLeader,
   LeadIntake as LeadIntakeData,
   RevenueMonth,
-} from "@/features/admin/dashboard";
+} from "@/features/admin/dashboard.types";
 import type { BookingListItem } from "@/features/bookings/booking.types";
 
 import { HeroBand } from "./HeroBand";

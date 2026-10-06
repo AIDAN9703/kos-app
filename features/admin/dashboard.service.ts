@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 
 import { db } from "@/database/db";
 import { boats, bookingEvents, bookingOps, bookingPricing, bookings, users } from "@/database/schema";
@@ -17,52 +17,11 @@ import {
   subMonths,
 } from "date-fns";
 import { bookingService } from "@/features/bookings/services/booking.service";
-import { getAdminSession } from "@/shared/lib/utils/auth-utils";
 import type { BookingListItem } from "@/features/bookings/booking.types";
-
-async function assertAdmin(): Promise<void> {
-  const { error } = await getAdminSession();
-  if (error) {
-    throw new Error(error);
-  }
-}
-
-/** One month of charter volume — the last entry is the current month. */
-export interface RevenueMonth {
-  /** "2026-03" — stable key. */
-  key: string;
-  /** "Mar" — chart axis label. */
-  label: string;
-  /** "March" — headline label when this is the current month. */
-  monthName: string;
-  gmvCents: number;
-  /** What KOS keeps: charter value minus every expense line. */
-  revenueCents: number;
-  trips: number;
-}
-
-/** A boat's standing in this month's GMV leaderboard. */
-export interface FleetLeader {
-  boatId: string;
-  name: string;
-  mainImage: string | null;
-  gmvCents: number;
-  trips: number;
-}
-
-/** Lean lead row for the dashboard queue — INQUIRY-status booking rows. */
-export interface DashboardLead {
-  id: string;
-  name: string;
-  source: string | null;
-  budgetCents: number | null;
-  estimatedValueCents: number | null;
-  createdAt: Date;
-}
+import type { RevenueMonth, FleetLeader, DashboardLead, LeadIntake, AdminWorkload, ActivityItem } from "@/features/admin/dashboard.types";
 
 /** Live INQUIRY deals with no admin assigned yet — newest first. */
 export const getUnassignedLeads = cache(async (limit = 8): Promise<DashboardLead[]> => {
-  await assertAdmin();
   const rows = await db
     .select({
       id: bookings.id,
@@ -101,7 +60,6 @@ export const getUnassignedLeads = cache(async (limit = 8): Promise<DashboardLead
  */
 export const getUpcomingTrips = cache(
   async (daysAhead = 30): Promise<BookingListItem[]> => {
-    await assertAdmin();
     const now = new Date();
     const result = await bookingService.getAllBookings({
       dateFrom: startOfDay(now).toISOString(),
@@ -135,7 +93,6 @@ const REAL_TRIPS = notInArray(bookings.bookingStatus, ["CANCELLED", "INQUIRY"]);
  * final entry doubles as the headline "this month" metrics.
  */
 export const getRevenueTrend = cache(async (months = 6): Promise<RevenueMonth[]> => {
-  await assertAdmin();
 
   const now = new Date();
   const from = startOfMonth(subMonths(now, months - 1));
@@ -172,7 +129,6 @@ export const getRevenueTrend = cache(async (months = 6): Promise<RevenueMonth[]>
 
 /** This month's GMV leaderboard by boat — who is actually earning the fleet's keep. */
 export const getFleetLeaders = cache(async (limit = 5): Promise<FleetLeader[]> => {
-  await assertAdmin();
 
   const now = new Date();
   const rows = await db
@@ -211,16 +167,7 @@ const LIVE = sql`${bookings.archivedAt} IS NULL`;
 
 /* ── Lead intake ───────────────────────────────────────────────────── */
 
-/** New deals landing per day and per channel — where business comes from. */
-export interface LeadIntake {
-  days: { key: string; label: string; count: number }[];
-  bySource: { source: string; count: number }[];
-  total: number;
-  previousTotal: number;
-}
-
 export const getLeadIntake = cache(async (days = 30): Promise<LeadIntake> => {
-  await assertAdmin();
   const now = new Date();
   const from = startOfDay(subDays(now, days - 1));
   const prevFrom = startOfDay(subDays(now, days * 2 - 1));
@@ -260,17 +207,8 @@ export const getLeadIntake = cache(async (days = 30): Promise<LeadIntake> => {
 
 /* ── Team workload ─────────────────────────────────────────────────── */
 
-export interface AdminWorkload {
-  adminId: string | null;
-  name: string;
-  liveDeals: number;
-  /** Value of their open deals (quote total, else lead estimate). */
-  valueCents: number;
-}
-
 /** Live (non-settled, non-archived) deals per admin, unassigned last. */
 export const getAdminWorkload = cache(async (): Promise<AdminWorkload[]> => {
-  await assertAdmin();
   const rows = await db
     .select({
       adminId: bookings.assignedAdminId,
@@ -298,19 +236,8 @@ export const getAdminWorkload = cache(async (): Promise<AdminWorkload[]> => {
 
 /* ── Activity ──────────────────────────────────────────────────────── */
 
-export interface ActivityItem {
-  id: string;
-  bookingId: string;
-  customerName: string | null;
-  eventType: string;
-  message: string | null;
-  actorType: string;
-  createdAt: Date;
-}
-
 /** The desk's pulse: the latest events across every deal. */
 export const getRecentActivity = cache(async (limit = 12): Promise<ActivityItem[]> => {
-  await assertAdmin();
   const rows = await db
     .select({
       id: bookingEvents.id,

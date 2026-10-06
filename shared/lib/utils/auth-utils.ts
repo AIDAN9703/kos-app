@@ -14,10 +14,8 @@ import type { SessionUser } from "@/shared/lib/auth/session-user";
  *
  * - Data layer (*.data.ts): assertSignedIn / assertCan throw AccessDenied.
  *   Every read and write that pages, routes and actions use goes through one.
- * - Pages and layouts: requireAuth / requireAdmin / requireOwner / requireCaptain
- *   (redirect when not allowed).
- * - Server actions and API routes not yet on the data layer: getAdminSession /
- *   requirePermission / getAuthenticatedUserId (return an error instead).
+ * - Pages and layouts: requireAuth / requireAdmin / requireBrokerPortal /
+ *   requireOwner / requireCaptain (redirect when not allowed).
  *
  * proxy.ts only does a quick "is there a session cookie" redirect; the real
  * check is always one of these.
@@ -59,16 +57,6 @@ export async function assertCan(request: PermissionRequest): Promise<SessionUser
   return user;
 }
 
-/** Server actions and API routes: the session when allowed, otherwise an error. */
-export async function requirePermission(
-  request: PermissionRequest
-): Promise<{ session: AppSession; error?: never } | { session?: never; error: string }> {
-  const session = await getSession();
-  if (!session) return { error: "Not authenticated" };
-  if (!can(session.user, request)) return { error: "You don't have access to that." };
-  return { session };
-}
-
 /** Pages: the signed-in session, or a redirect to sign-in. */
 export async function requireAuth(): Promise<AppSession> {
   const session = await getSession();
@@ -104,21 +92,3 @@ export async function requireCaptain(): Promise<AppSession> {
   return session;
 }
 
-/** Server actions and API routes that need an admin. */
-export async function getAdminSession(): Promise<
-  { session: AppSession; error?: never } | { session?: never; error: string }
-> {
-  const session = await getSession();
-  if (!session) return { error: "Not authenticated" };
-  if (!session.user.isAdmin) return { error: "Admin access required" };
-  return { session };
-}
-
-/** Server actions that act on the signed-in person's own data. */
-export async function getAuthenticatedUserId(): Promise<
-  { userId: string; error?: never } | { userId?: never; error: string }
-> {
-  const session = await getSession();
-  if (!session) return { error: "Not authenticated" };
-  return { userId: session.user.id };
-}

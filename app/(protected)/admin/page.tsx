@@ -6,7 +6,7 @@ import {
   getRecentActivity,
   getRevenueTrend,
   getUpcomingTrips,
-} from "@/features/admin/dashboard";
+} from "@/features/admin/dashboard.data";
 import { AdminDashboardView } from "@/features/admin/dashboard/AdminDashboardView";
 import { getSession } from "@/shared/lib/utils/auth-utils";
 

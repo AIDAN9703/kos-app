@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 
-import type { LeadIntake as LeadIntakeData } from "@/features/admin/dashboard";
+import type { LeadIntake as LeadIntakeData } from "@/features/admin/dashboard.types";
 import { DEAL_SOURCE_LABELS, SOURCE_BADGE_CLASSES } from "@/features/bookings/deal-status";
 import { cn } from "@/shared/lib/utils/general-utils";
 

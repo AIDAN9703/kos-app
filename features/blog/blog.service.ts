@@ -1,6 +1,8 @@
+import "server-only";
+
 import { db } from "@/database/db";
 import { blogPosts } from "@/database/schema";
-import { eq, desc, and, or, like, count } from "drizzle-orm";
+import { eq, desc, and, or, like, count, sql } from "drizzle-orm";
 import { resolveAdminListPagination } from "@/shared/admin/list-pagination";
 import type {
   BlogDetails,
@@ -9,6 +11,7 @@ import type {
   BlogCategory,
   PaginatedBlogResponse,
 } from "./blog.types";
+import type { BlogPostValues } from "./blog.validation";
 
 export interface BlogFilterInput {
   page?: number;
@@ -20,8 +23,8 @@ export interface BlogFilterInput {
 }
 
 /**
- * Blog Service Layer
- * Single source of truth for blog data fetching
+ * News post queries. Server-only and not access-checked: pages and actions go
+ * through blog.data.ts (published posts for everyone, the rest for admins).
  */
 export const blogService = {
   /**
@@ -129,5 +132,108 @@ export const blogService = {
       status: post.status as BlogStatus,
       category: post.category as BlogCategory,
     } as BlogDetails;
+  },
+
+  // ==========================================================================
+  // PUBLISHED (the public news pages)
+  // ==========================================================================
+
+  /** Published posts, newest first. */
+  async getPublishedPosts(options: { limit?: number; featured?: boolean; category?: BlogCategory } = {}) {
+    const { limit = 10, featured, category } = options;
+    return db
+      .select({
+        id: blogPosts.id,
+        title: blogPosts.title,
+        slug: blogPosts.slug,
+        excerpt: blogPosts.excerpt,
+        status: blogPosts.status,
+        category: blogPosts.category,
+        isFeatured: blogPosts.isFeatured,
+        featuredImage: blogPosts.featuredImage,
+        imageAlt: blogPosts.imageAlt,
+        publishedAt: blogPosts.publishedAt,
+        viewCount: blogPosts.viewCount,
+        author: blogPosts.author,
+        createdAt: blogPosts.createdAt,
+      })
+      .from(blogPosts)
+      .where(
+        and(
+          eq(blogPosts.status, "PUBLISHED"),
+          featured !== undefined ? eq(blogPosts.isFeatured, featured) : undefined,
+          category ? eq(blogPosts.category, category) : undefined
+        )
+      )
+      .orderBy(desc(blogPosts.publishedAt))
+      .limit(limit);
+  },
+
+  /** A published post by its slug, or null. */
+  async getPublishedPostBySlug(slug: string) {
+    const [post] = await db
+      .select({
+        id: blogPosts.id,
+        title: blogPosts.title,
+        slug: blogPosts.slug,
+        excerpt: blogPosts.excerpt,
+        content: blogPosts.content,
+        status: blogPosts.status,
+        category: blogPosts.category,
+        isFeatured: blogPosts.isFeatured,
+        featuredImage: blogPosts.featuredImage,
+        imageAlt: blogPosts.imageAlt,
+        metaTitle: blogPosts.metaTitle,
+        metaDescription: blogPosts.metaDescription,
+        publishedAt: blogPosts.publishedAt,
+        viewCount: blogPosts.viewCount,
+        author: blogPosts.author,
+        createdAt: blogPosts.createdAt,
+      })
+      .from(blogPosts)
+      .where(and(eq(blogPosts.slug, slug), eq(blogPosts.status, "PUBLISHED")));
+    return post ?? null;
+  },
+
+  /** Count a read of a published post (leaves updatedAt alone). */
+  async recordView(id: string): Promise<void> {
+    await db
+      .update(blogPosts)
+      .set({ viewCount: sql`${blogPosts.viewCount} + 1` })
+      .where(and(eq(blogPosts.id, id), eq(blogPosts.status, "PUBLISHED")));
+  },
+
+  // ==========================================================================
+  // WRITES
+  // ==========================================================================
+
+  /** Empty optional fields stay unset, so the column defaults apply. */
+  async createPost(values: BlogPostValues): Promise<{ id: string }> {
+    const now = new Date();
+    const [post] = await db
+      .insert(blogPosts)
+      .values({
+        ...values,
+        featuredImage: values.featuredImage || undefined,
+        imageAlt: values.imageAlt || undefined,
+        metaTitle: values.metaTitle || undefined,
+        metaDescription: values.metaDescription || undefined,
+        publishedAt: values.status === "PUBLISHED" ? (values.publishedAt ?? now) : null,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning({ id: blogPosts.id });
+    return post;
+  },
+
+  async updatePost(id: string, values: Partial<BlogPostValues>): Promise<void> {
+    await db
+      .update(blogPosts)
+      .set({ ...values, updatedAt: new Date() })
+      .where(eq(blogPosts.id, id));
+  },
+
+  async deletePost(id: string): Promise<void> {
+    await db.delete(blogPosts).where(eq(blogPosts.id, id));
   },
 };

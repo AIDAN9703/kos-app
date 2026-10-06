@@ -1,6 +1,6 @@
 // Client-safe ImageKit URL/props helpers. This module is imported by client
 // components, so it must never touch the private key or the server SDK —
-// the upload client lives in `imagekit-server.ts`.
+// the upload client lives in `shared/lib/services/imagekit-server.ts`.
 
 type ImageContext = 'hero' | 'secondary' | 'gallery' | 'card' | 'thumb';
 

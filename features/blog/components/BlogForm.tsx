@@ -33,12 +33,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/shared/components/ui/form";
-import {
-  createBlogPost,
-  updateBlogPost,
-  type CreateBlogPostData,
-  type BlogPost,
-} from "@/features/blog/actions/admin-blog-actions";
+import { createBlogPost, updateBlogPost } from "@/features/blog/actions/admin-blog-actions";
+import type { BlogPostInput } from "@/features/blog/blog.validation";
 import type { BlogDetails } from "@/features/blog/blog.types";
 import { useToast } from "@/shared/lib/hooks/use-toast";
 import Image from "next/image";
@@ -95,7 +91,7 @@ type BlogFormData = z.infer<typeof blogFormSchema>;
 
 interface BlogFormProps {
   mode: "create" | "edit";
-  initialData?: BlogPost | BlogDetails;
+  initialData?: BlogDetails;
 }
 
 const categoryOptions = [
@@ -179,7 +175,7 @@ export default function BlogForm({ mode, initialData }: BlogFormProps) {
   const onSubmit = async (data: BlogFormData) => {
     setIsSubmitting(true);
     try {
-      const submitData: CreateBlogPostData = {
+      const submitData: BlogPostInput = {
         title: data.title,
         slug: data.slug,
         excerpt: data.excerpt,

@@ -8,9 +8,9 @@ import { Calendar, User, ArrowLeft, Clock, Tag, Eye } from "lucide-react";
 import { Badge } from "@/shared/components/ui/badge";
 import {
   getBlogPostBySlug,
-  incrementViewCount,
+  recordPostView,
   getPublishedBlogPosts,
-} from "@/features/blog/actions/admin-blog-actions";
+} from "@/features/blog/blog.data";
 import { formatDate } from "@/shared/lib/utils/general-utils";
 import SocialShare from "@/shared/components/ui/social-share";
 
@@ -78,7 +78,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   }
 
   // Increment view count (non-blocking)
-  incrementViewCount(post.id).catch(console.error);
+  recordPostView(post.id).catch(console.error);
 
   // Fetch related posts (same category, excluding current post)
   const relatedPostsData = await getPublishedBlogPosts({

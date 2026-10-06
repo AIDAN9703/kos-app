@@ -5,7 +5,7 @@ import { useState, useCallback } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { Image as IKImage } from "@imagekit/next";
-import { getImageKitProps } from "@/shared/lib/services/imagekit.service";
+import { getImageKitProps } from "@/shared/lib/utils/imagekit";
 import { AspectRatio } from "@/shared/components/ui/aspect-ratio";
 import {
   Carousel,

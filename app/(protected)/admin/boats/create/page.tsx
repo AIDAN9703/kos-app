@@ -1,7 +1,7 @@
 import AdminAddUpdateBoatForm from "@/features/boats/components/forms/admin-create-edit-boat-form";
-import { addOnService } from "@/features/add-ons/add-on.service";
+import { listActiveAddOns } from "@/features/add-ons/add-on.data";
 
 export default async function AdminCreateBoatPage() {
-  const availableAddOns = await addOnService.getActiveAddOns();
+  const availableAddOns = await listActiveAddOns();
   return <AdminAddUpdateBoatForm availableAddOns={availableAddOns} />;
 }

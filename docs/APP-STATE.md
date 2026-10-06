@@ -15,31 +15,24 @@ ImageKit (media) · Google Maps/Places · shadcn/ui + Tailwind v4 · react-query
 (the data layer) → `features/*/*.service.ts` (queries) → `database/schema`. Shared
 UI/helpers in `shared/`.
 
-**Data layer (in progress, one area at a time).** A `*.data.ts` file is the only way
-pages, routes and actions read or change an area's data. Every function checks who is
-asking (`assertSignedIn` / `assertCan` in `shared/lib/utils/auth-utils.ts`, which throw
-`AccessDenied`) and returns the narrowest shape for that viewer: the public gets active
-boats and public columns only, brokers never see payouts or owner contact. Actions stay
-thin: call the data function, refresh pages, and turn errors into `{ success: false }`
-with `actionError`; routes use `apiErrorFrom`. An ESLint `no-restricted-imports` rule
-blocks importing a migrated area's service from anywhere else (files not yet moved are
-listed there as temporary exceptions).
+**Data layer.** A `*.data.ts` file is the only way pages, routes and actions read or
+change data. Every function checks who is asking (`assertSignedIn` / `assertCan` in
+`shared/lib/utils/auth-utils.ts`, which throw `AccessDenied`) and returns the narrowest
+shape for that viewer. Entry points with no session prove themselves inside their data
+function instead: Stripe's webhook signature (`payments.data.ts`), Resend's svix
+signature (`inbound-email.data.ts`), a signed feed URL or `CRON_SECRET`
+(`availability.data.ts`), a proposal link's token (`proposal.data.ts`). Actions and
+routes stay thin: call the data function, refresh pages, and turn errors into
+`{ success: false }` with `actionError` (or a status with `apiErrorFrom`).
+`UserFacingError` / `AccessDenied` / `InvalidFields` (`shared/lib/errors.ts`) carry
+messages safe to show; anything else is logged and replaced by a generic message.
 
-- **Done:** boats + search (`boat.data.ts`, `search.data.ts`); bookings —
-  `deal.data.ts` + `deal-money.data.ts` (staff; a broker acts only on deals assigned to
-  them, and on a charter party only when every boat is theirs; economics are stripped
-  for anyone without `view-economics`), `proposal.data.ts` (the proposal link's token is
-  the credential), `booking-request.data.ts` (public forms + Instant Book; prices only
-  from the boat's active tiers).
-- **Done:** people — `profile.data.ts` (a person's own account, trips, captain view),
-  `owner.data.ts` (an owner's own fleet), `user.data.ts` (admin user management, account
-  pickers; Better Auth's user permissions), `profiles.data.ts` (captain/crew rosters),
-  `phone-sign-in.data.ts` (texted-code sign-in: the code is checked once; a new number
-  gets a signed sign-up proof and the account is created by a server-only Better Auth
-  endpoint, so the usual sign-up hooks run).
-- **Next:** availability, payments (Stripe webhook/verify), blog, add-ons, settings,
-  dashboard, assistant, admin search, calendar feeds; finally the rule extends to
-  `@/database/db`.
+ESLint (`eslint.config.mjs`) enforces the boundary: only services may import
+`@/database/db`; only data files and services may import a service (or the Stripe
+client). Areas: boats, search, deals (`deal.data` + `deal-money.data`), proposal,
+booking requests, profile, owner portal, users, crew rosters, phone sign-in,
+availability/calendars, payments, inbound email, blog, add-ons, settings, dashboard,
+admin search, uploads.
 
 **Features:** bookings, boats, availability, payments, users, profiles, listing,
 search, blog, add-ons, auth, admin, booking-groups, app-settings, `_marketing`.

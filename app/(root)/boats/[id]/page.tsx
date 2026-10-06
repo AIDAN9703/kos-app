@@ -1,5 +1,5 @@
 import { getPublicBoat, getPublicBoatIds } from "@/features/boats/boat.data";
-import { getAppSettings } from "@/features/app-settings/app-settings.service";
+import { getServiceFee } from "@/features/app-settings/app-settings.data";
 import { notFound } from "next/navigation";
 import BoatDetails from "@/features/listing/components/BoatDetails";
 import { BookingForm, MobileBookingDrawer } from "@/features/listing/components/booking-form/v2";
@@ -123,7 +123,7 @@ export default async function BoatPage({ params }: BoatPageProps) {
 
   // Display rate for the price breakdown (refreshes with ISR). The amount
   // actually charged is always recalculated server-side at checkout.
-  const { serviceFee } = await getAppSettings();
+  const serviceFee = await getServiceFee();
 
   return (
     <>

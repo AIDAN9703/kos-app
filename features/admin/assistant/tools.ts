@@ -2,13 +2,13 @@ import { tool } from "ai";
 import { z } from "zod";
 import { differenceInHours, format } from "date-fns";
 
-import { bookingService } from "@/features/bookings/services/booking.service";
+import { getDealWithParty, listDeals } from "@/features/bookings/deal.data";
 import {
   getFleetLeaders,
   getRevenueTrend,
   getUnassignedLeads,
   getUpcomingTrips,
-} from "@/features/admin/dashboard";
+} from "@/features/admin/dashboard.data";
 import type { BookingListItem } from "@/features/bookings/booking.types";
 import { isTripUrgent, readinessGaps } from "@/features/bookings/lib/trip-readiness";
 import { effectiveTotalCents } from "@/features/bookings/lib/booking-money";
@@ -77,7 +77,7 @@ export const assistantTools = {
     }),
     execute: async ({ query, status, kind, time, limit }) => {
       const now = new Date();
-      const result = await bookingService.getAllBookings({
+      const result = await listDeals({
         search: query,
         bookingStatus: status,
         bookingType: kind,
@@ -95,11 +95,9 @@ export const assistantTools = {
       "Full detail for one booking by id: trip, customer, money, payments, captain/crew, and every other boat in its charter party.",
     inputSchema: z.object({ bookingId: z.string().uuid() }),
     execute: async ({ bookingId }) => {
-      const [booking, party] = await Promise.all([
-        bookingService.getBookingById(bookingId),
-        bookingService.getChargeableParty(bookingId),
-      ]);
-      if (!booking) return { error: "No booking with that id" };
+      const deal = await getDealWithParty(bookingId);
+      if (!deal) return { error: "No booking with that id" };
+      const { booking, party } = deal;
       return {
         id: booking.id,
         link: `/admin/bookings/${booking.id}`,

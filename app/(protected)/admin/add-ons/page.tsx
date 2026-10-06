@@ -1,4 +1,4 @@
-import { addOnService } from "@/features/add-ons/add-on.service";
+import { listAddOns } from "@/features/add-ons/add-on.data";
 import { addOnSearchParamsCache } from "@/features/add-ons/searchParams";
 import { AdminAddOnFilter } from "@/features/add-ons/components/AdminAddOnFilter";
 import { AdminAddOnsTable } from "@/features/add-ons/components/AdminAddOnsTable";
@@ -14,7 +14,7 @@ export default async function AddOnsPage({
   await addOnSearchParamsCache.parse(searchParams);
   const params = addOnSearchParamsCache.all();
 
-  const result = await addOnService.getAllAddOns({
+  const result = await listAddOns({
     search: params.search || undefined,
     category: params.category ?? undefined,
     active: params.active ?? undefined,

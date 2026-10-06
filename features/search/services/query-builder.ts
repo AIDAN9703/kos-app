@@ -1,3 +1,5 @@
+import "server-only";
+
 import { boats, boatCategoryEnum } from "@/database/schema";
 import { SearchParamsType } from "@/shared/lib/types/types";
 import { and, asc, desc, eq, gte, inArray, lte, sql, type AnyColumn, type SQL } from "drizzle-orm";

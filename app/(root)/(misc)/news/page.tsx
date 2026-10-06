@@ -3,7 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/shared/components/ui/button";
 import { Calendar, User, ArrowRight, Instagram } from "lucide-react";
-import { getPublishedBlogPosts } from "@/features/blog/actions/admin-blog-actions";
+import { getPublishedBlogPosts } from "@/features/blog/blog.data";
 import { formatDate } from "@/shared/lib/utils/general-utils";
 
 // This page now uses dynamic data from the database

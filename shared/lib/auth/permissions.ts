@@ -26,6 +26,7 @@ export const statement = {
     "view-economics", // the company's costs and margin on a deal
   ],
   boat: ["view", "edit", "delete"],
+  blog: ["edit"], // write, publish and delete news posts
   settings: ["edit"],
 } as const;
 
@@ -36,6 +37,7 @@ export const roles = {
     ...adminAc.statements,
     booking: [...statement.booking],
     boat: [...statement.boat],
+    blog: ["edit"],
     settings: ["edit"],
   }),
   // Works deals in the broker portal (/brokers): the deals assigned to them,

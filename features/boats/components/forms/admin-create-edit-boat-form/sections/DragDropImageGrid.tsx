@@ -14,7 +14,7 @@ import { SortableContext, sortableKeyboardCoordinates, rectSortingStrategy } fro
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Image as IKImage } from "@imagekit/next";
-import { getImageKitProps } from "@/shared/lib/services/imagekit.service";
+import { getImageKitProps } from "@/shared/lib/utils/imagekit";
 import { GripVertical } from "lucide-react";
 
 interface SortableImageProps {

@@ -7,7 +7,7 @@ import { ChevronLeft, ChevronRight, Heart, Zap } from "lucide-react";
 import { Image as IKImage } from "@imagekit/next";
 
 import type { BoatCard } from "@/features/boats/boat.types";
-import { getImageKitProps } from "@/shared/lib/services/imagekit.service";
+import { getImageKitProps } from "@/shared/lib/utils/imagekit";
 import { formatStartingHourly } from "@/shared/lib/utils/pricing-utils";
 import { cn } from "@/shared/lib/utils/general-utils";
 

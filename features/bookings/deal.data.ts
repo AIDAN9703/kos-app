@@ -204,6 +204,24 @@ export async function getDealPage(id: string) {
 
 export type DealPageData = NonNullable<Awaited<ReturnType<typeof getDealPage>>>;
 
+/** A deal and the other boats in its charter party (the assistant's lookup); null when not theirs. */
+export async function getDealWithParty(id: string) {
+  let user: SessionUser;
+  try {
+    user = await assertDealAccess(id, "view");
+  } catch (error) {
+    if (error instanceof AccessDenied) return null;
+    throw error;
+  }
+  const [found, party] = await Promise.all([
+    bookingService.getBookingById(id),
+    bookingService.getChargeableParty(id),
+  ]);
+  if (!found) return null;
+  const booking = can(user, { booking: ["view-economics"] }) ? found : withoutEconomics(found);
+  return { booking, party };
+}
+
 /**
  * An inquiry about to be priced into a proposal (the new-booking form's
  * prefill). Null when there's no such deal; `bookingStatus` tells the page

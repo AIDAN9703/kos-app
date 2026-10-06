@@ -2,27 +2,31 @@ import { anthropic } from "@ai-sdk/anthropic";
 import { convertToModelMessages, stepCountIs, streamText, type UIMessage } from "ai";
 import { format } from "date-fns";
 
-import { getAdminSession } from "@/shared/lib/utils/auth-utils";
+import { UserFacingError } from "@/shared/lib/errors";
+import { assertCan, type SessionUser } from "@/shared/lib/utils/auth-utils";
 import { assistantTools } from "@/features/admin/assistant/tools";
 
 export const maxDuration = 60;
 
 /**
  * KOS Command — the admin desk assistant. Streams a Claude response that can
- * call the admin's own read-only service layer as tools. Admin-gated exactly
- * like every server action; nothing here writes.
+ * call the admin's own read-only data layer as tools (each tool re-checks
+ * access). Admins only; nothing here writes.
  */
 export async function POST(req: Request) {
-  const auth = await getAdminSession();
-  if (auth.error !== undefined) {
-    return new Response(auth.error, { status: 401 });
+  let admin: SessionUser;
+  try {
+    admin = await assertCan({ booking: ["view-all", "view-economics"] });
+  } catch (error) {
+    if (error instanceof UserFacingError) return new Response(error.message, { status: error.status });
+    throw error;
   }
   if (!process.env.ANTHROPIC_API_KEY) {
     return new Response("ANTHROPIC_API_KEY is not configured", { status: 503 });
   }
 
   const { messages }: { messages: UIMessage[] } = await req.json();
-  const firstName = auth.session.user.name?.split(/\s+/)[0] ?? "there";
+  const firstName = admin.name?.split(/\s+/)[0] ?? "there";
 
   const result = streamText({
     model: anthropic("claude-opus-5"),

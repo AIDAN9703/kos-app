@@ -1,4 +1,4 @@
-import { blogService } from "@/features/blog/blog.service";
+import { listPosts } from "@/features/blog/blog.data";
 import { blogSearchParamsCache } from "@/features/blog/searchParams";
 import { AdminBlogFilter } from "@/features/blog/components/admin/AdminBlogFilter";
 import { AdminBlogTablePagination } from "@/features/blog/components/admin/AdminBlogTablePagination";
@@ -14,7 +14,7 @@ export default async function BlogPage({
   await blogSearchParamsCache.parse(searchParams);
   const params = blogSearchParamsCache.all();
 
-  const result = await blogService.getAllPosts({
+  const result = await listPosts({
     search: params.search || undefined,
     status: params.status ?? undefined,
     category: params.category ?? undefined,
