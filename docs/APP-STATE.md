@@ -127,8 +127,7 @@ Unset boats fall back to America/New_York. Prod's remaining 12: 2 at La Coloma M
   upcoming/past charters. Charters: upcoming/past/cancelled filter. Read-only; owners never
   see guest details or what the guest paid. Payout figures = OWNER_PAYOUT expense lines +
   `booking_ops.sent_to_owner_cents` as entered by admins. No payouts/statements yet (Stripe
-  Connect not built). Demo data: `scripts/seed-demo-owner.sql` /
-  `scripts/cleanup-demo-owner.sql` (dev only).
+  Connect not built).
 - **Customer profile (`/profile`, rebuilt 2026-09-16)** — site header + left rail (identity
   card, stacked nav, owner/captain entries by role). Overview: to-do cards (proposal to
   review, payment due, missing phone/photo), next-trip hero with countdown, other upcoming
@@ -146,7 +145,7 @@ Unset boats fall back to America/New_York. Prod's remaining 12: 2 at La Coloma M
 
 **🟡 12 prod boats still have no timezone** (2 "La Coloma Marina", 10 with no location
 label) and so fall back to America/New_York. Needs the owner to say where they are;
-set them with `scripts/backfill-boat-timezones.sql` as a template.
+then set each boat's timezone in the admin boat editor.
 
 **🟠 Boat-page inquiry sends no acknowledgment email.** Only general + term-charter do.
 
@@ -202,7 +201,7 @@ production. Leave them unless drizzle-kit is upgraded for other reasons.
 ALL expense lines (owner payout + fuel/crew/dockage), so REV = GMV − every
 cost. Effective GMV falls back to quote total − service fee (fee-exclusive)
 on revenue/GMV surfaces; client-balance surfaces keep the fee-inclusive total
-because that's what the client owes. Backfill: scripts/backfill-expense-totals.sql.
+because that's what the client owes.
 
 **Prod data reset (2026-08-19):** 227 test-era bookings (created before
 2026-07-15) + 15 test/orphaned payment rows deleted ahead of the go-live;

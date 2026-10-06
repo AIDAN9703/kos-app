@@ -13,7 +13,6 @@
     "db:migrate:prod": "npx tsx database/scripts/migrate.ts prod",
     "db:migrate:both": "npx tsx database/scripts/migrate.ts both",
     "db:studio": "drizzle-kit studio",
-    "db:push": "drizzle-kit push",
     "db:seed-boats": "npx tsx database/scripts/seed-boats.ts",
     "db:seed-reviews": "npx tsx database/scripts/seed-reviews.ts",
     "db:setup-reviews": "npx tsx database/scripts/setup-reviews.ts",
