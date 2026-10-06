@@ -54,6 +54,8 @@ export type ActionResponse<T> = {
   error?: string;
   /** What to tell the person on success (toast text). */
   message?: string;
+  /** Per-field messages for inline forms (InvalidFields). */
+  fieldErrors?: Record<string, string[]>;
 };
 
  

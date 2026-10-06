@@ -20,9 +20,9 @@ import {
 } from "./owner.types";
 
 /**
- * Read-only queries for the owner dashboard. Every function takes the
- * signed-in owner's id (from the session, never the URL) and filters on
- * boats.owner_id, so an owner can only ever see their own fleet.
+ * Read-only queries for the owner portal, each filtered on boats.owner_id.
+ * Not access-checked: pages go through owner.data.ts, which passes the
+ * signed-in owner's own id (never one from the URL).
  */
 
 export async function getOwnerIdentity(ownerId: string): Promise<OwnerIdentity> {

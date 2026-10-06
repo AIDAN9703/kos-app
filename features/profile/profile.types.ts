@@ -1,4 +1,5 @@
 import type { BookingStatus, CaptainProfile, User } from "@/database/types";
+import type { ActionResponse } from "@/shared/lib/types/types";
 
 /**
  * Customer-facing profile section (/profile). Everything here is what the
@@ -7,8 +8,29 @@ import type { BookingStatus, CaptainProfile, User } from "@/database/types";
  * and features/users.
  */
 
-/** The signed-in user's own account row, minus the password hash. */
-export type AccountUser = User;
+/** The person's own account, as the profile screens show and edit it. */
+export type AccountUser = Pick<
+  User,
+  | "id"
+  | "firstName"
+  | "lastName"
+  | "email"
+  | "emailVerified"
+  | "phoneNumber"
+  | "phoneVerified"
+  | "profileImage"
+  | "username"
+  | "bio"
+  | "address"
+  | "city"
+  | "state"
+  | "postalCode"
+  | "country"
+  | "emailNotifications"
+  | "smsNotifications"
+  | "marketingEmailsEnabled"
+  | "createdAt"
+>;
 
 /** One booking as the customer sees it: boat, when, and where the money stands. */
 export interface TripSummary {
@@ -104,6 +126,5 @@ export interface CaptainSummary {
 }
 
 /** Shape every profile server action resolves to. */
-export type ActionResult =
-  | { success: true; message?: string }
-  | { success: false; error: string; fieldErrors?: Record<string, string[]> };
+/** What the profile's inline editors get back: a message, or errors per field. */
+export type ActionResult = ActionResponse<null>;

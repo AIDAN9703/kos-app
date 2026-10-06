@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { requireOwner } from "@/shared/lib/utils/auth-utils";
 import { OwnerHeader } from "@/features/owner-dashboard/components/OwnerHeader";
-import { getOwnerIdentity } from "@/features/owner-dashboard/owner.queries";
+import { getMyOwnerIdentity } from "@/features/owner-dashboard/owner.data";
 
 export const metadata: Metadata = {
   title: "Owner portal",
@@ -15,8 +15,8 @@ export const metadata: Metadata = {
  * requireOwner() sends everyone else to /profile; proxy.ts handles sign-in.
  */
 export default async function OwnerLayout({ children }: { children: ReactNode }) {
-  const session = await requireOwner();
-  const { name } = await getOwnerIdentity(session.user.id);
+  await requireOwner();
+  const { name } = await getMyOwnerIdentity();
 
   return (
     <div className="min-h-svh bg-slate-50/60">

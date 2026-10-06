@@ -14,15 +14,12 @@ import { CharterList } from "@/features/owner-dashboard/components/CharterList";
 import { PricingTiersTable } from "@/features/owner-dashboard/components/PricingTiersTable";
 import { buildOwnerAnalytics, splitCharters } from "@/features/owner-dashboard/owner-analytics";
 import { categoryLabel } from "@/features/owner-dashboard/owner-presentation";
-import { getOwnerBoat, getOwnerCharters } from "@/features/owner-dashboard/owner.queries";
+import { getMyBoat, getMyCharters } from "@/features/owner-dashboard/owner.data";
 
 export default async function OwnerBoatPage({ params }: { params: Promise<{ id: string }> }) {
-  const [session, { id }] = await Promise.all([requireOwner(), params]);
-  // Both queries are scoped to the signed-in owner: another owner's boat id is a 404.
-  const [boat, charters] = await Promise.all([
-    getOwnerBoat(session.user.id, id),
-    getOwnerCharters(session.user.id, id),
-  ]);
+  const [, { id }] = await Promise.all([requireOwner(), params]);
+  // Both reads are scoped to the signed-in owner: another owner's boat id is a 404.
+  const [boat, charters] = await Promise.all([getMyBoat(id), getMyCharters(id)]);
   if (!boat) notFound();
 
   const now = new Date();

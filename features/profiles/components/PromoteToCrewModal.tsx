@@ -60,7 +60,7 @@ export function PromoteToCrewModal({
     if (!userId) return;
     const res = await promoteUserToCrewAction(userId, data);
     if (res.success) {
-      toast({ title: "Crew profile", description: res.data?.message });
+      toast({ title: "Crew profile", description: res.message });
       onOpenChange(false);
       router.refresh();
     } else {

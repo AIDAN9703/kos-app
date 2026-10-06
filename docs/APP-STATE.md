@@ -31,9 +31,15 @@ listed there as temporary exceptions).
   for anyone without `view-economics`), `proposal.data.ts` (the proposal link's token is
   the credential), `booking-request.data.ts` (public forms + Instant Book; prices only
   from the boat's active tiers).
-- **Next:** users/profiles/owner portal/phone sign-in, then availability, payments
-  (Stripe webhook/verify), blog, add-ons, settings, dashboard, assistant; finally the
-  rule extends to `@/database/db`.
+- **Done:** people — `profile.data.ts` (a person's own account, trips, captain view),
+  `owner.data.ts` (an owner's own fleet), `user.data.ts` (admin user management, account
+  pickers; Better Auth's user permissions), `profiles.data.ts` (captain/crew rosters),
+  `phone-sign-in.data.ts` (texted-code sign-in: the code is checked once; a new number
+  gets a signed sign-up proof and the account is created by a server-only Better Auth
+  endpoint, so the usual sign-up hooks run).
+- **Next:** availability, payments (Stripe webhook/verify), blog, add-ons, settings,
+  dashboard, assistant, admin search, calendar feeds; finally the rule extends to
+  `@/database/db`.
 
 **Features:** bookings, boats, availability, payments, users, profiles, listing,
 search, blog, add-ons, auth, admin, booking-groups, app-settings, `_marketing`.

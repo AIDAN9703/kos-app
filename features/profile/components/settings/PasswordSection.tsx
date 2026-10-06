@@ -76,7 +76,7 @@ export function PasswordSection({ hasPassword }: { hasPassword: boolean }) {
         description: hasPassword ? "Other devices have been signed out." : undefined,
       });
     } else {
-      setError(result.error);
+      setError(result.error ?? "We couldn't update your password. Please try again.");
       setFieldErrors(result.fieldErrors ?? {});
     }
   };

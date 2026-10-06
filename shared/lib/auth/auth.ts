@@ -7,7 +7,7 @@ import { and, eq, isNull, or } from "drizzle-orm";
 
 import { db } from "@/database/db";
 import { users, sessions, accounts, authVerifications, rateLimits } from "@/database/schema";
-import { claimGuestBookingsForUser } from "@/features/users/claim-guest-bookings";
+import { claimGuestBookingsForUser } from "@/features/users/claim-guest-bookings.service";
 import { sendAccountEmail } from "@/shared/lib/services/email.service";
 import { getBaseUrl } from "@/shared/lib/utils/base-url";
 import { formatPhoneNumberE164 } from "@/shared/lib/utils/general-utils";

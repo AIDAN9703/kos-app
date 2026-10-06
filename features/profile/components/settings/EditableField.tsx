@@ -91,7 +91,7 @@ export function EditableField({
       setEditing(false);
       toast({ title: "Saved", description: result.message ?? `${label} updated.` });
     } else {
-      setError(result.error);
+      setError(result.error ?? "We couldn't save that. Please try again.");
       setFieldErrors(result.fieldErrors ?? {});
     }
   };

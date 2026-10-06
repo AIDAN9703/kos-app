@@ -2,14 +2,11 @@ import { requireOwner } from "@/shared/lib/utils/auth-utils";
 import { FleetGrid } from "@/features/owner-dashboard/components/FleetGrid";
 import { NoBoatsYet } from "@/features/owner-dashboard/components/NoBoatsYet";
 import { buildOwnerAnalytics } from "@/features/owner-dashboard/owner-analytics";
-import { getOwnerBoats, getOwnerCharters } from "@/features/owner-dashboard/owner.queries";
+import { getMyBoats, getMyCharters } from "@/features/owner-dashboard/owner.data";
 
 export default async function OwnerBoatsPage() {
-  const session = await requireOwner();
-  const [boats, charters] = await Promise.all([
-    getOwnerBoats(session.user.id),
-    getOwnerCharters(session.user.id),
-  ]);
+  await requireOwner();
+  const [boats, charters] = await Promise.all([getMyBoats(), getMyCharters()]);
   const live = boats.filter((b) => b.active).length;
   const { byBoat } = buildOwnerAnalytics(charters, boats);
 

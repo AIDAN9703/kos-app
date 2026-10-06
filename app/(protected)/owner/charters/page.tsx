@@ -3,7 +3,7 @@ import { cn } from "@/shared/lib/utils/general-utils";
 import { requireOwner } from "@/shared/lib/utils/auth-utils";
 import { CharterList } from "@/features/owner-dashboard/components/CharterList";
 import { splitCharters } from "@/features/owner-dashboard/owner-analytics";
-import { getOwnerCharters } from "@/features/owner-dashboard/owner.queries";
+import { getMyCharters } from "@/features/owner-dashboard/owner.data";
 
 const VIEWS = [
   { key: "upcoming", label: "Upcoming", empty: "Nothing booked on your boats right now." },
@@ -18,8 +18,8 @@ export default async function OwnerChartersPage({
 }: {
   searchParams: Promise<{ view?: string }>;
 }) {
-  const [session, params] = await Promise.all([requireOwner(), searchParams]);
-  const groups = splitCharters(await getOwnerCharters(session.user.id));
+  const [, params] = await Promise.all([requireOwner(), searchParams]);
+  const groups = splitCharters(await getMyCharters());
   const view: View = VIEWS.some((v) => v.key === params.view) ? (params.view as View) : "upcoming";
   const current = VIEWS.find((v) => v.key === view)!;
 

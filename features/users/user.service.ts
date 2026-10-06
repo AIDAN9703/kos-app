@@ -1,6 +1,8 @@
+import "server-only";
+
 //drizzle
 import { db } from '@/database/db';
-import { claimGuestBookingsForUser } from '@/features/users/claim-guest-bookings';
+import { claimGuestBookingsForUser } from '@/features/users/claim-guest-bookings.service';
 import {
   users,
   captainProfiles,
@@ -8,7 +10,7 @@ import {
   bookings,
   bookingPricing,
 } from '@/database/schema';
-import { and, count, eq, desc, or, ilike, getTableColumns, sql } from 'drizzle-orm';
+import { and, count, eq, desc, or, ilike, sql } from 'drizzle-orm';
 import { resolveAdminListPagination } from '@/shared/admin/list-pagination';
 import { type User   } from '@/database/types';
 
@@ -21,19 +23,31 @@ import {
 import {
   type PaginatedUsersResponse,
   type UserListItem,
+  type UserOption,
   type UserWithRelations,
 } from '@/features/users/user.types';
 
-//bcrypt
+//auth
 import { displayName } from '@/shared/lib/auth/session-user';
 import { formatRoles, parseRoles } from '@/shared/lib/auth/permissions';
-import { hasRoleSql, mergeAssignableRoles, setUserPassword, setUserRoles } from '@/features/users/user-access';
+import { hasRoleSql, mergeAssignableRoles, setUserPassword, setUserRoles } from '@/features/users/user-access.service';
 import { auth } from '@/shared/lib/auth/auth';
+import { pgErrorCode, UserFacingError } from '@/shared/lib/errors';
 import { headers } from 'next/headers';
 
+const userOptionColumns = {
+  id: users.id,
+  firstName: users.firstName,
+  lastName: users.lastName,
+  email: users.email,
+  phoneNumber: users.phoneNumber,
+  profileImage: users.profileImage,
+  username: users.username,
+};
+
 /**
- * User Service Layer
- * Single source of truth for all user database operations
+ * User queries. Server-only and not access-checked: pages, routes and
+ * actions go through user.data.ts, which checks the admin permission first.
  */
 export class UserService {
   /**
@@ -64,7 +78,17 @@ export class UserService {
 
     const dataBase = db
       .select({
-        ...getTableColumns(users),
+        id: users.id,
+        email: users.email,
+        username: users.username,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        profileImage: users.profileImage,
+        role: users.role,
+        phoneNumber: users.phoneNumber,
+        emailVerified: users.emailVerified,
+        createdAt: users.createdAt,
+        updatedAt: users.updatedAt,
         captainProfileStatus: captainProfiles.status,
         crewProfileStatus: crewProfiles.status,
       })
@@ -89,7 +113,7 @@ export class UserService {
     const totalCount = totalCountResult[0]?.count || 0;
 
     return {
-      users: usersData as UserListItem[],
+      users: usersData satisfies UserListItem[],
       totalCount,
       page,
       limit,
@@ -291,7 +315,14 @@ export class UserService {
    * Delete user (hard delete)
    */
   async deleteUser(id: string): Promise<void> {
-    await db.delete(users).where(eq(users.id, id));
+    try {
+      await db.delete(users).where(eq(users.id, id));
+    } catch (error) {
+      if (pgErrorCode(error) === '23503') {
+        throw new UserFacingError("This person still owns boats, so they can't be deleted. Reassign the boats first.", 409);
+      }
+      throw error;
+    }
   }
 
 
@@ -317,6 +348,41 @@ export class UserService {
       .limit(50);
     
     return admins;
+  }
+
+  /** People for the account pickers (booking composer, boat owner), newest first. */
+  async searchUserOptions(search?: string, limit = 20): Promise<UserOption[]> {
+    const term = search?.trim();
+    return db
+      .select(userOptionColumns)
+      .from(users)
+      .where(
+        term
+          ? or(
+              ilike(users.firstName, `%${term}%`),
+              ilike(users.lastName, `%${term}%`),
+              ilike(users.email, `%${term}%`),
+              ilike(users.username, `%${term}%`)
+            )
+          : undefined
+      )
+      .orderBy(desc(users.createdAt))
+      .limit(limit);
+  }
+
+  /** One person in the picker shape (shows the current selection). */
+  async getUserOption(id: string): Promise<UserOption | null> {
+    const [row] = await db.select(userOptionColumns).from(users).where(eq(users.id, id)).limit(1);
+    return row ?? null;
+  }
+
+  /** Accounts that have verified this (E.164) number — at most two, enough to spot a shared number. */
+  async findVerifiedPhoneAccounts(phone: string): Promise<{ id: string }[]> {
+    return db
+      .select({ id: users.id })
+      .from(users)
+      .where(and(eq(users.phoneNumber, phone), eq(users.phoneVerified, true)))
+      .limit(2);
   }
 
   /** May a deal be assigned to this person? (an active admin or broker, as in getAdmins) */

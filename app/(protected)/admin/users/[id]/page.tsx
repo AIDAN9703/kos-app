@@ -1,5 +1,4 @@
-import { userService } from "@/features/users/user.service";
-import { getSignInMethods } from "@/features/users/user-access";
+import { getUserDetail } from "@/features/users/user.data";
 import { UserProfileHeader } from "@/features/users/components/AdminUserProfileHeader";
 import { AdminUserPersonalInfo } from "@/features/users/components/AdminUserPersonalInfo";
 import { AdminUserAccountInfo } from "@/features/users/components/AdminUserAccountInfo";
@@ -27,18 +26,9 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
 
 // Separate component for data fetching to enable Suspense
 async function UserProfile({ userId }: { userId: string }) {
-  // Get user with bookings for admin detail page
-  const user = await userService
-    .getUserById(userId, {
-      bookings: { limit: 10 },
-      captainProfile: true,
-      crewProfile: true,
-    })
-    .catch(() => null);
-
-  if (!user) {
-    notFound();
-  }
+  const detail = await getUserDetail(userId);
+  if (!detail) notFound();
+  const { user, signInMethods } = detail;
 
   return (
     <div className="flex flex-1 flex-col space-y-6">
@@ -51,7 +41,7 @@ async function UserProfile({ userId }: { userId: string }) {
       {/* Info Cards - bubble style */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <AdminUserPersonalInfo user={user} />
-        <AdminUserAccountInfo user={user} signInMethods={await getSignInMethods(user.id)} />
+        <AdminUserAccountInfo user={user} signInMethods={signInMethods} />
       </div>
 
       {/* Recent Bookings - full width */}

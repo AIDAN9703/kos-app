@@ -4,7 +4,7 @@ import Navigation from "@/shared/components/layouts/Navigation";
 import Footer from "@/shared/components/layouts/Footer";
 import { requireAuth } from "@/shared/lib/utils/auth-utils";
 import { ProfileShell } from "@/features/profile/components/ProfileShell";
-import { getAccount } from "@/features/profile/profile.queries";
+import { getMyAccount } from "@/features/profile/profile.data";
 
 /**
  * /profile — the customer's own account area. Same site header and footer as
@@ -14,7 +14,7 @@ import { getAccount } from "@/features/profile/profile.queries";
  */
 export default async function ProfileLayout({ children }: { children: ReactNode }) {
   const session = await requireAuth();
-  const account = await getAccount(session.user.id);
+  const account = await getMyAccount();
   if (!account) redirect("/sign-in");
 
   return (

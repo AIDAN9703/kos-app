@@ -2,12 +2,12 @@ import { redirect } from "next/navigation";
 import { requireCaptain } from "@/shared/lib/utils/auth-utils";
 import { PageHeader } from "@/features/profile/components/PageHeader";
 import { CaptainDashboard } from "@/features/profile/components/roles/CaptainDashboard";
-import { getCaptainSummary } from "@/features/profile/profile.queries";
+import { getMyCaptainSummary } from "@/features/profile/profile.data";
 
 /** Captains only — requireCaptain() sends everyone else back to /profile. */
 export default async function CaptainPage() {
-  const session = await requireCaptain();
-  const summary = await getCaptainSummary(session.user.id);
+  await requireCaptain();
+  const summary = await getMyCaptainSummary();
   // Session says captain but the profile row is gone: nothing to show here.
   if (!summary) redirect("/profile");
 

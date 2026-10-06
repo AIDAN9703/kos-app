@@ -9,20 +9,20 @@ import { NoBoatsYet } from "@/features/owner-dashboard/components/NoBoatsYet";
 import { OwnerKpis } from "@/features/owner-dashboard/components/OwnerKpis";
 import { buildOwnerAnalytics } from "@/features/owner-dashboard/owner-analytics";
 import {
-  getOwnerBoats,
-  getOwnerCharters,
-  getOwnerIdentity,
-} from "@/features/owner-dashboard/owner.queries";
+  getMyBoats,
+  getMyCharters,
+  getMyOwnerIdentity,
+} from "@/features/owner-dashboard/owner.data";
 
 /** Boats shown in the overview table before linking to the full list. */
 const TOP_BOATS = 5;
 
 export default async function OwnerOverviewPage() {
-  const session = await requireOwner();
+  await requireOwner();
   const [identity, boats, charters] = await Promise.all([
-    getOwnerIdentity(session.user.id),
-    getOwnerBoats(session.user.id),
-    getOwnerCharters(session.user.id),
+    getMyOwnerIdentity(),
+    getMyBoats(),
+    getMyCharters(),
   ]);
   const title = `Welcome back, ${identity.name.split(" ")[0]}`;
 

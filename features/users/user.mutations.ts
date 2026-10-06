@@ -1,73 +1,44 @@
-/**
- * Users Mutations (Server Actions) - CUD Operations Only
- */
-
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { User } from "@/database/types";
-import { ActionResponse } from "@/shared/lib/types/types";
-import { CreateUserInput, UpdateUserInput } from "@/features/users/user.validation";
-import { userService } from "@/features/users/user.service";
-import { getAdminSession } from "@/shared/lib/utils/auth-utils";
 
-function toErrorString(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
+import * as users from "@/features/users/user.data";
+import { type CreateUserInput, type UpdateUserInput } from "@/features/users/user.validation";
+import { type ActionResponse } from "@/shared/lib/types/types";
+import { actionError } from "@/shared/lib/utils/action-helpers";
 
 /**
- * Create new user
+ * User server actions (admins). Thin wrappers over user.data.ts, which
+ * checks the permission and validates the input.
  */
-export async function createUser(
-  userData: CreateUserInput
-): Promise<ActionResponse<{ user: User }>> {
-  const admin = await getAdminSession();
-  if (admin.error !== undefined) return { success: false, error: admin.error };
 
+export async function createUser(input: CreateUserInput): Promise<ActionResponse<{ id: string }>> {
   try {
-    const newUser = await userService.createUser(userData);
-
+    const created = await users.createUser(input);
     revalidatePath("/admin/users");
-    return { success: true, data: { user: newUser } };
+    return { success: true, data: created };
   } catch (error) {
-    return { success: false, error: toErrorString(error) };
+    return actionError(error, "Failed to create user");
   }
 }
 
-/**
- * Update user (partial updates allowed)
- * Since all fields in UpdateUserInput are optional, we can pass partial updates
- */
-export async function updateUser(
-  id: string,
-  updates: Partial<UpdateUserInput>
-): Promise<ActionResponse<{ user: User }>> {
-  const admin = await getAdminSession();
-  if (admin.error !== undefined) return { success: false, error: admin.error };
-
+export async function updateUser(id: string, input: Partial<UpdateUserInput>): Promise<ActionResponse<null>> {
   try {
-    const updatedUser = await userService.updateUser(id, updates);
-
+    await users.updateUser(id, input);
     revalidatePath("/admin/users");
     revalidatePath(`/admin/users/${id}`);
-    return { success: true, data: { user: updatedUser } };
+    return { success: true, data: null };
   } catch (error) {
-    return { success: false, error: toErrorString(error) };
+    return actionError(error, "Failed to update user");
   }
 }
 
-/**
- * Delete user
- */
-export async function deleteUser(id: string): Promise<ActionResponse<{ message: string }>> {
-  const admin = await getAdminSession();
-  if (admin.error !== undefined) return { success: false, error: admin.error };
-
+export async function deleteUser(id: string): Promise<ActionResponse<null>> {
   try {
-    await userService.deleteUser(id);
+    await users.deleteUser(id);
     revalidatePath("/admin/users");
-    return { success: true, data: { message: "User deleted successfully" } };
+    return { success: true, data: null, message: "User deleted successfully" };
   } catch (error) {
-    return { success: false, error: toErrorString(error) };
+    return actionError(error, "Failed to delete user");
   }
 }

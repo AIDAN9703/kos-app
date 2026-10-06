@@ -1,4 +1,4 @@
-import { userService } from "@/features/users/user.service";
+import { listUsers } from "@/features/users/user.data";
 import { userSearchParamsCache } from "@/features/users/searchParams";
 import { AdminUserFilter } from "@/features/users/components/AdminUserFilter";
 import { AdminUserTablePagination } from "@/features/users/components/AdminUserTablePagination";
@@ -14,7 +14,7 @@ export default async function UsersPage({
   await userSearchParamsCache.parse(searchParams);
   const params = userSearchParamsCache.all();
 
-  const result = await userService.getAllUsers({
+  const result = await listUsers({
     search: params.search || undefined,
     isAdmin: params.isAdmin ?? undefined,
     page: params.page,

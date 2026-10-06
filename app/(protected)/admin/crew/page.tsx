@@ -1,7 +1,6 @@
 import { Suspense } from "react";
-import { captainProfileService } from "@/features/profiles/captain-profile.service";
 import { captainProfileListSearchParamsCache } from "@/features/profiles/captain-profile.search-params";
-import { crewProfileService } from "@/features/profiles/crew-profile.service";
+import { listCaptains, listCrew } from "@/features/profiles/profiles.data";
 import { crewProfileListSearchParamsCache } from "@/features/profiles/crew-profile.search-params";
 import { AdminCaptainProfileFilter } from "@/features/profiles/components/AdminCaptainProfileFilter";
 import { AdminCaptainProfileCards } from "@/features/profiles/components/AdminCaptainProfileCards";
@@ -29,7 +28,7 @@ export default async function AdminCrewPage({
   if (tab === "captains") {
     await captainProfileListSearchParamsCache.parse(searchParams);
     const params = captainProfileListSearchParamsCache.all();
-    const rows = await captainProfileService.listForAdmin({
+    const rows = await listCaptains({
       search: params.search || undefined,
       status: params.status ?? undefined,
     });
@@ -47,7 +46,7 @@ export default async function AdminCrewPage({
 
   await crewProfileListSearchParamsCache.parse(searchParams);
   const params = crewProfileListSearchParamsCache.all();
-  const rows = await crewProfileService.listForAdmin({
+  const rows = await listCrew({
     search: params.search || undefined,
     status: params.status ?? undefined,
   });

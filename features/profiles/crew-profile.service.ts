@@ -1,3 +1,5 @@
+import "server-only";
+
 /**
  * Crew profile: assignment lists, admin entity table, and promote-from-admin.
  */
@@ -5,25 +7,13 @@
 import { db } from "@/database/db";
 import { crewProfiles, users } from "@/database/schema";
 import { and, asc, eq, ilike, or } from "drizzle-orm";
-import type { CrewStatus, UserStatus } from "@/database/types";
+import type { CrewStatus } from "@/database/types";
+import type { CrewProfileAdminRow } from "@/features/profiles/crew.types";
 import type { PromoteCrewFormInput } from "@/features/profiles/promote-crew.validation";
-import { addUserRole } from "@/features/users/user-access";
+import { addUserRole } from "@/features/users/user-access.service";
 
 /** Profiles in these states cannot be overwritten by admin promote (already crew or restricted). */
 const NON_PROMOTABLE_CREW_STATUSES = new Set<CrewStatus>(["ACTIVE", "ON_LEAVE", "SUSPENDED"]);
-
-export type CrewProfileAdminRow = {
-  userId: string;
-  firstName: string | null;
-  lastName: string | null;
-  email: string;
-  phoneNumber: string | null;
-  profileImage: string | null;
-  userStatus: UserStatus;
-  profileStatus: CrewStatus;
-  adminNotes: string | null;
-  profileUpdatedAt: Date;
-};
 
 export class CrewProfileService {
   /** Crew available for booking assignment (active profile + active user). */

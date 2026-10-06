@@ -31,6 +31,8 @@ export default function BookingPhoneAuth({ onSuccess }: BookingPhoneAuthProps) {
   const [step, setStep] = useState<Step>("phone");
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
+  // Proof the number was verified, for the profile step (the code is only checked once).
+  const [signUpProof, setSignUpProof] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -78,6 +80,7 @@ export default function BookingPhoneAuth({ onSuccess }: BookingPhoneAuthProps) {
         return;
       }
 
+      setSignUpProof(result.data?.signUpProof ?? "");
       setStep("profile");
     } finally {
       setIsLoading(false);
@@ -87,7 +90,7 @@ export default function BookingPhoneAuth({ onSuccess }: BookingPhoneAuthProps) {
   const handleCompleteProfile = async () => {
     setIsLoading(true);
     try {
-      const result = await completeBookingPhoneProfile(phone, code, {
+      const result = await completeBookingPhoneProfile(signUpProof, {
         firstName,
         lastName,
         email,
@@ -101,7 +104,7 @@ export default function BookingPhoneAuth({ onSuccess }: BookingPhoneAuthProps) {
         return;
       }
       await refetch();
-      toast({ title: "You're all set", description: result.data?.message });
+      toast({ title: "You're all set", description: result.message });
       onSuccess();
     } finally {
       setIsLoading(false);

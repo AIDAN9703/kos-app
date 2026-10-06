@@ -23,16 +23,49 @@ import type {
 } from "./profile.types";
 
 /**
- * Server-side reads for the profile section. Every function is scoped to the
- * signed-in user's id — callers pass `session.user.id`, never an id from the
- * URL — so a customer can only ever see their own rows.
+ * Queries for the profile section, each scoped to one user's id. Not
+ * access-checked: pages and actions go through profile.data.ts, which passes
+ * the signed-in person's own id (never one from the URL).
  */
 
 // ── Account ────────────────────────────────────────────────────────────────
 
+const accountColumns = {
+  id: users.id,
+  firstName: users.firstName,
+  lastName: users.lastName,
+  email: users.email,
+  emailVerified: users.emailVerified,
+  phoneNumber: users.phoneNumber,
+  phoneVerified: users.phoneVerified,
+  profileImage: users.profileImage,
+  username: users.username,
+  bio: users.bio,
+  address: users.address,
+  city: users.city,
+  state: users.state,
+  postalCode: users.postalCode,
+  country: users.country,
+  emailNotifications: users.emailNotifications,
+  smsNotifications: users.smsNotifications,
+  marketingEmailsEnabled: users.marketingEmailsEnabled,
+  createdAt: users.createdAt,
+} satisfies { [K in keyof AccountUser]: unknown };
+
 export async function getAccount(userId: string): Promise<AccountUser | null> {
-  const [row] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  const [row] = await db.select(accountColumns).from(users).where(eq(users.id, userId)).limit(1);
   return row ?? null;
+}
+
+/** Write the person's own editable columns (the data layer decides which). */
+export async function updateAccount(
+  userId: string,
+  patch: Partial<typeof users.$inferInsert>
+): Promise<void> {
+  await db
+    .update(users)
+    .set({ ...patch, updatedAt: new Date() })
+    .where(eq(users.id, userId));
 }
 
 // ── Trips (the customer's own bookings) ────────────────────────────────────

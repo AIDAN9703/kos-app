@@ -2,7 +2,7 @@ import "server-only";
 
 import { ZodError } from "zod";
 
-import { UserFacingError } from "@/shared/lib/errors";
+import { InvalidFields, UserFacingError } from "@/shared/lib/errors";
 import type { ActionResponse } from "@/shared/lib/types/types";
 
 /**
@@ -11,6 +11,9 @@ import type { ActionResponse } from "@/shared/lib/types/types";
  * replaced by `fallback` so database errors never reach the browser.
  */
 export function actionError(error: unknown, fallback: string): ActionResponse<never> {
+  if (error instanceof InvalidFields) {
+    return { success: false, error: error.message, fieldErrors: error.fieldErrors };
+  }
   if (error instanceof UserFacingError) return { success: false, error: error.message };
   if (error instanceof ZodError) {
     const issue = error.issues[0];

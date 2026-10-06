@@ -55,6 +55,12 @@ export type UserListItem = Pick<
   crewProfileStatus: CrewStatus | null;
 };
 
+/** A person in the account pickers (booking composer, boat owner). */
+export type UserOption = Pick<
+  User,
+  "id" | "firstName" | "lastName" | "email" | "phoneNumber" | "profileImage" | "username"
+>;
+
 /**
  * @example
  * // Basic user (no relations)

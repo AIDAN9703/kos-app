@@ -1,14 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { usersApi } from "../user.api";
-import { type UserFilterInput } from "@/features/users/user.validation";
 
 /**
- * Fetch paginated and filtered users list
+ * People matching a search (the account picker)
  */
-export function useUsers(filters: UserFilterInput = {}) {
+export function useUsers(search?: string) {
   return useQuery({
-    queryKey: ['users', 'list', filters],
-    queryFn: () => usersApi.getUsers(filters),
+    queryKey: ['users', 'options', search ?? ''],
+    queryFn: () => usersApi.searchUsers(search),
     staleTime: 5 * 60 * 1000, // 5 minutes
     placeholderData: (previousData) => previousData, // Keep previous data while loading
   });

@@ -20,6 +20,16 @@ const dataLayerPatterns = [
     message:
       "Use the bookings data layer (deal.data, deal-money.data, proposal.data, booking-request.data) — it checks who's asking.",
   },
+  {
+    group: [
+      "@/features/users/*.service",
+      "@/features/profiles/*.service",
+      "@/features/profile/*.service",
+      "@/features/owner-dashboard/*.service",
+    ],
+    message:
+      "Use the data layer (user.data, profiles.data, profile.data, owner.data) — it checks who's asking.",
+  },
 ];
 
 const eslintConfig = [
@@ -42,7 +52,13 @@ const eslintConfig = [
     // data files and other services may use the query layer below them.
     // Areas are added here as they move onto the data layer.
     files: ["**/*.{ts,tsx}"],
-    ignores: ["features/**/*.data.ts", "features/**/*.service.ts", "features/**/services/**"],
+    // Better Auth's config is infrastructure: its hooks may call services.
+    ignores: [
+      "features/**/*.data.ts",
+      "features/**/*.service.ts",
+      "features/**/services/**",
+      "shared/lib/auth/auth.ts",
+    ],
     rules: {
       "no-restricted-imports": ["error", { paths: dataLayerPaths, patterns: dataLayerPatterns }],
     },
@@ -55,7 +71,6 @@ const eslintConfig = [
       "app/api/inbound-email/route.ts",
       "features/profile/actions/trip.actions.ts",
       "features/bookings/lib/confirm-paid-booking.ts",
-      "features/users/claim-guest-bookings.ts",
       "features/admin/dashboard.ts",
       "features/admin/assistant/tools.ts",
     ],

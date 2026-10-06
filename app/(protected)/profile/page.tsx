@@ -10,15 +10,12 @@ import { ProfileCompletion } from "@/features/profile/components/overview/Profil
 import { TodoCards } from "@/features/profile/components/overview/TodoCards";
 import { UpcomingSection } from "@/features/profile/components/overview/UpcomingSection";
 import { summarizeLoyalty } from "@/features/profile/loyalty";
-import { getAccount, getTrips } from "@/features/profile/profile.queries";
+import { getMyAccount, getMyTrips } from "@/features/profile/profile.data";
 import { buildOverview, profileCompletion } from "@/features/profile/trip-presentation";
 
 export default async function ProfileOverviewPage() {
-  const session = await requireAuth();
-  const [account, trips] = await Promise.all([
-    getAccount(session.user.id),
-    getTrips(session.user.id),
-  ]);
+  await requireAuth();
+  const [account, trips] = await Promise.all([getMyAccount(), getMyTrips()]);
   if (!account) redirect("/sign-in");
 
   const overview = buildOverview(trips);

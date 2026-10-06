@@ -22,6 +22,17 @@ export class AccessDenied extends UserFacingError {
   }
 }
 
+/** Input that failed validation, with messages per field for inline forms. */
+export class InvalidFields extends UserFacingError {
+  constructor(
+    readonly fieldErrors: Record<string, string[]>,
+    message = "Please check the highlighted fields."
+  ) {
+    super(message, 400);
+    this.name = "InvalidFields";
+  }
+}
+
 /**
  * The Postgres error code behind a failed query ("23503" = a row still
  * referenced elsewhere). Drizzle wraps the driver's error in `cause`.

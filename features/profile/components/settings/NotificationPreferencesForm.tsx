@@ -12,10 +12,8 @@ import {
 } from "@/shared/components/ui/select";
 import { Switch } from "@/shared/components/ui/switch";
 import { useToast } from "@/shared/lib/hooks/use-toast";
-import {
-  updateNotificationPreferences,
-  type NotificationPreferencesInput,
-} from "../../actions/account.actions";
+import type { NotificationPreferencesInput } from "@/features/profile/profile.data";
+import { updateNotificationPreferences } from "../../actions/account.actions";
 
 interface NotificationPreferencesFormProps {
   emailNotifications: NotificationPreference;

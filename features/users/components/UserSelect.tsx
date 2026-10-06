@@ -45,11 +45,10 @@ export function UserSelect({
   const { data: selectedUserData } = useUser(value || "");
   const selectedUser = selectedUserData || null;
 
-  const { data: usersData, isLoading: loading } = useUsers({
-    search: debouncedSearch.length >= 2 ? debouncedSearch : undefined,
-    limit: 20,
-  });
-  const users = usersData?.data || [];
+  const { data: usersData, isLoading: loading } = useUsers(
+    debouncedSearch.length >= 2 ? debouncedSearch : undefined
+  );
+  const users = usersData ?? [];
 
   const getDisplayName = (user: {
     firstName: string | null;

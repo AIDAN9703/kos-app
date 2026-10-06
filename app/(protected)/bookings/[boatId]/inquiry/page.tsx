@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 
 import { getAppSettings } from "@/features/app-settings/app-settings.service";
-import { userService } from "@/features/users/user.service";
 import BoatInquiryDetailsClient, {
   type InquiryCurrentUser,
 } from "@/features/bookings/components/lead-intake/BoatInquiryDetailsClient";
@@ -13,18 +12,15 @@ export default async function BoatInquiryPage() {
   // Signed-in visitors submit as their account ("Welcome back"); guests get
   // the in-page auth gate. The route itself stays publicly reachable so the
   // boat-lead funnel never dead-ends at a redirect.
-  let currentUser: InquiryCurrentUser | null = null;
-  if (session?.user?.id) {
-    const user = await userService.getUserById(session.user.id);
-    if (user) {
-      currentUser = {
+  const user = session?.user;
+  const currentUser: InquiryCurrentUser | null = user
+    ? {
         firstName: user.firstName ?? "",
         name: [user.firstName, user.lastName].filter(Boolean).join(" "),
-        email: user.email ?? "",
+        email: user.email,
         phone: user.phoneNumber ?? "",
-      };
-    }
-  }
+      }
+    : null;
 
   return (
     <Suspense

@@ -75,7 +75,7 @@ export function PromoteToCaptainModal({
     if (!userId) return;
     const res = await promoteUserToCaptainAction(userId, data);
     if (res.success) {
-      toast({ title: "Captain profile", description: res.data?.message });
+      toast({ title: "Captain profile", description: res.message });
       onOpenChange(false);
       router.refresh();
     } else {

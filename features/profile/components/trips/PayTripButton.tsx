@@ -42,8 +42,8 @@ export function PayTripButton({
   const pay = async () => {
     setLoading(true);
     const result = await startTripPayment(tripId, chargeType);
-    if (result.success) {
-      window.location.href = result.url;
+    if (result.success && result.data) {
+      window.location.href = result.data.url;
       return;
     }
     setLoading(false);

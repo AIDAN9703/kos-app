@@ -4,12 +4,12 @@ import { Section } from "@/features/profile/components/Section";
 import { EmptyTripsCard } from "@/features/profile/components/trips/EmptyTripsCard";
 import { PastTripTile } from "@/features/profile/components/trips/PastTripTile";
 import { UpcomingTripCard } from "@/features/profile/components/trips/UpcomingTripCard";
-import { getTrips } from "@/features/profile/profile.queries";
+import { getMyTrips } from "@/features/profile/profile.data";
 import { splitTrips } from "@/features/profile/trip-presentation";
 
 export default async function TripsPage() {
-  const session = await requireAuth();
-  const trips = await getTrips(session.user.id);
+  await requireAuth();
+  const trips = await getMyTrips();
   const { upcoming, past } = splitTrips(trips);
 
   return (

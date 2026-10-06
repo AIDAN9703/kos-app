@@ -1,3 +1,5 @@
+import "server-only";
+
 /**
  * Captain profile: assignment lists, admin entity table, and promote-from-admin.
  */
@@ -5,25 +7,12 @@
 import { db } from "@/database/db";
 import { captainProfiles, users } from "@/database/schema";
 import { and, asc, eq, ilike, or } from "drizzle-orm";
-import type { CaptainStatus, UserStatus } from "@/database/types";
+import type { CaptainStatus } from "@/database/types";
+import type { CaptainProfileAdminRow } from "@/features/profiles/crew.types";
 import type { PromoteCaptainFormInput } from "@/features/profiles/promote-captain.validation";
-import { addUserRole } from "@/features/users/user-access";
+import { addUserRole } from "@/features/users/user-access.service";
 
 const DISABLED_STATUS: CaptainStatus = "INACTIVE";
-
-export type CaptainProfileAdminRow = {
-  userId: string;
-  firstName: string | null;
-  lastName: string | null;
-  email: string;
-  phoneNumber: string | null;
-  profileImage: string | null;
-  userStatus: UserStatus;
-  profileStatus: CaptainStatus;
-  uscgLicensed: boolean;
-  licenseType: string | null;
-  profileUpdatedAt: Date;
-};
 
 export class CaptainProfileService {
   /** Captains available for booking assignment (active profile + active user). */

@@ -10,7 +10,7 @@ import {
   formatPhoneNumberForDisplay,
   formatPhoneNumberTelHref,
 } from "@/shared/lib/utils/general-utils";
-import type { CrewProfileAdminRow } from "@/features/profiles/crew-profile.service";
+import type { CrewProfileAdminRow } from "@/features/profiles/crew.types";
 
 function displayName(r: CrewProfileAdminRow) {
   return [r.firstName, r.lastName].filter(Boolean).join(" ").trim() || r.email;

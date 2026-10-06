@@ -1,3 +1,5 @@
+import "server-only";
+
 /**
  * Owner profile reads (users who can own / list boats).
  */
@@ -5,7 +7,7 @@
 import { db } from "@/database/db";
 import { users } from "@/database/schema";
 import { and, desc, eq, ilike, or } from "drizzle-orm";
-import { hasRoleSql } from "@/features/users/user-access";
+import { hasRoleSql } from "@/features/users/user-access.service";
 
 export class OwnerProfileService {
   /**

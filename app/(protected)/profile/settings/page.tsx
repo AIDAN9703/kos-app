@@ -1,6 +1,4 @@
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { auth } from "@/shared/lib/auth/auth";
 import { requireAuth } from "@/shared/lib/utils/auth-utils";
 import { SignOutButton } from "@/features/auth/components/SignOutButton";
 import { requestEmailChange, updateAccountDetails } from "@/features/profile/actions/account.actions";
@@ -16,26 +14,21 @@ import {
   SignedInDevices,
   VerifyEmailButton,
 } from "@/features/profile/components/settings/SignInMethods";
-import { getAccount } from "@/features/profile/profile.queries";
+import { getMyAccount, getMySignIn } from "@/features/profile/profile.data";
 
 export default async function AccountSettingsPage({
   searchParams,
 }: {
   searchParams: Promise<{ verified?: string }>;
 }) {
-  const session = await requireAuth();
-  const account = await getAccount(session.user.id);
-  if (!account) redirect("/sign-in");
-
-  // How this person can sign in, and where they're signed in.
-  const requestHeaders = await headers();
-  const [methods, devices, { verified }] = await Promise.all([
-    auth.api.listUserAccounts({ headers: requestHeaders }),
-    auth.api.listSessions({ headers: requestHeaders }),
+  await requireAuth();
+  // The account, how this person can sign in, and where they're signed in.
+  const [account, { hasPassword, googleAccountId, deviceCount }, { verified }] = await Promise.all([
+    getMyAccount(),
+    getMySignIn(),
     searchParams,
   ]);
-  const hasPassword = methods.some((method) => method.providerId === "credential");
-  const googleAccountId = methods.find((method) => method.providerId === "google")?.id ?? null;
+  if (!account) redirect("/sign-in");
 
   return (
     <div>
@@ -161,7 +154,7 @@ export default async function AccountSettingsPage({
         >
           <PasswordSection hasPassword={hasPassword} />
           <GoogleConnection googleAccountId={googleAccountId} canDisconnect={hasPassword} />
-          <SignedInDevices count={devices.length} />
+          <SignedInDevices count={deviceCount} />
         </SettingsSection>
 
         <SettingsSection
