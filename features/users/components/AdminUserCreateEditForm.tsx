@@ -7,14 +7,13 @@ import { User, Key, MapPin, ShieldCheck } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Textarea } from "@/shared/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/components/ui/select";
 import { Switch } from "@/shared/components/ui/switch";
+import { Checkbox } from "@/shared/components/ui/checkbox";
+import {
+  ASSIGNABLE_ROLES,
+  ASSIGNABLE_ROLE_LABELS,
+  type AssignableRole,
+} from "@/features/users/user-roles.constants";
 import {
   Card,
   CardContent,
@@ -24,7 +23,6 @@ import {
 } from "@/shared/components/ui/card";
 import { toast } from "@/shared/lib/hooks/use-toast";
 import { updateUser, createUser } from "@/features/users/user.mutations";
-import { userStatusEnum } from "@/database/schema";
 import {
   createUserSchema,
   updateUserSchema,
@@ -64,8 +62,7 @@ export function AdminUserCreateEditForm({
   const form = useForm<CreateUserInput | UpdateUserInput>({
     resolver: zodResolver(formSchema),
     defaultValues: user || {
-      isAdmin: false,
-      status: "ACTIVE",
+      roles: [],
       emailVerified: false,
       phoneVerified: false,
       identityVerified: false,
@@ -75,7 +72,6 @@ export function AdminUserCreateEditForm({
 
   const { isSubmitting, dirtyFields } = form.formState;
   const hasChanges = Object.keys(dirtyFields).length > 0;
-  const statuses = userStatusEnum.enumValues;
 
   async function onSubmit(data: CreateUserInput | UpdateUserInput) {
     if (isCreating) {
@@ -272,49 +268,40 @@ export function AdminUserCreateEditForm({
               )}
               <FormField
                 control={form.control}
-                name="isAdmin"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                    <div className="space-y-0.5">
-                      <FormLabel className="text-base">Admin Access</FormLabel>
+                name="roles"
+                render={({ field }) => {
+                  const selected = (field.value ?? []) as AssignableRole[];
+                  const toggle = (role: AssignableRole, on: boolean) =>
+                    field.onChange(on ? [...selected, role] : selected.filter((r) => r !== role));
+                  return (
+                    <FormItem className="rounded-lg border p-4">
+                      <FormLabel className="text-base">Roles</FormLabel>
                       <FormDescription>
-                        Grant administrator privileges to this user
+                        Everyone can book. Captain and crew are granted from their own pages.
                       </FormDescription>
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="status"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      <RequiredLabel>Status</RequiredLabel>
-                    </FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select status" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {statuses.map((status) => (
-                          <SelectItem key={status} value={status}>
-                            {status}
-                          </SelectItem>
+                      <div className="mt-3 space-y-3">
+                        {ASSIGNABLE_ROLES.map((role) => (
+                          <label key={role} className="flex cursor-pointer items-start gap-3">
+                            <Checkbox
+                              checked={selected.includes(role)}
+                              onCheckedChange={(checked) => toggle(role, checked === true)}
+                              className="mt-0.5"
+                            />
+                            <span>
+                              <span className="block text-sm font-medium">
+                                {ASSIGNABLE_ROLE_LABELS[role].label}
+                              </span>
+                              <span className="block text-sm text-muted-foreground">
+                                {ASSIGNABLE_ROLE_LABELS[role].description}
+                              </span>
+                            </span>
+                          </label>
                         ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
             </div>
           </CardContent>

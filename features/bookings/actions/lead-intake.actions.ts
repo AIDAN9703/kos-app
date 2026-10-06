@@ -11,7 +11,6 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { and, eq } from "drizzle-orm";
 
-import { auth } from "@/auth";
 import { db } from "@/database/db";
 import { bookings, boats, boatPricingTiers, users } from "@/database/schema";
 import { bookingEventsService } from "@/features/bookings/services/booking-events.service";
@@ -28,6 +27,7 @@ import { calculateEndDateTime } from "@/shared/lib/utils/date-helpers";
 import { calculateBookingPriceCents } from "@/shared/lib/utils/pricing-utils";
 import { dollarsToCents } from "@/shared/lib/utils/money-utils";
 import { getAppSettings } from "@/features/app-settings/app-settings.service";
+import { getSession } from "@/shared/lib/utils/auth-utils";
 
 /** Event type for all intake events — matches the backfill's `lead.created`. */
 const LEAD_CREATED_EVENT = "lead.created";
@@ -329,7 +329,7 @@ export async function createBoatLead(data: BoatLeadInput) {
     // The boat-page funnel signs guests up in place (BookingAuthSection
     // modal), so by the time this action runs there is always an account —
     // name/email come from it (never the payload) and the lead links to it.
-    const session = await auth();
+    const session = await getSession();
     if (!session?.user?.id) {
       return { success: false, error: "Please sign in to send this inquiry." };
     }

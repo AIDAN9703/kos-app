@@ -1,14 +1,14 @@
 import { Suspense } from "react";
 
-import { auth } from "@/auth";
 import { getAppSettings } from "@/features/app-settings/app-settings.service";
 import { userService } from "@/features/users/user.service";
 import BoatInquiryDetailsClient, {
   type InquiryCurrentUser,
 } from "@/features/bookings/components/lead-intake/BoatInquiryDetailsClient";
+import { getSession } from "@/shared/lib/utils/auth-utils";
 
 export default async function BoatInquiryPage() {
-  const [settings, session] = await Promise.all([getAppSettings(), auth()]);
+  const [settings, session] = await Promise.all([getAppSettings(), getSession()]);
 
   // Signed-in visitors submit as their account ("Welcome back"); guests get
   // the in-page auth gate. The route itself stays publicly reachable so the

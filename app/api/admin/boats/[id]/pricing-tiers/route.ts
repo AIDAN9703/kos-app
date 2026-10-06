@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
-import { auth } from "@/auth";
 import { boatService } from "@/features/boats/boat.service";
 import { apiSuccess, apiError } from "@/shared/lib/utils/api-helpers";
+import { getSession } from "@/shared/lib/utils/auth-utils";
 
 /**
  * GET /api/admin/boats/[id]/pricing-tiers
@@ -12,7 +12,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
+    const session = await getSession();
     if (!session?.user || !session.user.isAdmin) {
       return apiError("Admin access required", 403);
     }

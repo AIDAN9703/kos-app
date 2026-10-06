@@ -17,7 +17,7 @@ import { calculateBookingPriceCents, type ServiceFee } from "@/shared/lib/utils/
 import { dollarsToCents, formatCentsAsCurrency } from "@/shared/lib/utils/money-utils";
 import { BookingRequest } from "@/features/_validation/validations";
 import { toast } from "@/shared/lib/hooks/use-toast";
-import type { Session } from "next-auth";
+import type { SessionUser } from "@/shared/lib/auth/session-user";
 
 const BookingAuthSection = dynamic(() => import("./BookingAuthSection"), {
   ssr: false,
@@ -27,7 +27,7 @@ export default function BookingDetailsClient({
   user,
   serviceFee,
 }: {
-  user: Session["user"] | null;
+  user: SessionUser | null;
   /** The card fee from app settings (rate + fixed), passed down from the server page. */
   serviceFee: ServiceFee;
 }) {

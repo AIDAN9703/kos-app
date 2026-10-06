@@ -9,8 +9,11 @@ import { useToast } from "@/shared/lib/hooks/use-toast";
 import { cn } from "@/shared/lib/utils/general-utils";
 import { changePassword } from "../../actions/account.actions";
 
-/** Password row: inline change form for email accounts, a note for Google accounts. */
-export function PasswordSection({ signsInWithGoogle }: { signsInWithGoogle: boolean }) {
+/**
+ * Password row: change it, or set a first one for accounts that sign in with
+ * Google or a texted code. Saving signs out every other device.
+ */
+export function PasswordSection({ hasPassword }: { hasPassword: boolean }) {
   const { toast } = useToast();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -24,23 +27,18 @@ export function PasswordSection({ signsInWithGoogle }: { signsInWithGoogle: bool
     setFieldErrors({});
   };
 
-  if (signsInWithGoogle) {
-    return (
-      <div className="border-b border-gray-200 py-4">
-        <p className="text-sm font-medium text-primary">Password</p>
-        <p className="mt-0.5 text-[15px] text-slate-600">
-          You sign in with Google, so there&apos;s no KOS password to manage.
-        </p>
-      </div>
-    );
-  }
-
   if (!editing) {
     return (
       <div className="flex items-start justify-between gap-4 border-b border-gray-200 py-4">
         <div>
           <p className="text-sm font-medium text-primary">Password</p>
-          <p className="mt-0.5 text-[15px] tracking-widest text-slate-800">••••••••</p>
+          {hasPassword ? (
+            <p className="mt-0.5 text-[15px] tracking-widest text-slate-800">••••••••</p>
+          ) : (
+            <p className="mt-0.5 text-[15px] text-slate-600">
+              Not set. Add one to sign in with your email too.
+            </p>
+          )}
         </div>
         <button
           type="button"
@@ -50,7 +48,7 @@ export function PasswordSection({ signsInWithGoogle }: { signsInWithGoogle: bool
           }}
           className="text-sm font-semibold text-primary underline-offset-4 hover:underline"
         >
-          Change
+          {hasPassword ? "Change" : "Set password"}
         </button>
       </div>
     );
@@ -66,14 +64,17 @@ export function PasswordSection({ signsInWithGoogle }: { signsInWithGoogle: bool
     setError(null);
     setFieldErrors({});
     const result = await changePassword({
-      currentPassword: form.currentPassword,
+      currentPassword: hasPassword ? form.currentPassword : undefined,
       newPassword: form.newPassword,
     });
     setSaving(false);
     if (result.success) {
       setEditing(false);
       reset();
-      toast({ title: "Password updated" });
+      toast({
+        title: hasPassword ? "Password updated" : "Password set",
+        description: hasPassword ? "Other devices have been signed out." : undefined,
+      });
     } else {
       setError(result.error);
       setFieldErrors(result.fieldErrors ?? {});
@@ -105,9 +106,9 @@ export function PasswordSection({ signsInWithGoogle }: { signsInWithGoogle: bool
 
   return (
     <form onSubmit={submit} className="border-b border-gray-200 py-4">
-      <p className="text-sm font-medium text-primary">Change password</p>
+      <p className="text-sm font-medium text-primary">{hasPassword ? "Change password" : "Set a password"}</p>
       <div className="mt-3 max-w-sm space-y-3">
-        {field("currentPassword", "Current password", "current-password")}
+        {hasPassword ? field("currentPassword", "Current password", "current-password") : null}
         {field("newPassword", "New password", "new-password")}
         {field("confirm", "Confirm new password", "new-password")}
       </div>
@@ -119,10 +120,10 @@ export function PasswordSection({ signsInWithGoogle }: { signsInWithGoogle: bool
         <Button
           type="submit"
           size="sm"
-          disabled={saving || !form.currentPassword || !form.newPassword}
+          disabled={saving || (hasPassword && !form.currentPassword) || !form.newPassword}
         >
           {saving ? <Loader2 className="animate-spin" /> : null}
-          {saving ? "Updating…" : "Update password"}
+          {saving ? "Saving…" : hasPassword ? "Update password" : "Set password"}
         </Button>
         <Button
           type="button"

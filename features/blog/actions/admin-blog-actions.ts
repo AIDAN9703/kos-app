@@ -2,10 +2,10 @@
 
 import { db } from "@/database/db";
 import { blogPosts } from "@/database/schema";
-import { auth } from "@/auth";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import type { BlogCategory, BlogStatus } from "@/features/blog/blog.types";
+import { getSession } from "@/shared/lib/utils/auth-utils";
 
 
 // Types
@@ -55,7 +55,7 @@ export interface UpdateBlogPostData extends Partial<CreateBlogPostData> {
 
 // Helper function to check admin permissions
 async function checkAdminPermissions() {
-  const session = await auth();
+  const session = await getSession();
   if (!session?.user?.id) {
     throw new Error('Unauthorized - Please log in');
   }

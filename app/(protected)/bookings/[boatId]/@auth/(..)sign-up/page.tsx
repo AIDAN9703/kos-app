@@ -3,7 +3,7 @@
 import { InterceptingDialog } from "@/shared/components/ui/dialog";
 import AuthForm from "@/features/auth/components/AuthForm";
 import { signUpSchema } from "@/features/_validation/validations";
-import { signUpAction } from "@/features/auth/actions/auth";
+import { signUpWithEmail } from "@/features/auth/client/email-auth";
 
 export default function SignUpModal() {
   const signUpDefaultValues = {
@@ -23,7 +23,7 @@ export default function SignUpModal() {
         type="SIGN_UP"
         schema={signUpSchema}
         defaultValues={signUpDefaultValues}
-        onSubmit={signUpAction}
+        onSubmit={signUpWithEmail}
       />
     </InterceptingDialog>
   );

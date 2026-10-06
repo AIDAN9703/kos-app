@@ -1,4 +1,5 @@
 import { userService } from "@/features/users/user.service";
+import { getSignInMethods } from "@/features/users/user-access";
 import { UserProfileHeader } from "@/features/users/components/AdminUserProfileHeader";
 import { AdminUserPersonalInfo } from "@/features/users/components/AdminUserPersonalInfo";
 import { AdminUserAccountInfo } from "@/features/users/components/AdminUserAccountInfo";
@@ -50,7 +51,7 @@ async function UserProfile({ userId }: { userId: string }) {
       {/* Info Cards - bubble style */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <AdminUserPersonalInfo user={user} />
-        <AdminUserAccountInfo user={user} />
+        <AdminUserAccountInfo user={user} signInMethods={await getSignInMethods(user.id)} />
       </div>
 
       {/* Recent Bookings - full width */}

@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/shared/lib/auth/auth-client";
 
 import MobileNavigation from "./sub-components/MobileNavigation";
 import DesktopNavigation from "./sub-components/DesktopNavigation";

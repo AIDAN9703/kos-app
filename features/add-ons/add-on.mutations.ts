@@ -1,6 +1,5 @@
 "use server";
 
-import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 
 import { type ActionResponse } from "@/shared/lib/types/types";
@@ -10,13 +9,14 @@ import {
   updateAddOnSchema,
 } from "@/features/add-ons/add-on.validation";
 import type { AddOn } from "@/features/add-ons/add-on.types";
+import { getSession } from "@/shared/lib/utils/auth-utils";
 
 function zodMessage(error: { issues: { message: string }[] }): string {
   return error.issues.map((i) => i.message).join(", ");
 }
 
 export async function createAddOn(raw: unknown): Promise<ActionResponse<AddOn>> {
-  const session = await auth();
+  const session = await getSession();
   if (!session?.user?.isAdmin) {
     return { success: false, error: "Admin access required" };
   }
@@ -40,7 +40,7 @@ export async function updateAddOn(
   id: string,
   raw: unknown
 ): Promise<ActionResponse<AddOn>> {
-  const session = await auth();
+  const session = await getSession();
   if (!session?.user?.isAdmin) {
     return { success: false, error: "Admin access required" };
   }
@@ -63,7 +63,7 @@ export async function updateAddOn(
 export async function deleteAddOn(
   id: string
 ): Promise<ActionResponse<{ message: string }>> {
-  const session = await auth();
+  const session = await getSession();
   if (!session?.user?.isAdmin) {
     return { success: false, error: "Admin access required" };
   }

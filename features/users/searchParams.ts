@@ -3,9 +3,7 @@ import {
   parseAsBoolean,
   parseAsInteger,
   parseAsString,
-  parseAsStringEnum,
 } from "nuqs/server";
-import { userStatusEnum } from "@/database/schema";
 import { ADMIN_LIST_DEFAULT_PAGE_SIZE } from "@/shared/admin/list-pagination";
 
 /**
@@ -15,7 +13,6 @@ import { ADMIN_LIST_DEFAULT_PAGE_SIZE } from "@/shared/admin/list-pagination";
  */
 export const userSearchParams = {
   search: parseAsString.withDefault(""),
-  status: parseAsStringEnum(userStatusEnum.enumValues),
   isAdmin: parseAsBoolean,
   page: parseAsInteger.withDefault(1),
   limit: parseAsInteger.withDefault(ADMIN_LIST_DEFAULT_PAGE_SIZE),

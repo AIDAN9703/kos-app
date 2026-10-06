@@ -2,7 +2,6 @@
 
 import { db } from "@/database/db";
 import { boats, boatPricingTiers } from "@/database/schema";
-import { auth } from "@/auth";
 import { bookingRequestSchema, BookingRequest } from "@/features/_validation/validations";
 import { z } from "zod";
 import { calculateEndDateTime } from "@/shared/lib/utils/date-helpers";
@@ -14,6 +13,7 @@ import { addOnService } from "@/features/add-ons/add-on.service";
 import { availabilityService } from "@/features/availability/services/availability.service";
 import { getBaseUrl } from "@/shared/lib/utils/base-url";
 import { getStripe } from "@/shared/lib/services/stripe.service";
+import { getSession } from "@/shared/lib/utils/auth-utils";
 
 /**
  * Creates a Stripe Checkout session for instant booking using pricing tiers
@@ -21,7 +21,7 @@ import { getStripe } from "@/shared/lib/services/stripe.service";
  */
 export async function createInstantBooking(data: BookingRequest & { boatId: string }) {
   // Check for authentication
-  const session = await auth();
+  const session = await getSession();
   if (!session?.user) {
     return { 
       success: false, 

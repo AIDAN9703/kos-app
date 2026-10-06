@@ -2,7 +2,7 @@
 
 import AuthForm from "@/features/auth/components/AuthForm";
 import { signInSchema } from "@/features/_validation/validations";
-import { signInAction } from "@/features/auth/actions/auth";
+import { signInWithEmail } from "@/features/auth/client/email-auth";
 
 const Page = () => (
   <AuthForm
@@ -12,7 +12,7 @@ const Page = () => (
       email: "",
       password: "",
     }}
-    onSubmit={signInAction}
+    onSubmit={signInWithEmail}
   />
 );
 

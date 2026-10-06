@@ -7,6 +7,7 @@ import { crewProfiles, users } from "@/database/schema";
 import { and, asc, eq, ilike, or } from "drizzle-orm";
 import type { CrewStatus, UserStatus } from "@/database/types";
 import type { PromoteCrewFormInput } from "@/features/profiles/promote-crew.validation";
+import { addUserRole } from "@/features/users/user-access";
 
 /** Profiles in these states cannot be overwritten by admin promote (already crew or restricted). */
 const NON_PROMOTABLE_CREW_STATUSES = new Set<CrewStatus>(["ACTIVE", "ON_LEAVE", "SUSPENDED"]);
@@ -116,6 +117,9 @@ export class CrewProfileService {
     }
 
     const notes = data.adminNotes?.trim() || null;
+
+    // The role is what opens the crew pages; the profile holds the details.
+    await addUserRole(userId, "crew");
 
     if (!existing) {
       await db.insert(crewProfiles).values({

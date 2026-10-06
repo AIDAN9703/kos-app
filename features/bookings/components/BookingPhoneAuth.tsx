@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/shared/lib/auth/auth-client";
 
 import {
   completeBookingPhoneProfile,
@@ -26,7 +26,7 @@ interface BookingPhoneAuthProps {
 }
 
 export default function BookingPhoneAuth({ onSuccess }: BookingPhoneAuthProps) {
-  const { update } = useSession();
+  const { refetch } = useSession();
   const { toast } = useToast();
   const [step, setStep] = useState<Step>("phone");
   const [phone, setPhone] = useState("");
@@ -72,7 +72,7 @@ export default function BookingPhoneAuth({ onSuccess }: BookingPhoneAuthProps) {
       }
 
       if (result.data?.existingUser) {
-        await update();
+        await refetch();
         toast({ title: "Signed in", description: "You're ready to complete your booking." });
         onSuccess();
         return;
@@ -100,7 +100,7 @@ export default function BookingPhoneAuth({ onSuccess }: BookingPhoneAuthProps) {
         });
         return;
       }
-      await update();
+      await refetch();
       toast({ title: "You're all set", description: result.data?.message });
       onSuccess();
     } finally {

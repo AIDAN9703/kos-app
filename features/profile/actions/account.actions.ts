@@ -1,14 +1,17 @@
 "use server";
 
-import { compare, hash } from "bcryptjs";
 import { and, eq, ne, sql } from "drizzle-orm";
+import { APIError } from "better-auth/api";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { z } from "zod";
 import { db } from "@/database/db";
 import { users } from "@/database/schema";
 import { notificationPreferenceEnum } from "@/database/schema/enums";
 import { profileUpdateSchema, type ProfileFormValues } from "@/features/_validation/validations";
 import { passwordSchema } from "@/shared/lib/validation/common";
+import { auth as betterAuth } from "@/shared/lib/auth/auth";
+import { displayName } from "@/shared/lib/auth/session-user";
 import { getAuthenticatedUserId } from "@/shared/lib/utils/auth-utils";
 import { formatPhoneNumberE164 } from "@/shared/lib/utils/general-utils";
 import type { ActionResult } from "../profile.types";
@@ -44,7 +47,7 @@ function zodFieldErrors(error: z.ZodError): Record<string, string[]> {
  * keys that were passed are written.
  */
 /** The user columns the settings page can edit — exactly the keys of ProfileFormValues. */
-type AccountColumns = Pick<typeof users.$inferInsert, keyof ProfileFormValues>;
+type AccountColumns = Pick<typeof users.$inferInsert, keyof ProfileFormValues | "name">;
 
 export async function updateAccountDetails(
   changes: Partial<ProfileFormValues>
@@ -85,6 +88,8 @@ export async function updateAccountDetails(
     (Object.keys(changes) as (keyof ProfileFormValues)[]).map((key) => {
       const value = parsed.data[key];
       if (value === "") return [key, null];
+      // Stored lowercase: sign-in looks emails up that way.
+      if (key === "email" && value) return [key, value.trim().toLowerCase()];
       // Store phones as +1XXXXXXXXXX: phone sign-in and booking matching look them up that way.
       if (key === "phoneNumber" && value) return [key, formatPhoneNumberE164(value)];
       return [key, value];
@@ -113,6 +118,15 @@ export async function updateAccountDetails(
   }
   if ("phoneNumber" in update && !samePhone(update.phoneNumber, current.phoneNumber)) {
     reverify.phoneVerified = false;
+  }
+
+  // The display name follows first + last name.
+  if ("firstName" in update || "lastName" in update) {
+    update.name = displayName(
+      "firstName" in update ? update.firstName : current.firstName,
+      "lastName" in update ? update.lastName : current.lastName,
+      update.email ?? current.email
+    );
   }
 
   try {
@@ -163,13 +177,17 @@ export async function updateNotificationPreferences(
 }
 
 const changePasswordSchema = z.object({
-  currentPassword: z.string().min(1, "Enter your current password"),
+  // Empty when the account has no password yet (Google or phone sign-up).
+  currentPassword: z.string().optional(),
   newPassword: passwordSchema,
 });
 
 type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 
-/** Email/password accounts only — Google accounts have a placeholder hash and no password to change. */
+/**
+ * Change the password, or set a first one for accounts that sign in with
+ * Google or a texted code. Changing it signs out every other device.
+ */
 export async function changePassword(input: ChangePasswordInput): Promise<ActionResult> {
   const auth = await getAuthenticatedUserId();
   if (!auth.userId) return { success: false, error: auth.error ?? "Not authenticated" };
@@ -183,31 +201,39 @@ export async function changePassword(input: ChangePasswordInput): Promise<Action
     };
   }
 
-  const [current] = await db
-    .select({ password: users.password, authProvider: users.authProvider })
-    .from(users)
-    .where(eq(users.id, auth.userId))
-    .limit(1);
-  if (!current) return { success: false, error: "Account not found" };
-  if (current.authProvider === "GOOGLE") {
-    return { success: false, error: "This account signs in with Google and has no password." };
-  }
+  const requestHeaders = await headers();
+  const methods = await betterAuth.api.listUserAccounts({ headers: requestHeaders });
+  const hasPassword = methods.some((method) => method.providerId === "credential");
+  const { currentPassword, newPassword } = parsed.data;
 
-  const matches = await compare(parsed.data.currentPassword, current.password);
-  if (!matches) {
+  if (hasPassword && !currentPassword) {
     return {
       success: false,
-      error: "That current password isn't right.",
-      fieldErrors: { currentPassword: ["That current password isn't right."] },
+      error: "Please check the highlighted fields.",
+      fieldErrors: { currentPassword: ["Enter your current password"] },
     };
   }
 
   try {
-    await db
-      .update(users)
-      .set({ password: await hash(parsed.data.newPassword, 10), updatedAt: new Date() })
-      .where(eq(users.id, auth.userId));
+    if (hasPassword) {
+      await betterAuth.api.changePassword({
+        body: { currentPassword: currentPassword!, newPassword, revokeOtherSessions: true },
+        headers: requestHeaders,
+      });
+    } else {
+      await betterAuth.api.setPassword({ body: { newPassword }, headers: requestHeaders });
+    }
   } catch (error) {
+    if (error instanceof APIError && error.body?.code === "INVALID_PASSWORD") {
+      return {
+        success: false,
+        error: "That current password isn't right.",
+        fieldErrors: { currentPassword: ["That current password isn't right."] },
+      };
+    }
+    if (error instanceof APIError && error.body?.message) {
+      return { success: false, error: error.body.message };
+    }
     console.error("changePassword failed:", error);
     return { success: false, error: "We couldn't update your password. Please try again." };
   }

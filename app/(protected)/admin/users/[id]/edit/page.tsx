@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { type UpdateUserInput } from "@/features/users/user.validation";
 import { Suspense } from "react";
 import { Skeleton } from "@/shared/components/ui/skeleton";
+import { parseRoles } from "@/shared/lib/auth/permissions";
+import { ASSIGNABLE_ROLES, type AssignableRole } from "@/features/users/user-roles.constants";
 
 interface UserEditPageProps {
   params: Promise<{ id: string }>;
@@ -40,8 +42,9 @@ async function AdminUserCreateEditFormWithData({ userId }: { userId: string }) {
     username: userData.username,
     email: userData.email,
     phoneNumber: userData.phoneNumber || null,
-    isAdmin: userData.isAdmin,
-    status: userData.status,
+    roles: parseRoles(userData.role).filter((role): role is AssignableRole =>
+      (ASSIGNABLE_ROLES as readonly string[]).includes(role)
+    ),
     // Only include authProvider if it's a valid value in the enum
     ...(userData.authProvider ? { authProvider: userData.authProvider } : {}),
     address: userData.address || null,

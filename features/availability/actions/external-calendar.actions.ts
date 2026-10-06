@@ -3,13 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 
-import { auth } from "@/auth";
 import { db } from "@/database/db";
 import {
   boatExternalCalendars,
   boatExternalCalendarEvents,
 } from "@/database/schema";
 import { syncExternalCalendar } from "@/features/availability/services/external-calendar-sync.service";
+import { getSession } from "@/shared/lib/utils/auth-utils";
 
 export type { ExternalCalendarListItem } from "./external-calendar.queries";
 
@@ -21,7 +21,7 @@ interface ActionResult {
 }
 
 async function requireAdmin(): Promise<{ ok: true } | { ok: false; error: string }> {
-  const session = await auth();
+  const session = await getSession();
   if (!session?.user?.isAdmin) {
     return { ok: false, error: "Admin access required" };
   }

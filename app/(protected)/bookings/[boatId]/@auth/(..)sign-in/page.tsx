@@ -3,7 +3,7 @@
 import { InterceptingDialog } from "@/shared/components/ui/dialog";
 import AuthForm from "@/features/auth/components/AuthForm";
 import { signInSchema } from "@/features/_validation/validations";
-import { signInAction } from "@/features/auth/actions/auth";
+import { signInWithEmail } from "@/features/auth/client/email-auth";
 
 export default function SignInModal() {
   const signInDefaultValues = {
@@ -20,7 +20,7 @@ export default function SignInModal() {
         type="SIGN_IN"
         schema={signInSchema}
         defaultValues={signInDefaultValues}
-        onSubmit={signInAction}
+        onSubmit={signInWithEmail}
       />
     </InterceptingDialog>
   );

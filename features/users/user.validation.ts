@@ -1,6 +1,7 @@
 import * as z from "zod";
-import { userStatusEnum, authProviderEnum } from "@/database/schema";
+import { authProviderEnum } from "@/database/schema";
 import { passwordSchema, phoneSchema, emailSchema } from "@/shared/lib/validation/common";
+import { ASSIGNABLE_ROLES } from "./user-roles.constants";
 
 // Common user schema for admin create/edit (no profile image URL; captain/crew via promote flows)
 const userBaseSchema = z.object({
@@ -20,8 +21,8 @@ const userBaseSchema = z.object({
     ),
   email: emailSchema,
   phoneNumber: phoneSchema,
-  isAdmin: z.boolean().default(false),
-  status: z.enum(userStatusEnum.enumValues),
+  // Admin, broker, owner. Captain and crew are granted through their own flows.
+  roles: z.array(z.enum(ASSIGNABLE_ROLES)).default([]),
   authProvider: z.enum(authProviderEnum.enumValues).default("EMAIL").optional(),
 
   // Contact Information
@@ -58,7 +59,6 @@ export const userFilterSchema = z.object({
   limit: z.coerce.number().optional(),
   search: z.string().optional(),
   isAdmin: z.coerce.boolean().optional(),
-  status: z.enum(userStatusEnum.enumValues).optional(),
 });
 
 export type CreateUserInput = z.infer<typeof createUserSchema>;

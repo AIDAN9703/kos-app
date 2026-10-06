@@ -1,9 +1,10 @@
 "use server";
 
-import { signOut } from "@/auth";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { auth } from "@/shared/lib/auth/auth";
 
 export async function signOutAction(): Promise<void> {
-  // NextAuth signOut doesn't throw errors in most cases, it just redirects
-  // So we don't need to wrap it in try/catch which was causing issues
-  await signOut({ redirectTo: "/" });
-} 
+  await auth.api.signOut({ headers: await headers() });
+  redirect("/");
+}

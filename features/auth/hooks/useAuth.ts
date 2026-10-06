@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
-import { toast } from '../../../shared/lib/hooks/use-toast';
+import { useSession } from '@/shared/lib/auth/auth-client';
+import { toast } from '@/shared/lib/hooks/use-toast';
+import { safeRedirectPath } from '@/features/auth/client/safe-redirect';
 
 type AuthAction<T> = (data: T) => Promise<{
   success: boolean;
@@ -9,19 +10,10 @@ type AuthAction<T> = (data: T) => Promise<{
   data?: { redirectUrl?: string; message?: string };
 }>;
 
-/** Only allow same-origin relative paths — blocks open redirects via ?callbackUrl=https://evil.com */
-function safeRedirectPath(url: string | undefined, fallback = "/"): string {
-  if (!url) return fallback;
-  if (url.startsWith("/") && !url.startsWith("//") && !url.startsWith("/\\")) {
-    return url;
-  }
-  return fallback;
-}
-
 export function useAuth<T>() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
-  const { update } = useSession();
+  const { refetch } = useSession();
 
   const handleAuth = async (
     data: T,
@@ -40,12 +32,13 @@ export function useAuth<T>() {
           description: result.data?.message || successMessage || "Operation successful",
         });
 
-        // Update session to reflect new auth state
-        await update();
+        // Refresh the session for client UI, then server-rendered UI.
+        await refetch();
 
         // Redirect logic — never follow absolute/external URLs
         const redirectTo = safeRedirectPath(result.data?.redirectUrl || callbackUrl);
         router.push(redirectTo);
+        router.refresh();
         
         return { success: true };
       } else {

@@ -8,7 +8,7 @@ import {
   bookings,
   bookingPricing,
 } from '@/database/schema';
-import { and, count, eq, desc, or, ilike, getTableColumns } from 'drizzle-orm';
+import { and, count, eq, desc, or, ilike, getTableColumns, sql } from 'drizzle-orm';
 import { resolveAdminListPagination } from '@/shared/admin/list-pagination';
 import { type User   } from '@/database/types';
 
@@ -25,7 +25,9 @@ import {
 } from '@/features/users/user.types';
 
 //bcrypt
-import { hash } from 'bcryptjs';
+import { displayName } from '@/shared/lib/auth/session-user';
+import { formatRoles } from '@/shared/lib/auth/permissions';
+import { hasRoleSql, mergeAssignableRoles, setCredentialPassword } from '@/features/users/user-access';
 
 /**
  * User Service Layer
@@ -51,12 +53,9 @@ export class UserService {
       );
     }
 
-    if (filters?.status) {
-      conditions.push(eq(users.status, filters.status));
-    }
-
     if (filters?.isAdmin !== undefined) {
-      conditions.push(eq(users.isAdmin, filters.isAdmin));
+      const isAdmin = hasRoleSql("admin");
+      conditions.push(filters.isAdmin ? isAdmin : sql`NOT (${isAdmin})`);
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
@@ -225,16 +224,22 @@ export class UserService {
    * Create new user (with password hashing)
    */
   async createUser(userData: CreateUserInput): Promise<User> {
-    // Hash password before storage (CRITICAL!)
-    const hashedPassword = await hash(userData.password, 10);
+    const { password, roles, ...fields } = userData;
+    const email = fields.email.trim().toLowerCase();
 
     const [newUser] = await db
       .insert(users)
       .values({
-        ...userData,
-        password: hashedPassword,
+        ...fields,
+        email,
+        name: displayName(fields.firstName, fields.lastName, email),
+        role: formatRoles(roles),
+        isAdmin: roles.includes("admin"),
       })
       .returning();
+
+    // The password lives on the person's "credential" sign-in method.
+    await setCredentialPassword(newUser.id, password);
 
     // Admin vouches for the identity — adopt matching guest bookings even
     // though nothing is verified yet.
@@ -249,15 +254,27 @@ export class UserService {
    * Update user (partial updates allowed)
    */
   async updateUser(id: string, data: Partial<UpdateUserInput>): Promise<User> {
-    // Prepare update data
-    const updateData: Partial<User> = {
-      ...data,
-      updatedAt: new Date(),
-    };
-    
-    // Hash password if being updated
-    if (data.password) {
-      updateData.password = await hash(data.password, 10);
+    const { password, roles, ...fields } = data;
+    const [current] = await db
+      .select({ firstName: users.firstName, lastName: users.lastName, email: users.email, role: users.role })
+      .from(users)
+      .where(eq(users.id, id))
+      .limit(1);
+    if (!current) throw new Error(`User not found: ${id}`);
+
+    const updateData: Partial<User> = { ...fields, updatedAt: new Date() };
+    if (fields.email) updateData.email = fields.email.trim().toLowerCase();
+    if ("firstName" in fields || "lastName" in fields) {
+      updateData.name = displayName(
+        "firstName" in fields ? fields.firstName : current.firstName,
+        "lastName" in fields ? fields.lastName : current.lastName,
+        updateData.email ?? current.email
+      );
+    }
+    if (roles) {
+      const merged = mergeAssignableRoles(current.role, roles);
+      updateData.role = formatRoles(merged);
+      updateData.isAdmin = merged.includes("admin");
     }
 
     const [updatedUser] = await db
@@ -269,6 +286,7 @@ export class UserService {
     if (!updatedUser) {
       throw new Error(`User not found: ${id}`);
     }
+    if (password) await setCredentialPassword(id, password);
 
     return updatedUser;
   }
@@ -283,8 +301,7 @@ export class UserService {
 
 
   /**
-   * Get list of admin users
-   * Returns active admin users for assignment dropdowns
+   * Staff a deal can be assigned to: active admins and brokers.
    */
   async getAdmins() {
     const admins = await db
@@ -298,7 +315,7 @@ export class UserService {
       })
       .from(users)
       .where(and(
-        eq(users.isAdmin, true),
+        or(hasRoleSql("admin"), hasRoleSql("broker")),
         eq(users.status, 'ACTIVE')
       ))
       .orderBy(desc(users.createdAt))

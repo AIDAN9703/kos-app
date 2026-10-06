@@ -2,9 +2,9 @@
 
 import { eq } from "drizzle-orm";
 
-import { auth } from "@/auth";
 import { db } from "@/database/db";
 import { boatExternalCalendars } from "@/database/schema";
+import { getSession } from "@/shared/lib/utils/auth-utils";
 
 export interface ExternalCalendarListItem {
   id: string;
@@ -21,7 +21,7 @@ export interface ExternalCalendarListItem {
 export async function getBoatExternalCalendars(
   boatId: string
 ): Promise<ExternalCalendarListItem[]> {
-  const session = await auth();
+  const session = await getSession();
   if (!session?.user?.isAdmin) return [];
 
   return db

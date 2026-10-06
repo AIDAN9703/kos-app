@@ -4,12 +4,12 @@
 
 "use server";
 
-import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 import { type ActionResponse } from "@/shared/lib/types/types";
 import { bookingService } from "@/features/bookings/services/booking.service";
 import { bookingSingleFieldUpdateSchema } from "@/features/bookings/booking-single-field-update";
 import type { BookingDetails } from "@/features/bookings/booking.types";
+import { getSession } from "@/shared/lib/utils/auth-utils";
 
 /**
  * Admin: update exactly one booking column (validated per-field).
@@ -18,7 +18,7 @@ export async function updateBookingSingleField(
   id: string,
   rawUpdate: unknown
 ): Promise<ActionResponse<{ booking: BookingDetails }>> {
-  const session = await auth();
+  const session = await getSession();
 
   if (!session?.user) {
     return { success: false, error: "Authentication required" };

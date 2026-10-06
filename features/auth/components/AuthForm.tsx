@@ -25,7 +25,7 @@ import Link from "next/link";
 import { FIELD_NAMES, FIELD_TYPES } from "@/shared/lib/constants";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { googleSignIn } from "@/features/auth/actions/google-auth";
+import { continueWithGoogle } from "@/features/auth/client/email-auth";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import {
   bookingAuthInputClass,
@@ -55,6 +55,16 @@ interface Props<T extends FieldValues> {
   /** Switch sign-in ↔ sign-up without leaving the page (booking modal) */
   onSwitchToSignUp?: () => void;
   onSwitchToSignIn?: () => void;
+}
+
+/** Messages for ?error= codes Better Auth sends back after a failed Google sign-in. */
+function googleErrorMessage(code: string | null): string | null {
+  if (!code) return null;
+  if (code === "account_not_linked") {
+    return "This email already has an account. Sign in with your password, then connect Google in Account settings.";
+  }
+  if (code === "banned") return "This account is suspended. Contact us if you think that's a mistake.";
+  return "Google sign-in didn't work. Please try again.";
 }
 
 const AuthForm = <T extends FieldValues>({
@@ -100,6 +110,7 @@ const AuthForm = <T extends FieldValues>({
   };
 
   const isEmbedded = variant === "embedded";
+  const googleError = isEmbedded ? null : googleErrorMessage(searchParams.get("error"));
 
   return (
     <div
@@ -123,11 +134,17 @@ const AuthForm = <T extends FieldValues>({
         </div>
       )}
 
+      {googleError && (
+        <p className="mb-4 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {googleError}
+        </p>
+      )}
+
       {/* Google Sign In */}
-      <form action={googleSignIn} className={isEmbedded ? "mb-4" : "mb-5"}>
-        <input type="hidden" name="callbackUrl" value={callbackUrl} />
+      <div className={isEmbedded ? "mb-4" : "mb-5"}>
         <button
-          type="submit"
+          type="button"
+          onClick={() => continueWithGoogle(callbackUrl)}
           className={
             isEmbedded
               ? `${bookingAuthMenuButtonClass} gap-2.5`
@@ -145,7 +162,7 @@ const AuthForm = <T extends FieldValues>({
             Continue with Google
           </span>
         </button>
-      </form>
+      </div>
 
       {/* Divider */}
       <div className={`relative flex items-center gap-3 ${isEmbedded ? "mb-4" : "mb-5"}`}>
@@ -191,6 +208,14 @@ const AuthForm = <T extends FieldValues>({
               )}
             />
           ))}
+
+          {isSignIn && (
+            <div className="-mt-1 text-right">
+              <Link href="/forgot-password" className="text-sm font-medium text-primary hover:underline">
+                Forgot password?
+              </Link>
+            </div>
+          )}
 
           <Button
             type="submit"

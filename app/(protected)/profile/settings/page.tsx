@@ -1,6 +1,8 @@
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { LogOut } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
+import { auth } from "@/shared/lib/auth/auth";
 import { requireAuth } from "@/shared/lib/utils/auth-utils";
 import { signOutAction } from "@/features/auth/actions/sign-out";
 import { updateAccountDetails } from "@/features/profile/actions/account.actions";
@@ -11,12 +13,31 @@ import { NotificationPreferencesForm } from "@/features/profile/components/setti
 import { PasswordSection } from "@/features/profile/components/settings/PasswordSection";
 import { ProfilePhotoField } from "@/features/profile/components/settings/ProfilePhotoField";
 import { SettingsSection } from "@/features/profile/components/settings/SettingsSection";
+import {
+  GoogleConnection,
+  SignedInDevices,
+  VerifyEmailButton,
+} from "@/features/profile/components/settings/SignInMethods";
 import { getAccount } from "@/features/profile/profile.queries";
 
-export default async function AccountSettingsPage() {
+export default async function AccountSettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ verified?: string }>;
+}) {
   const session = await requireAuth();
   const account = await getAccount(session.user.id);
   if (!account) redirect("/sign-in");
+
+  // How this person can sign in, and where they're signed in.
+  const requestHeaders = await headers();
+  const [methods, devices, { verified }] = await Promise.all([
+    auth.api.listUserAccounts({ headers: requestHeaders }),
+    auth.api.listSessions({ headers: requestHeaders }),
+    searchParams,
+  ]);
+  const hasPassword = methods.some((method) => method.providerId === "credential");
+  const googleAccountId = methods.find((method) => method.providerId === "google")?.id ?? null;
 
   return (
     <div>
@@ -54,6 +75,15 @@ export default async function AccountSettingsPage() {
             fields={[{ key: "email", label: "Email address", type: "email", required: true }]}
             values={{ email: account.email }}
             description="Confirmations, proposals and receipts go here."
+            aside={
+              account.emailVerified ? (
+                <span className="rounded-full bg-success-soft px-2 py-0.5 text-[11px] font-semibold text-success">
+                  {verified ? "Verified just now" : "Verified"}
+                </span>
+              ) : (
+                <VerifyEmailButton email={account.email} />
+              )
+            }
             onSave={updateAccountDetails}
           />
           <EditableField
@@ -126,8 +156,14 @@ export default async function AccountSettingsPage() {
           />
         </SettingsSection>
 
-        <SettingsSection id="security" title="Login & security">
-          <PasswordSection signsInWithGoogle={account.authProvider === "GOOGLE"} />
+        <SettingsSection
+          id="security"
+          title="Login & security"
+          description="The ways you can sign in, and where you're signed in."
+        >
+          <PasswordSection hasPassword={hasPassword} />
+          <GoogleConnection googleAccountId={googleAccountId} canDisconnect={hasPassword} />
+          <SignedInDevices count={devices.length} />
         </SettingsSection>
 
         <SettingsSection

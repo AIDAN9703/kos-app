@@ -10,11 +10,24 @@ export const users = pgTable(
     id: uuid("id").defaultRandom().notNull().primaryKey(),
     email: text("email").notNull().unique(),
     username: text("username").notNull().unique(),
-    password: text("password").notNull(),
+    // Legacy Auth.js hash. Sign-in now reads the `account` table; this copy is
+    // kept in sync only so the old code could be restored. Drop after rollout.
+    password: text("password"),
     status: userStatusEnum("status").default("ACTIVE").notNull(),
+    // Legacy flag mirrored from `role` for the same reason.
     isAdmin: boolean("is_admin").default(false).notNull(),
 
+    // Access: comma-separated roles (admin, broker, owner, captain, crew,
+    // customer). See shared/lib/auth/permissions.ts.
+    role: text("role").default("customer").notNull(),
+    banned: boolean("banned").default(false),
+    banReason: text("ban_reason"),
+    banExpires: timestamp("ban_expires", { mode: "date", withTimezone: true }),
+
     // Personal Information
+    // Display name (first + last). Better Auth requires it; kept in step with
+    // firstName/lastName wherever those change.
+    name: text("name").default("").notNull(),
     firstName: text("first_name"),
     lastName: text("last_name"),
     phoneNumber: text("phone_number"),

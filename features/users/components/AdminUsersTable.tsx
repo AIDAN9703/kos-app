@@ -16,7 +16,7 @@ import Link from "next/link";
 import { Avatar, AvatarImage } from "@/shared/components/ui/avatar";
 import { DefaultUserAvatarFallback } from "@/shared/lib/utils/user-utils";
 import type { UserListItem } from "@/features/users/user.types";
-import { StatusBadge } from "@/shared/lib/utils/badge-utils";
+import { parseRoles } from "@/shared/lib/auth/permissions";
 import { Badge } from "@/shared/components/ui/badge";
 import { formatDate } from "@/shared/lib/utils/general-utils";
 import { useDeleteUser } from "@/features/users/hooks/useUserMutations";
@@ -103,18 +103,21 @@ export function AdminUsersTable({ users, loading }: AdminUsersTableProps) {
         },
       }),
 
-      columnHelper.accessor("isAdmin", {
-        header: "Admin",
+      columnHelper.accessor("role", {
+        header: "Roles",
         cell: (info) => (
-          <Badge variant={info.getValue() ? "default" : "secondary"} className="text-xs">
-            {info.getValue() ? "Yes" : "No"}
-          </Badge>
+          <div className="flex flex-wrap gap-1">
+            {parseRoles(info.getValue()).map((role) => (
+              <Badge
+                key={role}
+                variant={role === "customer" ? "secondary" : "default"}
+                className="text-xs capitalize"
+              >
+                {role}
+              </Badge>
+            ))}
+          </div>
         ),
-      }),
-
-      columnHelper.accessor("status", {
-        header: "Status",
-        cell: (info) => <StatusBadge status={info.getValue()} />,
       }),
 
       columnHelper.accessor("createdAt", {

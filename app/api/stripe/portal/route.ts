@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
 import { getStripe, getOrCreateStripeCustomer } from "@/shared/lib/services/stripe.service";
 import { getBaseUrl } from "@/shared/lib/utils/base-url";
+import { getSession } from "@/shared/lib/utils/auth-utils";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
  */
 export async function POST() {
   try {
-    const session = await auth();
+    const session = await getSession();
     if (!session?.user?.id || !session.user.email) {
       return NextResponse.json(
         { error: "Authentication required" },

@@ -4,12 +4,12 @@
 
 "use server";
 
-import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 import { type ActionResponse } from "@/shared/lib/types/types";
 import { type CreateBoatInput, type UpdateBoatInput } from "@/features/boats/boat.validation";
 import { boatService } from "@/features/boats/boat.service";
 import { BoatWithTiers } from "./boat.types";
+import { getSession } from "@/shared/lib/utils/auth-utils";
 
 // ========================================
 // CORE CUD OPERATIONS
@@ -19,7 +19,7 @@ import { BoatWithTiers } from "./boat.types";
  * Create new boat
  */
 export async function createBoat(boatData: CreateBoatInput): Promise<ActionResponse<BoatWithTiers>> {
-  const session = await auth();
+  const session = await getSession();
   
   if (!session?.user?.isAdmin) {
     return { success: false, error: "Admin access required" };
@@ -43,7 +43,7 @@ export async function updateBoat(
   id: string, 
   updates: Partial<UpdateBoatInput>
 ): Promise<ActionResponse<BoatWithTiers>> {
-  const session = await auth();
+  const session = await getSession();
   
   if (!session?.user?.isAdmin) {
     return { success: false, error: "Admin access required" };
@@ -66,7 +66,7 @@ export async function updateBoat(
  * Delete boat
  */
 export async function deleteBoat(id: string): Promise<ActionResponse<{ message: string }>> {
-  const session = await auth();
+  const session = await getSession();
   
   if (!session?.user?.isAdmin) {
     return { success: false, error: "Admin access required" };

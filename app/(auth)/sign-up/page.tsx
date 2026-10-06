@@ -1,7 +1,7 @@
 "use client";
 
 import AuthForm from "@/features/auth/components/AuthForm";
-import { signUpAction } from "@/features/auth/actions/auth";
+import { signUpWithEmail } from "@/features/auth/client/email-auth";
 import { signUpSchema } from "@/features/_validation/validations";
 
 const Page = () => (
@@ -15,7 +15,7 @@ const Page = () => (
       phoneNumber: "",
       password: "",
     }}
-    onSubmit={signUpAction}
+    onSubmit={signUpWithEmail}
   />
 );
 

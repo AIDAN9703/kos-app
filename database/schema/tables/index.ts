@@ -1,6 +1,7 @@
 // Core tables
 export * from "./boats.table";
 export * from "./users.table";
+export * from "./auth.table";
 export * from "./captainProfiles.table";
 export * from "./crewProfiles.table";
 export * from "./ownerProfiles.table";

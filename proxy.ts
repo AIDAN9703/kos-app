@@ -1,6 +1,20 @@
-import { auth } from "@/auth";
+import { getSessionCookie } from "better-auth/cookies";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { auth } from "@/shared/lib/auth/auth";
+
+/**
+ * Route gate. Signed-in-only areas get a cheap "is there a session cookie"
+ * check (no database). Admin areas get a real session + role check. Pages and
+ * actions still verify for themselves through shared/lib/utils/auth-utils.ts;
+ * this only saves a round trip for people who obviously aren't allowed.
+ */
+
+function redirectToSignIn(req: NextRequest) {
+  const signInUrl = new URL("/sign-in", req.url);
+  signInUrl.searchParams.set("callbackUrl", callbackUrlFromRequest(req));
+  return NextResponse.redirect(signInUrl);
+}
 
 /** Full path + query for safe return after sign-in (preserves booking nuqs, etc.). */
 function callbackUrlFromRequest(req: NextRequest): string {
@@ -26,61 +40,49 @@ function isPublicGuestBookingPath(pathname: string): boolean {
   return false;
 }
 
-export default auth((req) => {
+export default async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
+  const hasSessionCookie = Boolean(getSessionCookie(req));
 
-  const session = req.auth;
-  const isLoggedIn = !!session?.user;
-  const isAdmin = session?.user?.isAdmin === true;
-
-  // Protect admin routes — require auth + admin role
-  if (pathname.startsWith("/admin")) {
-    if (!isLoggedIn) {
-      const signInUrl = new URL("/sign-in", req.url);
-      signInUrl.searchParams.set("callbackUrl", callbackUrlFromRequest(req));
-      return NextResponse.redirect(signInUrl);
+  const isAdminPage = pathname.startsWith("/admin");
+  const isAdminApi = pathname.startsWith("/api/admin");
+  if (isAdminPage || isAdminApi) {
+    const session = hasSessionCookie ? await auth.api.getSession({ headers: req.headers }) : null;
+    if (!session) {
+      return isAdminApi
+        ? NextResponse.json({ error: "Authentication required" }, { status: 401 })
+        : redirectToSignIn(req);
     }
-    if (!isAdmin) {
-      return NextResponse.redirect(new URL("/403", req.url));
+    if (!session.user.isAdmin) {
+      return isAdminApi
+        ? NextResponse.json({ error: "Admin access required" }, { status: 403 })
+        : NextResponse.redirect(new URL("/403", req.url));
     }
+    return NextResponse.next();
   }
 
-  // Customer profile and owner portal — require auth (role checks happen in the layouts)
+  // Customer profile and owner portal (role checks happen in the layouts)
   if (pathname.startsWith("/profile") || pathname === "/owner" || pathname.startsWith("/owner/")) {
-    if (!isLoggedIn) {
-      const signInUrl = new URL("/sign-in", req.url);
-      signInUrl.searchParams.set("callbackUrl", callbackUrlFromRequest(req));
-      return NextResponse.redirect(signInUrl);
-    }
+    if (!hasSessionCookie) return redirectToSignIn(req);
   }
 
   // Bookings — require auth except guest checkout / public booking URLs
   if (pathname.startsWith("/bookings")) {
-    if (!isLoggedIn && !isPublicGuestBookingPath(pathname)) {
-      const signInUrl = new URL("/sign-in", req.url);
-      signInUrl.searchParams.set("callbackUrl", callbackUrlFromRequest(req));
-      return NextResponse.redirect(signInUrl);
-    }
-  }
-
-  // Protect admin API routes
-  if (pathname.startsWith("/api/admin")) {
-    if (!isLoggedIn)
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
-    if (!isAdmin) return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+    if (!hasSessionCookie && !isPublicGuestBookingPath(pathname)) return redirectToSignIn(req);
   }
 
   // Protect upload API
   if (pathname.startsWith("/api/upload")) {
-    if (!isLoggedIn)
+    if (!hasSessionCookie) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
   }
 
   return NextResponse.next();
-});
+}
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|api/webhook|api/auth|api/boats/[^/]+/availability|api/boats/[^/]+/calendar|api/users/[^/]+$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|api/webhook|api/auth|api/boats/[^/]+/availability|api/boats/[^/]+/calendar).*)",
   ],
 };

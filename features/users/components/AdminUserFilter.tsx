@@ -3,23 +3,18 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import { useQueryStates } from "nuqs";
-import { Plus, ShieldCheck, ToggleLeft } from "lucide-react";
+import { Plus, ShieldCheck } from "lucide-react";
 import {
   AdminToolbar,
   FilterChips,
   FilterField,
   FilterPopover,
   FilterSearch,
-  FilterSelect,
   type FilterChipItem,
 } from "@/shared/admin/filters";
 import { Button } from "@/shared/components/ui/button";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { userSearchParams } from "../searchParams";
-import { userStatusEnum } from "@/database/schema";
-
-const statusLabel = (v: string) =>
-  v.charAt(0) + v.slice(1).toLowerCase().replace(/_/g, " ");
 
 export function AdminUserFilter() {
   const [filters, setFilters] = useQueryStates(userSearchParams, {
@@ -32,12 +27,12 @@ export function AdminUserFilter() {
   };
 
   const activeCount = useMemo(
-    () => (filters.status ? 1 : 0) + (filters.isAdmin === true ? 1 : 0),
-    [filters.status, filters.isAdmin]
+    () => (filters.isAdmin === true ? 1 : 0),
+    [filters.isAdmin]
   );
 
   const clearAll = () => {
-    setFilters({ search: "", status: null, isAdmin: null, page: 1 });
+    setFilters({ search: "", isAdmin: null, page: 1 });
   };
 
   const chips: FilterChipItem[] = [];
@@ -46,13 +41,6 @@ export function AdminUserFilter() {
       key: "isAdmin",
       label: "Admins only",
       onRemove: () => updateFilter({ isAdmin: null }),
-    });
-  }
-  if (filters.status) {
-    chips.push({
-      key: "status",
-      label: `Status: ${statusLabel(filters.status)}`,
-      onRemove: () => updateFilter({ status: null }),
     });
   }
 
@@ -84,16 +72,6 @@ export function AdminUserFilter() {
               />
               Admins only
             </label>
-          </FilterField>
-          <FilterField icon={ToggleLeft} label="Status" className="sm:col-span-2">
-            <FilterSelect
-              value={filters.status}
-              onChange={(v) => updateFilter({ status: v })}
-              options={userStatusEnum.enumValues}
-              placeholder="Status"
-              allLabel="Any status"
-              width="w-full"
-            />
           </FilterField>
         </FilterPopover>
       </AdminToolbar>

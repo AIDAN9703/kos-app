@@ -1,5 +1,4 @@
 import { Suspense } from "react";
-import { auth } from "@/auth";
 import { bookingService } from "@/features/bookings/services/booking.service";
 import { boatService } from "@/features/boats/boat.service";
 import { userService } from "@/features/users/user.service";
@@ -12,6 +11,7 @@ import { AdminBookingTablePagination } from "@/features/bookings/components/admi
 import { AdminBookingsCalendar } from "@/features/bookings/components/admin/AdminBookingsCalendar";
 import { AdminListShell } from "@/shared/admin/components/AdminListShell";
 import { SearchParams } from "next/dist/server/request/search-params";
+import { getSession } from "@/shared/lib/utils/auth-utils";
 
 export default async function BookingsPage({
   searchParams,
@@ -49,7 +49,7 @@ export default async function BookingsPage({
     );
   }
 
-  const session = await auth();
+  const session = await getSession();
   const nowIso = new Date().toISOString();
 
   // Base filters shared by the list AND the type-count strip (the strip omits

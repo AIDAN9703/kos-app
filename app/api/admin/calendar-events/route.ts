@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
+import { getSession } from '@/shared/lib/utils/auth-utils';
 import { db } from '@/database/db';
 import { bookings, boats, bookingPricing, boatExternalCalendarEvents } from '@/database/schema';
 import { eq, and, gt, lt, inArray } from 'drizzle-orm';
@@ -19,7 +19,7 @@ interface CalendarFeedEvent {
 export async function GET(request: NextRequest) {
   try {
     // Admin authentication
-    const session = await auth();
+    const session = await getSession();
     if (!session?.user || !session.user.isAdmin) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }

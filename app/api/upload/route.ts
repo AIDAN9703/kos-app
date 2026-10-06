@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/auth';
+import { getSession } from '@/shared/lib/utils/auth-utils';
 import { getImageKit } from '@/shared/lib/services/imagekit-server';
 
 type UploadType = 'profile' | 'boat' | 'misc' | 'blog';
@@ -7,7 +7,7 @@ type UploadType = 'profile' | 'boat' | 'misc' | 'blog';
 export async function POST(request: Request) {
   try {
     // Check authentication (non-interactive API safe)
-    const session = await auth();
+    const session = await getSession();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

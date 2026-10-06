@@ -428,6 +428,13 @@
       "when": 1791215494704,
       "tag": "0064_delete-boat-reviews-with-boat",
       "breakpoints": true
+    },
+    {
+      "idx": 65,
+      "version": "7",
+      "when": 1791307126665,
+      "tag": "0065_better-auth",
+      "breakpoints": true
     }
   ]
 }

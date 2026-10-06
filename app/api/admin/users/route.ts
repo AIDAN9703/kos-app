@@ -1,8 +1,8 @@
 import { NextRequest } from "next/server";
-import { auth } from "@/auth";
 import { userService } from "@/features/users/user.service";
 import { userFilterSchema } from "@/features/users/user.validation";
 import { apiPaginated, apiError } from "@/shared/lib/utils/api-helpers";
+import { getSession } from "@/shared/lib/utils/auth-utils";
 
 /**
  * GET /api/admin/users
@@ -11,7 +11,7 @@ import { apiPaginated, apiError } from "@/shared/lib/utils/api-helpers";
 export async function GET(request: NextRequest) {
   try {
     // Admin authentication
-    const session = await auth();
+    const session = await getSession();
     if (!session?.user || !session.user.isAdmin) {
       return apiError("Admin access required", 403);
     }
@@ -21,7 +21,6 @@ export async function GET(request: NextRequest) {
     // Build raw filters object
     const rawFilters = {
       search: searchParams.get('search') || undefined,
-      status: searchParams.get('status') || undefined,
       isAdmin: searchParams.get('isAdmin') === 'true' ? true : searchParams.get('isAdmin') === 'false' ? false : undefined,
       page: searchParams.get('page') || undefined,
       limit: searchParams.get('limit') || undefined,

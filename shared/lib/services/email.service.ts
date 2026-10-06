@@ -533,6 +533,69 @@ ${params.contentHtml}
       `;
 }
 
+/**
+ * Account emails (verify your email, reset your password): one message, one
+ * button, in the house style.
+ */
+export async function sendAccountEmail(params: {
+  to: string;
+  name?: string | null;
+  subject: string;
+  previewText: string;
+  lead: string;
+  buttonLabel: string;
+  url: string;
+  footnote: string;
+}): Promise<boolean> {
+  if (!resend) {
+    console.warn(`Resend not configured. "${params.subject}" not sent to ${params.to}.`);
+    return false;
+  }
+
+  const safeName = escapeHtml((params.name || 'there').trim() || 'there');
+  const html = buildBrandEmailHtml({
+    previewText: escapeHtml(params.previewText),
+    contentHtml: `
+              <p class="proposal-greeting">Hi ${safeName},</p>
+
+              <p class="proposal-lead">${escapeHtml(params.lead)}</p>
+
+              <div class="proposal-cta-wrap">
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin:0 auto;">
+                  <tr>
+                    <td align="center" style="border-radius:10px;background:${BRAND_NAVY};box-shadow:0 4px 16px rgba(39,68,92,0.28);">
+                      <a href="${escapeHtml(params.url)}" target="_blank" rel="noopener noreferrer"
+                        style="display:inline-block;padding:16px 36px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:15px;font-weight:600;color:#ffffff !important;text-decoration:none;border-radius:10px;">
+                        ${escapeHtml(params.buttonLabel)}
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+              </div>
+
+              <p style="margin:24px 0 0;font-size:13px;line-height:1.6;color:${TEXT_SECONDARY};">
+                ${escapeHtml(params.footnote)}
+              </p>`,
+  });
+
+  try {
+    const { error } = await resend.emails.send({
+      from: `${FROM_NAME} <${FROM_EMAIL}>`,
+      to: params.to,
+      subject: params.subject,
+      html,
+    });
+    if (error) {
+      console.error(`Failed to send "${params.subject}":`, error);
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.error(`Error sending "${params.subject}":`, error);
+    return false;
+  }
+}
+
 interface InquiryAckEmailParams {
   customerName: string;
   customerEmail: string;

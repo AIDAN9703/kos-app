@@ -11,14 +11,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/shared/components/ui/dropdown-menu";
-import { Session } from "next-auth";
-import { signOut } from "next-auth/react";
+import { signOutAndGoHome } from "@/shared/lib/auth/auth-client";
+import type { SessionUser } from "@/shared/lib/auth/session-user";
 import { NavigationData } from "@/shared/lib/constants/navigation-data";
 import { DefaultUserAvatarFallback } from "@/shared/lib/utils/user-utils";
 import { Settings, HelpCircle, LogOut } from "lucide-react";
 
 interface UserMenuProps {
-  user: Session["user"] | undefined | null;
+  user: SessionUser | undefined | null;
   navigationData: Pick<NavigationData, "user">;
 }
 
@@ -29,7 +29,7 @@ export default function UserMenu({ user, navigationData }: UserMenuProps) {
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="h-11 w-11 rounded-full p-0" aria-label="User menu">
             <Avatar className="h-11 w-11">
-              <AvatarImage src={user?.profileImage || user?.image || ""} alt="User profile image" />
+              <AvatarImage src={user?.profileImage || ""} alt="User profile image" />
               <DefaultUserAvatarFallback size="md" />
             </Avatar>
           </Button>
@@ -116,7 +116,7 @@ export default function UserMenu({ user, navigationData }: UserMenuProps) {
             {/* Section 4: Log out */}
             <DropdownMenuItem
               className="cursor-pointer py-2.5 text-base font-semibold text-primary hover:bg-gray-50 rounded-lg focus:bg-gray-50"
-              onClick={() => signOut()}
+              onClick={() => signOutAndGoHome()}
             >
               <div className="flex items-center gap-3">
                 <LogOut strokeWidth={2.5} className="h-4 w-4" />

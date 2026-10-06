@@ -1,10 +1,10 @@
 import { Suspense } from "react";
-import { auth } from "@/auth";
 import BookingDetailsClientLoader from "@/features/bookings/components/BookingDetailsClientLoader";
 import { getAppSettings } from "@/features/app-settings/app-settings.service";
+import { getSession } from "@/shared/lib/utils/auth-utils";
 
 export default async function BookingDetailsPage() {
-  const [session, settings] = await Promise.all([auth(), getAppSettings()]);
+  const [session, settings] = await Promise.all([getSession(), getAppSettings()]);
 
   return (
     <Suspense

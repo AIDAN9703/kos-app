@@ -3,7 +3,6 @@ import "./globals.css";
 import { ReactNode } from "react";
 import { Toaster } from "@/shared/components/ui/toaster";
 import { Montserrat } from "next/font/google";
-import { SessionProvider } from "next-auth/react";
 import GoogleMapsScript from "@/shared/lib/providers/GoogleMapsScript";
 import { ImageKitProvider } from "@imagekit/next";
 import CookiesConsent from "@/shared/components/CookiesConsent";
@@ -134,11 +133,9 @@ const RootLayout = async ({ children }: { children: ReactNode }) => {
         <ImageKitProvider
           urlEndpoint={process.env.NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT || ""}
         >
-          <SessionProvider>
-            <NuqsAdapter>{children}</NuqsAdapter>
-            <Toaster />
-            <CookiesConsent />
-          </SessionProvider>
+          <NuqsAdapter>{children}</NuqsAdapter>
+          <Toaster />
+          <CookiesConsent />
         </ImageKitProvider>
         {/* Google Tag Manager */}
         <Script

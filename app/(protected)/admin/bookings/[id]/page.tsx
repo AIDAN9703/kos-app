@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 
 import { formatDistanceToNowStrict } from "date-fns";
-import { auth } from "@/auth";
 import { DealHeaderCard } from "@/features/bookings/components/admin/view-booking/DealHeaderCard";
 import { DealRequestCard } from "@/features/bookings/components/admin/view-booking/DealRequestCard";
 import { getDisplayKind } from "@/features/bookings/deal-presentation";
@@ -44,6 +43,7 @@ import { crewProfileService } from "@/features/profiles/crew-profile.service";
 import { userService } from "@/features/users/user.service";
 
 import type { BookingActivityEventEntry } from "@/features/bookings/booking.types";
+import { getSession } from "@/shared/lib/utils/auth-utils";
 
 const PAYMENT_LABELS: Record<string, string> = {
   DEPOSIT: "Deposit",
@@ -101,7 +101,7 @@ export default async function BookingDetailsPage({ params }: BookingDetailsPageP
     bookingCrewService.listByBookingId(id),
     crewProfileService.getCrewForAssignment(),
     userService.getAdmins(),
-    auth(),
+    getSession(),
     // Inquiries get every boat's tiers (Create proposal); priced deals get
     // their own boat's tiers for the Edit trip form.
     booking.bookingStatus === "INQUIRY"

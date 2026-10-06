@@ -7,6 +7,7 @@ import { captainProfiles, users } from "@/database/schema";
 import { and, asc, eq, ilike, or } from "drizzle-orm";
 import type { CaptainStatus, UserStatus } from "@/database/types";
 import type { PromoteCaptainFormInput } from "@/features/profiles/promote-captain.validation";
+import { addUserRole } from "@/features/users/user-access";
 
 const DISABLED_STATUS: CaptainStatus = "INACTIVE";
 
@@ -140,6 +141,9 @@ export class CaptainProfileService {
       adminNotes: data.adminNotes?.trim() || null,
       updatedAt: new Date(),
     };
+
+    // The role is what opens the captain pages; the profile holds the details.
+    await addUserRole(userId, "captain");
 
     if (!existing) {
       await db.insert(captainProfiles).values({

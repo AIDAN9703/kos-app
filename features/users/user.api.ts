@@ -22,7 +22,6 @@ export const usersApi = {
     const searchParams = new URLSearchParams();
 
     if (filters.search) searchParams.set('search', filters.search);
-    if (filters.status) searchParams.set('status', filters.status);
     if (filters.isAdmin !== undefined) searchParams.set('isAdmin', filters.isAdmin.toString());
     if (filters.page) searchParams.set('page', filters.page.toString());
     if (filters.limit) searchParams.set('limit', filters.limit.toString());

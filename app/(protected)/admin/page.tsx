@@ -1,4 +1,3 @@
-import { auth } from "@/auth";
 import { boatService } from "@/features/boats/boat.service";
 import {
   getAdminWorkload,
@@ -9,9 +8,10 @@ import {
   getUpcomingTrips,
 } from "@/features/admin/dashboard";
 import { AdminDashboardView } from "@/features/admin/dashboard/AdminDashboardView";
+import { getSession } from "@/shared/lib/utils/auth-utils";
 
 export default async function AdminDashboardPage() {
-  const session = await auth();
+  const session = await getSession();
   const firstName = session?.user?.name?.split(/\s+/)[0] ?? null;
 
   const [

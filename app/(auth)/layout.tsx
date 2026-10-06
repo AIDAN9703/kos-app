@@ -1,11 +1,11 @@
 import { ReactNode } from "react";
-import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { getSession } from "@/shared/lib/utils/auth-utils";
 
 const Layout = async ({ children }: { children: ReactNode }) => {
-  const session = await auth();
+  const session = await getSession();
   
   // Redirect if already authenticated
   if (session?.user) {

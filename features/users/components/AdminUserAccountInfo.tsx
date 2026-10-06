@@ -9,9 +9,15 @@ import {
 } from "@/shared/components/ui/card";
 import { type User } from "@/database/types";
 import { formatDate } from "@/shared/lib/utils/general-utils";
+import { parseRoles } from "@/shared/lib/auth/permissions";
 import { InfoRow, YesNo } from "./InfoRow";
 
-export function AdminUserAccountInfo({ user }: { user: User }) {
+const SIGN_IN_METHOD_LABELS: Record<string, string> = {
+  credential: "Email + password",
+  google: "Google",
+};
+
+export function AdminUserAccountInfo({ user, signInMethods }: { user: User; signInMethods: string[] }) {
   return (
     <Card className="overflow-hidden">
       <CardHeader className="pb-4">
@@ -25,27 +31,28 @@ export function AdminUserAccountInfo({ user }: { user: User }) {
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-          <InfoRow label="Status">
-            <Badge
-              variant={
-                user.status === "ACTIVE"
-                  ? "default"
-                  : user.status === "INACTIVE"
-                    ? "secondary"
-                    : "destructive"
-              }
-            >
-              {user.status || "Unknown"}
-            </Badge>
-          </InfoRow>
-          <InfoRow label="Admin Access">
-            <YesNo value={Boolean(user.isAdmin)} />
+          <InfoRow label="Roles">
+            <div className="flex flex-wrap gap-1">
+              {parseRoles(user.role).map((role) => (
+                <Badge key={role} variant="outline" className="text-xs capitalize">
+                  {role}
+                </Badge>
+              ))}
+            </div>
           </InfoRow>
           <InfoRow label="Joined" value={formatDate(user.createdAt)} />
-          <InfoRow label="Auth Provider">
-            <Badge variant="outline" className="text-xs">
-              {user.authProvider || "EMAIL"}
-            </Badge>
+          <InfoRow label="Sign-in methods">
+            <div className="flex flex-wrap gap-1">
+              {signInMethods.length > 0 ? (
+                signInMethods.map((method) => (
+                  <Badge key={method} variant="outline" className="text-xs">
+                    {SIGN_IN_METHOD_LABELS[method] ?? method}
+                  </Badge>
+                ))
+              ) : (
+                <span className="text-sm text-muted-foreground">Texted code only</span>
+              )}
+            </div>
           </InfoRow>
           <InfoRow label="Email Verified">
             <YesNo value={Boolean(user.emailVerified)} />

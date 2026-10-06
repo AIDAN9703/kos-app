@@ -6,8 +6,11 @@ import { useRouter } from "next/navigation";
 
 import AuthForm from "@/features/auth/components/AuthForm";
 import { signInSchema, signUpSchema } from "@/features/_validation/validations";
-import { signInAction, signUpAction } from "@/features/auth/actions/auth";
-import { googleSignIn } from "@/features/auth/actions/google-auth";
+import {
+  continueWithGoogle,
+  signInWithEmail,
+  signUpWithEmail,
+} from "@/features/auth/client/email-auth";
 import BookingPhoneAuth from "./BookingPhoneAuth";
 import { bookingAuthMenuButtonClass } from "./booking-auth-ui";
 import {
@@ -56,16 +59,14 @@ function AuthMenu({
         </div>
       </div>
 
-      <form action={googleSignIn} className="w-full">
-        <input type="hidden" name="callbackUrl" value={callbackUrl} />
-        <button
-          type="submit"
-          className={`${bookingAuthMenuButtonClass} gap-2.5`}
-        >
-          <Image src="/icons/google.svg" alt="" width={18} height={18} className="shrink-0" />
-          Continue with Google
-        </button>
-      </form>
+      <button
+        type="button"
+        onClick={() => continueWithGoogle(callbackUrl)}
+        className={`${bookingAuthMenuButtonClass} gap-2.5`}
+      >
+        <Image src="/icons/google.svg" alt="" width={18} height={18} className="shrink-0" />
+        Continue with Google
+      </button>
 
       <div className="flex flex-col gap-2.5 sm:flex-row">
         <button type="button" className={bookingAuthMenuButtonClass} onClick={onSignIn}>
@@ -120,7 +121,7 @@ export default function BookingAuthSection({
         type="SIGN_IN"
         schema={signInSchema}
         defaultValues={{ email: "", password: "" }}
-        onSubmit={signInAction}
+        onSubmit={signInWithEmail}
         embeddedCallbackUrl={callbackUrl}
         variant="embedded"
         hideHeading
@@ -138,7 +139,7 @@ export default function BookingAuthSection({
           phoneNumber: "",
           password: "",
         }}
-        onSubmit={signUpAction}
+        onSubmit={signUpWithEmail}
         embeddedCallbackUrl={callbackUrl}
         variant="embedded"
         hideHeading

@@ -16,7 +16,6 @@ export default async function UsersPage({
 
   const result = await userService.getAllUsers({
     search: params.search || undefined,
-    status: params.status ?? undefined,
     isAdmin: params.isAdmin ?? undefined,
     page: params.page,
     limit: params.limit,

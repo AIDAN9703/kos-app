@@ -15,14 +15,14 @@ import {
 } from "@/shared/components/ui/sheet";
 import { ScrollArea } from "@/shared/components/ui/scroll-area";
 import { ChevronDown, Menu } from "lucide-react";
-import { Session } from "next-auth";
-import { signOut } from "next-auth/react";
+import { signOutAndGoHome } from "@/shared/lib/auth/auth-client";
+import type { SessionUser } from "@/shared/lib/auth/session-user";
 import { NavigationData } from "@/shared/lib/constants/navigation-data";
 import { useActiveRoute } from "@/shared/lib/hooks/useActiveRoute";
 
 type MobileNavigationProps = {
   navigationData: Pick<NavigationData, "main">;
-  user: Session["user"] | undefined | null;
+  user: SessionUser | undefined | null;
 };
 
 const MobileNavigation: React.FC<MobileNavigationProps> = ({ navigationData, user }) => {
@@ -182,7 +182,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ navigationData, use
           <div className="border-t border-gray-200 p-4">
             {user ? (
               <Button
-                onClick={() => signOut()}
+                onClick={() => signOutAndGoHome()}
                 variant="outline"
                 className="w-full h-12 text-base font-semibold text-primary hover:text-primary"
               >

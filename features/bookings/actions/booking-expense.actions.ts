@@ -1,13 +1,13 @@
 "use server";
 
-import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 import { bookingExpenseLineService } from "@/features/bookings/services/booking-expense-line.service";
 import type { BookingExpenseLineInput } from "@/features/bookings/booking-expense.types";
+import { getSession } from "@/shared/lib/utils/auth-utils";
 
 export async function getBookingExpenseLines(bookingId: string) {
   try {
-    const session = await auth();
+    const session = await getSession();
     if (!session?.user?.isAdmin) {
       return { success: false as const, error: "Admin access required" };
     }
@@ -25,7 +25,7 @@ export async function getBookingExpenseLines(bookingId: string) {
 
 export async function getBookingExpenseDefaults(bookingId: string) {
   try {
-    const session = await auth();
+    const session = await getSession();
     if (!session?.user?.isAdmin) {
       return { success: false as const, error: "Admin access required" };
     }
@@ -46,7 +46,7 @@ export async function saveBookingExpenseLines(
   lines: BookingExpenseLineInput[]
 ) {
   try {
-    const session = await auth();
+    const session = await getSession();
     if (!session?.user?.isAdmin) {
       return { success: false as const, error: "Admin access required" };
     }

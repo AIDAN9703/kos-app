@@ -1,27 +1,31 @@
 "use server";
 
-import { hash } from "bcryptjs";
 import { and, eq } from "drizzle-orm";
-import { randomUUID } from "crypto";
+import { headers } from "next/headers";
 
-import { signIn } from "@/auth";
 import { db } from "@/database/db";
 import { claimGuestBookingsForUser } from "@/features/users/claim-guest-bookings";
 import { users } from "@/database/schema";
 import { sendOtpToPhoneNumber, verifyGuestPhoneCode } from "@/features/auth/actions/verification";
+import { auth } from "@/shared/lib/auth/auth";
 import { createPhoneBookingProof } from "@/shared/lib/auth/phone-booking-proof";
+import { displayName } from "@/shared/lib/auth/session-user";
 import { ActionResponse } from "@/shared/lib/types/types";
 import { formatPhoneNumberE164 } from "@/shared/lib/utils/general-utils";
 import { checkVerification } from "@/shared/lib/services/twilio.service";
 
-/** Next.js signals redirects by throwing — those must propagate. */
-function isNextRedirect(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "digest" in error &&
-    String((error as { digest?: unknown }).digest).startsWith("NEXT_REDIRECT")
-  );
+/** Start a session for the account that just proved it owns `phone`. */
+async function signInVerifiedPhone(userId: string, phone: string): Promise<boolean> {
+  try {
+    await auth.api.signInPhoneBooking({
+      body: { proof: createPhoneBookingProof(userId, phone) },
+      headers: await headers(),
+    });
+    return true;
+  } catch (error) {
+    console.error("Phone sign-in failed:", error);
+    return false;
+  }
 }
 
 const SHARED_NUMBER_ERROR =
@@ -78,14 +82,7 @@ export async function verifyBookingPhoneCode(
   if (account === "ambiguous") return { success: false, error: SHARED_NUMBER_ERROR };
 
   if (account) {
-    const proof = createPhoneBookingProof(account.id, formattedPhone);
-    // NextAuth v5: signIn THROWS on failure and returns a redirect URL string
-    // on success — checking `"error" in result` was an 'in'-on-string crash.
-    try {
-      await signIn("phone-booking", { proof, redirect: false });
-    } catch (error) {
-      if (isNextRedirect(error)) throw error;
-      console.error("Phone sign-in failed:", error);
+    if (!(await signInVerifiedPhone(account.id, formattedPhone))) {
       return { success: false, error: "Could not sign you in. Try email instead." };
     }
 
@@ -135,8 +132,9 @@ export async function completeBookingPhoneProfile(
   if (account === "ambiguous") return { success: false, error: SHARED_NUMBER_ERROR };
 
   if (account) {
-    const proof = createPhoneBookingProof(account.id, formattedPhone);
-    await signIn("phone-booking", { proof, redirect: false });
+    if (!(await signInVerifiedPhone(account.id, formattedPhone))) {
+      return { success: false, error: "Could not sign you in. Try email instead." };
+    }
     claimGuestBookingsForUser(account.id).catch((err) =>
       console.error("Guest-booking claim failed:", err)
     );
@@ -156,43 +154,34 @@ export async function completeBookingPhoneProfile(
     };
   }
 
-  const generatedPassword = randomUUID();
-  const hashedPassword = await hash(generatedPassword, 10);
-  const username = `${email.split("@")[0]}_${Math.floor(Math.random() * 10000)}`;
-
+  // A phone-only account: no password. They sign in with a texted code, or
+  // set a password later through "Forgot password".
+  let newUserId: string;
   try {
     const [newUser] = await db
       .insert(users)
       .values({
         firstName,
         lastName,
+        name: displayName(firstName, lastName, email),
         email,
-        username,
-        password: hashedPassword,
+        username: `${email.split("@")[0]}_${Math.floor(Math.random() * 10000)}`,
         phoneNumber: formattedPhone,
         phoneVerified: true,
       })
       .returning({ id: users.id });
-    // Phone is OTP-verified — adopt any guest bookings made with this number.
-    if (newUser?.id) {
-      claimGuestBookingsForUser(newUser.id).catch((err) =>
-        console.error("Guest-booking claim failed:", err)
-      );
-    }
+    newUserId = newUser.id;
   } catch (error) {
     console.error("completeBookingPhoneProfile:", error);
     return { success: false, error: "Could not create your account" };
   }
 
-  try {
-    await signIn("credentials", {
-      email,
-      password: generatedPassword,
-      redirect: false,
-    });
-  } catch (error) {
-    if (isNextRedirect(error)) throw error;
-    console.error("Post-signup sign-in failed:", error);
+  // Phone is OTP-verified — adopt any guest bookings made with this number.
+  claimGuestBookingsForUser(newUserId).catch((err) =>
+    console.error("Guest-booking claim failed:", err)
+  );
+
+  if (!(await signInVerifiedPhone(newUserId, formattedPhone))) {
     return { success: false, error: "Account created but sign-in failed. Try signing in." };
   }
 
