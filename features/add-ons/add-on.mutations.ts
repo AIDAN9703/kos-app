@@ -9,17 +9,15 @@ import {
   updateAddOnSchema,
 } from "@/features/add-ons/add-on.validation";
 import type { AddOn } from "@/features/add-ons/add-on.types";
-import { getSession } from "@/shared/lib/utils/auth-utils";
+import { getAdminSession } from "@/shared/lib/utils/auth-utils";
 
 function zodMessage(error: { issues: { message: string }[] }): string {
   return error.issues.map((i) => i.message).join(", ");
 }
 
 export async function createAddOn(raw: unknown): Promise<ActionResponse<AddOn>> {
-  const session = await getSession();
-  if (!session?.user?.isAdmin) {
-    return { success: false, error: "Admin access required" };
-  }
+  const admin = await getAdminSession();
+  if (admin.error !== undefined) return { success: false, error: admin.error };
 
   const parsed = createAddOnSchema.safeParse(raw);
   if (!parsed.success) {
@@ -40,10 +38,8 @@ export async function updateAddOn(
   id: string,
   raw: unknown
 ): Promise<ActionResponse<AddOn>> {
-  const session = await getSession();
-  if (!session?.user?.isAdmin) {
-    return { success: false, error: "Admin access required" };
-  }
+  const admin = await getAdminSession();
+  if (admin.error !== undefined) return { success: false, error: admin.error };
 
   const parsed = updateAddOnSchema.safeParse(raw);
   if (!parsed.success) {
@@ -63,10 +59,8 @@ export async function updateAddOn(
 export async function deleteAddOn(
   id: string
 ): Promise<ActionResponse<{ message: string }>> {
-  const session = await getSession();
-  if (!session?.user?.isAdmin) {
-    return { success: false, error: "Admin access required" };
-  }
+  const admin = await getAdminSession();
+  if (admin.error !== undefined) return { success: false, error: admin.error };
 
   try {
     await addOnService.deleteAddOn(id);

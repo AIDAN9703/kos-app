@@ -9,7 +9,7 @@ import {
   boatExternalCalendarEvents,
 } from "@/database/schema";
 import { syncExternalCalendar } from "@/features/availability/services/external-calendar-sync.service";
-import { getSession } from "@/shared/lib/utils/auth-utils";
+import { getAdminSession } from "@/shared/lib/utils/auth-utils";
 
 export type { ExternalCalendarListItem } from "./external-calendar.queries";
 
@@ -18,14 +18,6 @@ interface ActionResult {
   error?: string;
   /** Number of busy blocks imported (on add / sync-now). */
   eventCount?: number;
-}
-
-async function requireAdmin(): Promise<{ ok: true } | { ok: false; error: string }> {
-  const session = await getSession();
-  if (!session?.user?.isAdmin) {
-    return { ok: false, error: "Admin access required" };
-  }
-  return { ok: true };
 }
 
 /** Normalize and validate an iCal URL. Converts webcal:// to https://. */
@@ -55,8 +47,8 @@ export async function addExternalCalendar(
   boatId: string,
   input: { name: string; icalUrl: string }
 ): Promise<ActionResult> {
-  const admin = await requireAdmin();
-  if (!admin.ok) return { success: false, error: admin.error };
+  const admin = await getAdminSession();
+  if (admin.error !== undefined) return { success: false, error: admin.error };
 
   const name = input.name?.trim();
   if (!name) return { success: false, error: "Please give the calendar a name" };
@@ -91,8 +83,8 @@ export async function addExternalCalendar(
 }
 
 export async function syncExternalCalendarNow(calendarId: string): Promise<ActionResult> {
-  const admin = await requireAdmin();
-  if (!admin.ok) return { success: false, error: admin.error };
+  const admin = await getAdminSession();
+  if (admin.error !== undefined) return { success: false, error: admin.error };
 
   const [calendar] = await db
     .select({ boatId: boatExternalCalendars.boatId })
@@ -115,8 +107,8 @@ export async function setExternalCalendarEnabled(
   calendarId: string,
   enabled: boolean
 ): Promise<ActionResult> {
-  const admin = await requireAdmin();
-  if (!admin.ok) return { success: false, error: admin.error };
+  const admin = await getAdminSession();
+  if (admin.error !== undefined) return { success: false, error: admin.error };
 
   const [calendar] = await db
     .select({ boatId: boatExternalCalendars.boatId })
@@ -155,8 +147,8 @@ export async function setExternalCalendarEnabled(
 }
 
 export async function removeExternalCalendar(calendarId: string): Promise<ActionResult> {
-  const admin = await requireAdmin();
-  if (!admin.ok) return { success: false, error: admin.error };
+  const admin = await getAdminSession();
+  if (admin.error !== undefined) return { success: false, error: admin.error };
 
   const [calendar] = await db
     .select({ boatId: boatExternalCalendars.boatId })

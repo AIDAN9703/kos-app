@@ -9,7 +9,7 @@ import { User } from "@/database/types";
 import { ActionResponse } from "@/shared/lib/types/types";
 import { CreateUserInput, UpdateUserInput } from "@/features/users/user.validation";
 import { userService } from "@/features/users/user.service";
-import { getSession } from "@/shared/lib/utils/auth-utils";
+import { getAdminSession } from "@/shared/lib/utils/auth-utils";
 
 function toErrorString(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -21,11 +21,8 @@ function toErrorString(error: unknown): string {
 export async function createUser(
   userData: CreateUserInput
 ): Promise<ActionResponse<{ user: User }>> {
-  const session = await getSession();
-
-  if (!session?.user?.isAdmin) {
-    return { success: false, error: "You are not authorized to create a user" };
-  }
+  const admin = await getAdminSession();
+  if (admin.error !== undefined) return { success: false, error: admin.error };
 
   try {
     const newUser = await userService.createUser(userData);
@@ -45,11 +42,8 @@ export async function updateUser(
   id: string,
   updates: Partial<UpdateUserInput>
 ): Promise<ActionResponse<{ user: User }>> {
-  const session = await getSession();
-
-  if (!session?.user?.isAdmin) {
-    return { success: false, error: "You are not authorized to update this user" };
-  }
+  const admin = await getAdminSession();
+  if (admin.error !== undefined) return { success: false, error: admin.error };
 
   try {
     const updatedUser = await userService.updateUser(id, updates);
@@ -66,11 +60,8 @@ export async function updateUser(
  * Delete user
  */
 export async function deleteUser(id: string): Promise<ActionResponse<{ message: string }>> {
-  const session = await getSession();
-
-  if (!session?.user?.isAdmin) {
-    return { success: false, error: "You are not authorized to delete this user" };
-  }
+  const admin = await getAdminSession();
+  if (admin.error !== undefined) return { success: false, error: admin.error };
 
   try {
     await userService.deleteUser(id);

@@ -22,7 +22,6 @@ export * from "./payments.table";
 
 // Other tables
 export * from "./reviews.table";
-export * from "./verifications.table";
 export * from "./notifications.table";
 export * from "./blogPosts.table";
 export * from "./boatPricingTiers.table";

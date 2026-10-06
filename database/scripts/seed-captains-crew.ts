@@ -60,7 +60,7 @@ function maskUrl(url: string): string {
 
 console.log(`Target database: ${targetLabel}  →  ${maskUrl(targetUrl)}\n`);
 
-const { users, captainProfiles, crewProfiles } = schema;
+const { users, accounts, captainProfiles, crewProfiles } = schema;
 const db = drizzle({ client: neon(targetUrl), schema });
 
 /**
@@ -234,7 +234,7 @@ async function ensureUser(
     .values({
       email: placeholderEmail(p, primary),
       username: placeholderUsername(p, primary),
-      password: hashedPassword,
+      name: [p.firstName, p.lastName].filter(Boolean).join(" "),
       firstName: p.firstName,
       lastName: p.lastName ?? null,
       phoneNumber: p.phone,
@@ -243,7 +243,24 @@ async function ensureUser(
       phoneVerified: false,
     })
     .returning({ id: users.id });
+  // Email + password sign-in with the shared seed password.
+  await db.insert(accounts).values({
+    userId: created.id,
+    providerId: "credential",
+    accountId: created.id,
+    password: hashedPassword,
+  });
   return { id: created.id, created: true };
+}
+
+/** Add a role to a seeded person (roles are comma-separated on user.role). */
+async function grantRole(userId: string, role: "captain" | "crew") {
+  await db
+    .update(users)
+    .set({
+      role: sql`CASE WHEN ${users.role} = 'customer' THEN ${role} ELSE ${users.role} || ',' || ${role} END`,
+    })
+    .where(and(eq(users.id, userId), sql`NOT (${role} = ANY(string_to_array(${users.role}, ',')))`));
 }
 
 async function ensureCaptainProfile(
@@ -269,6 +286,7 @@ async function ensureCaptainProfile(
     licenseType: p.flLicenseOnly ? "FL Boat License" : null,
     adminNotes: buildAdminNotes(p),
   });
+  await grantRole(userId, "captain");
   return true;
 }
 
@@ -293,6 +311,7 @@ async function ensureCrewProfile(
     status: "ACTIVE",
     adminNotes: buildAdminNotes(p, p.defaultCrewRole),
   });
+  await grantRole(userId, "crew");
   return true;
 }
 

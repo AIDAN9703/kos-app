@@ -5,7 +5,7 @@ import { blogPosts } from "@/database/schema";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import type { BlogCategory, BlogStatus } from "@/features/blog/blog.types";
-import { getSession } from "@/shared/lib/utils/auth-utils";
+import { getAdminSession } from "@/shared/lib/utils/auth-utils";
 
 
 // Types
@@ -53,19 +53,10 @@ export interface UpdateBlogPostData extends Partial<CreateBlogPostData> {
 
 
 
-// Helper function to check admin permissions
-async function checkAdminPermissions() {
-  const session = await getSession();
-  if (!session?.user?.id) {
-    throw new Error('Unauthorized - Please log in');
-  }
-  
-  // Check if user is admin (you might want to adjust this based on your role system)
-  if (!session.user.isAdmin) {
-    throw new Error('Unauthorized - Admin access required');
-  }
-  
-  return session.user;
+/** Admin only. Throws, so each action's try/catch reports it like any other failure. */
+async function assertAdmin() {
+  const admin = await getAdminSession();
+  if (admin.error !== undefined) throw new Error(admin.error);
 }
 
 // Get published blog posts for public display
@@ -153,7 +144,7 @@ export async function getBlogPostBySlug(slug: string) {
 // Create new blog post
 export async function createBlogPost(data: CreateBlogPostData) {
   try {
-    await checkAdminPermissions();
+    await assertAdmin();
 
     // Slug is required and provided by user
     const slug = data.slug;
@@ -202,7 +193,7 @@ export async function createBlogPost(data: CreateBlogPostData) {
 // Update blog post
 export async function updateBlogPost(data: UpdateBlogPostData) {
   try {
-    await checkAdminPermissions();
+    await assertAdmin();
 
     const { id, ...updateData } = data;
     
@@ -244,7 +235,7 @@ export async function updateBlogPost(data: UpdateBlogPostData) {
 // Delete blog post
 export async function deleteBlogPost(id: string) {
   try {
-    await checkAdminPermissions();
+    await assertAdmin();
 
     await db
       .delete(blogPosts)

@@ -12,8 +12,7 @@ import type { AssignableRole } from "./user-roles.constants";
 /**
  * Admin changes to who someone is and how they sign in. Each goes through
  * Better Auth's admin API, which checks the caller may do it (user:set-role,
- * user:set-password) and runs the hooks that keep the legacy is_admin and
- * password columns in step during the rollout.
+ * user:set-password).
  */
 
 export { ASSIGNABLE_ROLES, type AssignableRole } from "./user-roles.constants";

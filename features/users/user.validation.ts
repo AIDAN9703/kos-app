@@ -1,5 +1,4 @@
 import * as z from "zod";
-import { authProviderEnum } from "@/database/schema";
 import { passwordSchema, phoneSchema, emailSchema } from "@/shared/lib/validation/common";
 import { ASSIGNABLE_ROLES } from "./user-roles.constants";
 
@@ -23,7 +22,6 @@ const userBaseSchema = z.object({
   phoneNumber: phoneSchema,
   // Admin, broker, owner. Captain and crew are granted through their own flows.
   roles: z.array(z.enum(ASSIGNABLE_ROLES)).default([]),
-  authProvider: z.enum(authProviderEnum.enumValues).default("EMAIL").optional(),
 
   // Contact Information
   address: z.string().max(100, "Address must be less than 100 characters").optional().nullable(),

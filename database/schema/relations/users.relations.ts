@@ -8,7 +8,6 @@ import { bookingCrew } from "../tables/bookingCrew.table";
 import { bookings } from "../tables/bookings.table";
 import { reviews } from "../tables/reviews.table";
 import { notifications } from "../tables/notifications.table";
-import { verifications } from "../tables/verifications.table";
 import { boatBlocking } from "../tables/boatBlocking.table";
 // Relations for users table
 export const usersRelations = relations(users, ({ one, many }) => ({
@@ -69,7 +68,6 @@ export const usersRelations = relations(users, ({ one, many }) => ({
 
   // Other
   notifications: many(notifications),
-  verifications: many(verifications),
   createdBlockings: many(boatBlocking),
 
   bookingCrewAssignments: many(bookingCrew),

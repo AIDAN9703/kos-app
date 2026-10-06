@@ -8,7 +8,7 @@ Update the date when you re-verify. Claims here were checked, not assumed.
 ## Architecture
 
 **Stack:** Next.js 16 (App Router, RSC + server actions) · TypeScript · Drizzle ORM on
-Neon Postgres · NextAuth · Stripe Checkout · Resend (email) · Twilio (OTP) ·
+Neon Postgres · Better Auth · Stripe Checkout · Resend (email) · Twilio (OTP) ·
 ImageKit (media) · Google Maps/Places · shadcn/ui + Tailwind v4 · react-query + nuqs.
 
 **Layering:** `app/` routes → `features/*/actions` (server actions, Zod-validated) →
@@ -102,7 +102,21 @@ Unset boats fall back to America/New_York. Prod's remaining 12: 2 at La Coloma M
 - **Admin** — bookings board (money columns, status emblems, filters, assignment),
   unified booking detail page, dashboard, calendar, boats/users/captains/crew/add-ons/
   blog/settings CRUD.
-- **Auth** — email/password, Google OAuth, phone OTP; guest checkout throughout.
+- **Auth (Better Auth, 2026-10)** — one module in `shared/lib/auth/` (config, roles,
+  browser client); server code checks access only through `shared/lib/utils/auth-utils.ts`.
+  Email/password (bcrypt), Google (links to an existing account only once its email is
+  verified), and the booking flow's texted code (a server-only plugin). Sessions live in
+  the `session` table (revocable; role changes apply on the next request); sign-in
+  methods in `account`; rate limits in `rate_limit`. Verify email, forgot/reset password,
+  confirmed email change, connect/disconnect Google and sign out other devices are in
+  Account settings. Guest checkout throughout.
+- **Roles** — `user.role`, comma-separated: admin, broker, owner, captain, crew, customer.
+  Permissions in `shared/lib/auth/permissions.ts` (Better Auth access control). Admins set
+  admin/broker/owner in the user form; captain/crew come from their promotion flows.
+- **Broker portal (`/brokers`, 2026-10)** — the admin shell and deal screens, limited to
+  deals assigned to the broker. Every deal action checks
+  `features/bookings/lib/deal-access.ts`; brokers never see company costs/margin,
+  payment recording, refunds, reassignment, settings or users.
 - **Owner portal (`/owner`, 2026-09-30)** — site look (Montserrat, navy, white `surface`
   cards; reuses profile `PageHeader`/`Section`/`ArrowLink`), no theme CSS. Light sticky header:
   logo + "Owner portal", tabs (Overview / My boats / Charters), and a large "Exit owner portal"

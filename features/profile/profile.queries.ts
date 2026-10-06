@@ -32,10 +32,7 @@ import type {
 
 export async function getAccount(userId: string): Promise<AccountUser | null> {
   const [row] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-  if (!row) return null;
-  // The bcrypt hash must never reach a component, even one that ignores it.
-  const { password, ...account } = row;
-  return account;
+  return row ?? null;
 }
 
 // ── Trips (the customer's own bookings) ────────────────────────────────────

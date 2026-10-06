@@ -11,7 +11,6 @@ interface UserProfileHeaderProps {
     lastName?: string | null;
     profileImage?: string | null;
     status?: string | null;
-    isAdmin?: boolean;
     bio?: string | null;
   };
   captainProfileStatus: CaptainStatus | null;

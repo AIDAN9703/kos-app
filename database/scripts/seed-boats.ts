@@ -1,8 +1,7 @@
 'use server'
 
 import { db } from '@/database/db';
-import { boats, users, boatCategoryEnum } from '@/database/schema';
-import { eq } from 'drizzle-orm';
+import { accounts, boats, users, boatCategoryEnum } from '@/database/schema';
 import { sql } from 'drizzle-orm';
 
 // Helper function to get a random number between min and max
@@ -22,21 +21,26 @@ async function ensureOwnerExists() {
   
   if (existingUsers.length === 0) {
     // Create a default owner if no users exist
-    await db.insert(users).values({
+    const [newUser] = await db.insert(users).values({
       email: 'owner@example.com',
       username: 'boatowner',
-      password: '$2a$10$8Ux8xJFKZSAiCIWUG4JXAOcQY0Zl/WOSw8vXXP.MZ6gU5V4m3dUUa', // password: password123
+      name: 'Boat Owner',
       firstName: 'Boat',
       lastName: 'Owner',
-      isAdmin: false,
+      role: 'owner',
       status: 'ACTIVE',
       emailVerified: true
+    }).returning({ id: users.id });
+
+    // Email + password sign-in (password: password123)
+    await db.insert(accounts).values({
+      userId: newUser.id,
+      providerId: 'credential',
+      accountId: newUser.id,
+      password: '$2a$10$8Ux8xJFKZSAiCIWUG4JXAOcQY0Zl/WOSw8vXXP.MZ6gU5V4m3dUUa',
     });
-    
-    // Get the newly created user, only select id
-    const newUser = await db.select({ id: users.id }).from(users).where(eq(users.email, 'owner@example.com')).limit(1);
-    console.log('Created default owner with ID:', newUser[0].id);
-    return newUser[0].id;
+    console.log('Created default owner with ID:', newUser.id);
+    return newUser.id;
   }
   
   console.log('Using existing owner with ID:', existingUsers[0].id);

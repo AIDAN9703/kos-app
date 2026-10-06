@@ -1,5 +1,5 @@
 import { pgTable, text, boolean, uuid, timestamp, index } from "drizzle-orm/pg-core";
-import { userStatusEnum, notificationPreferenceEnum, authProviderEnum } from "@/database/schema/enums";
+import { userStatusEnum, notificationPreferenceEnum } from "@/database/schema/enums";
 
 
 
@@ -10,12 +10,7 @@ export const users = pgTable(
     id: uuid("id").defaultRandom().notNull().primaryKey(),
     email: text("email").notNull().unique(),
     username: text("username").notNull().unique(),
-    // Legacy Auth.js hash. Sign-in now reads the `account` table; this copy is
-    // kept in sync only so the old code could be restored. Drop after rollout.
-    password: text("password"),
     status: userStatusEnum("status").default("ACTIVE").notNull(),
-    // Legacy flag mirrored from `role` for the same reason.
-    isAdmin: boolean("is_admin").default(false).notNull(),
 
     // Access: comma-separated roles (admin, broker, owner, captain, crew,
     // customer). See shared/lib/auth/permissions.ts.
@@ -37,11 +32,9 @@ export const users = pgTable(
     // Profile Media
     profileImage: text("profile_image"),
 
-    // Authentication & Security
+    // Verification (sign-in methods live in the `account` table)
     emailVerified: boolean("email_verified").default(false).notNull(),
     phoneVerified: boolean("phone_verified").default(false).notNull(),
-    authProvider: authProviderEnum("auth_provider").default("EMAIL"),
-    providerAccountId: text("provider_account_id"),
 
     // Notification Preferences
     emailNotifications: notificationPreferenceEnum("email_notifications").default("ALL"),
@@ -77,7 +70,6 @@ export const users = pgTable(
   (table) => [
     index("email_idx").on(table.email),
     index("status_idx").on(table.status),
-    index("is_admin_idx").on(table.isAdmin),
     // Search-specific indexes
     index("user_search_name_idx").on(table.firstName, table.lastName),
     index("user_search_username_idx").on(table.username),

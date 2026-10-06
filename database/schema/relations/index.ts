@@ -23,7 +23,6 @@ export * from "./payments.relations";
 
 // Other relations
 export * from "./reviews.relations";
-export * from "./verifications.relations";
 export * from "./notifications.relations";
 export * from "./boatPricingTiers.relations";
 export * from "./boatBlocking.relations";

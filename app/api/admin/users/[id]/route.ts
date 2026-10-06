@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { userService } from "@/features/users/user.service";
 import { apiSuccess, apiError } from "@/shared/lib/utils/api-helpers";
-import { getSession } from "@/shared/lib/utils/auth-utils";
+import { getAdminSession } from "@/shared/lib/utils/auth-utils";
 
 /**
  * GET /api/admin/users/[id]
@@ -12,8 +12,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const { id } = await params;
 
     // Admin authentication
-    const session = await getSession();
-    if (!session?.user || !session.user.isAdmin) {
+    const admin = await getAdminSession();
+    if (admin.error !== undefined) {
       return apiError("Admin access required", 403);
     }
 

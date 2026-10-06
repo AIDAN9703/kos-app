@@ -7,7 +7,7 @@ BEGIN
   -- Better Auth matches emails in lowercase. Two accounts whose emails differ
   -- only by capitalisation must be merged first.
   IF EXISTS (SELECT 1 FROM "user" GROUP BY lower("email") HAVING count(*) > 1) THEN
-    RAISE EXCEPTION 'Some accounts share an email apart from capitalisation. Run scripts/merge-case-duplicate-accounts.sql first. Nothing was changed.';
+    RAISE EXCEPTION 'Some accounts share an email apart from capitalisation. Merge or remove the duplicates first. Nothing was changed.';
   END IF;
 
   CREATE TABLE "account" (

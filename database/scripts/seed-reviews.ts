@@ -114,9 +114,8 @@ export async function seedReviews() {
           lastName: profile.lastName,
           email: profile.email,
           username: profile.email, // Use email as username for simplicity
-          password: 'temp_password_123', // Temporary password - these are fake review accounts
+          name: `${profile.firstName} ${profile.lastName}`,
           emailVerified: true,
-          isAdmin: false,
         }).returning();
         
         reviewerUsers.push(newUser);

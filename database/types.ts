@@ -21,7 +21,6 @@ import {
   bookingCrew,
   bookingExpenseLines,
   blogPosts,
-  verifications,
   notifications,
   boatBlocking,
 } from "./schema/tables";
@@ -53,10 +52,6 @@ import {
   payableTypeEnum,
 
   // Auth enums
-  authProviderEnum,
-  verificationTypeEnum,
-  verificationStatusEnum,
-  verificationChannelEnum,
 
   // Blog enums
   postCategoryEnum,
@@ -180,19 +175,6 @@ export type NewReview = typeof reviews.$inferInsert;
 // ========================================
 
 
-
-// ========================================
-// VERIFICATION TYPES
-// ========================================
-
-export type Verification = typeof verifications.$inferSelect;
-export type NewVerification = typeof verifications.$inferInsert;
-
-// Verification enums
-export type VerificationType = (typeof verificationTypeEnum.enumValues)[number];
-export type VerificationStatus = (typeof verificationStatusEnum.enumValues)[number];
-export type VerificationChannel = (typeof verificationChannelEnum.enumValues)[number];
-export type AuthProvider = (typeof authProviderEnum.enumValues)[number];
 
 // ========================================
 // NOTIFICATION TYPES

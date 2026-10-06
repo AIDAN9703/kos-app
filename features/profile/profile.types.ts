@@ -8,7 +8,7 @@ import type { BookingStatus, CaptainProfile, User } from "@/database/types";
  */
 
 /** The signed-in user's own account row, minus the password hash. */
-export type AccountUser = Omit<User, "password">;
+export type AccountUser = User;
 
 /** One booking as the customer sees it: boat, when, and where the money stands. */
 export interface TripSummary {

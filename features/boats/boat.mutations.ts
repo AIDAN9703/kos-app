@@ -9,7 +9,7 @@ import { type ActionResponse } from "@/shared/lib/types/types";
 import { type CreateBoatInput, type UpdateBoatInput } from "@/features/boats/boat.validation";
 import { boatService } from "@/features/boats/boat.service";
 import { BoatWithTiers } from "./boat.types";
-import { getSession } from "@/shared/lib/utils/auth-utils";
+import { getAdminSession } from "@/shared/lib/utils/auth-utils";
 
 // ========================================
 // CORE CUD OPERATIONS
@@ -19,11 +19,8 @@ import { getSession } from "@/shared/lib/utils/auth-utils";
  * Create new boat
  */
 export async function createBoat(boatData: CreateBoatInput): Promise<ActionResponse<BoatWithTiers>> {
-  const session = await getSession();
-  
-  if (!session?.user?.isAdmin) {
-    return { success: false, error: "Admin access required" };
-  }
+  const admin = await getAdminSession();
+  if (admin.error !== undefined) return { success: false, error: admin.error };
 
   try {
     const newBoat = await boatService.createBoat(boatData);
@@ -43,11 +40,8 @@ export async function updateBoat(
   id: string, 
   updates: Partial<UpdateBoatInput>
 ): Promise<ActionResponse<BoatWithTiers>> {
-  const session = await getSession();
-  
-  if (!session?.user?.isAdmin) {
-    return { success: false, error: "Admin access required" };
-  }
+  const admin = await getAdminSession();
+  if (admin.error !== undefined) return { success: false, error: admin.error };
 
   try {
     const updatedBoat = await boatService.updateBoat(id, updates);
@@ -66,11 +60,8 @@ export async function updateBoat(
  * Delete boat
  */
 export async function deleteBoat(id: string): Promise<ActionResponse<{ message: string }>> {
-  const session = await getSession();
-  
-  if (!session?.user?.isAdmin) {
-    return { success: false, error: "Admin access required" };
-  }
+  const admin = await getAdminSession();
+  if (admin.error !== undefined) return { success: false, error: admin.error };
 
   try {
     await boatService.deleteBoat(id);

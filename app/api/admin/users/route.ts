@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { userService } from "@/features/users/user.service";
 import { userFilterSchema } from "@/features/users/user.validation";
 import { apiPaginated, apiError } from "@/shared/lib/utils/api-helpers";
-import { getSession } from "@/shared/lib/utils/auth-utils";
+import { getAdminSession } from "@/shared/lib/utils/auth-utils";
 
 /**
  * GET /api/admin/users
@@ -11,8 +11,8 @@ import { getSession } from "@/shared/lib/utils/auth-utils";
 export async function GET(request: NextRequest) {
   try {
     // Admin authentication
-    const session = await getSession();
-    if (!session?.user || !session.user.isAdmin) {
+    const admin = await getAdminSession();
+    if (admin.error !== undefined) {
       return apiError("Admin access required", 403);
     }
 

@@ -14,7 +14,7 @@ import { bookingStatusEnum, bookingTypeEnum } from "@/database/schema";
 import { PAYMENT_DISPLAY_STATUSES } from "@/shared/lib/utils/payment-display";
 import { format as formatDate } from "date-fns";
 import type { BookingListItem } from "@/features/bookings/booking.types";
-import { getSession } from "@/shared/lib/utils/auth-utils";
+import { getAdminSession } from "@/shared/lib/utils/auth-utils";
 
 type EnumValue<T extends readonly string[]> = T[number];
 
@@ -62,8 +62,8 @@ function buildSummary(b: BookingListItem): string {
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getSession();
-    if (!session?.user?.isAdmin) {
+    const admin = await getAdminSession();
+    if (admin.error !== undefined) {
       return NextResponse.json({ error: "Admin access required" }, { status: 403 });
     }
 

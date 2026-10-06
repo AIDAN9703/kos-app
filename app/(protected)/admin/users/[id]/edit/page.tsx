@@ -45,8 +45,6 @@ async function AdminUserCreateEditFormWithData({ userId }: { userId: string }) {
     roles: parseRoles(userData.role).filter((role): role is AssignableRole =>
       (ASSIGNABLE_ROLES as readonly string[]).includes(role)
     ),
-    // Only include authProvider if it's a valid value in the enum
-    ...(userData.authProvider ? { authProvider: userData.authProvider } : {}),
     address: userData.address || null,
     city: userData.city || null,
     state: userData.state || null,

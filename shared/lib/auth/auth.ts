@@ -11,7 +11,7 @@ import { claimGuestBookingsForUser } from "@/features/users/claim-guest-bookings
 import { sendAccountEmail } from "@/shared/lib/services/email.service";
 import { getBaseUrl } from "@/shared/lib/utils/base-url";
 import { formatPhoneNumberE164 } from "@/shared/lib/utils/general-utils";
-import { ac, roles, parseRoles, DEFAULT_ROLE } from "./permissions";
+import { ac, roles, DEFAULT_ROLE } from "./permissions";
 import { phoneBookingPlugin } from "./phone-booking-plugin";
 import { displayName, toSessionUser } from "./session-user";
 
@@ -139,8 +139,8 @@ const options = {
     enabled: true,
     autoSignIn: true,
     minPasswordLength: 8,
-    // Existing passwords are bcrypt hashes; keep bcrypt so they keep working
-    // and so the old code could still read new ones during the rollout.
+    // Passwords carried over from before Better Auth are bcrypt hashes, so
+    // bcrypt stays the format for new ones too.
     password: {
       hash: (password) => hash(password, 10),
       verify: ({ hash: stored, password }) => compare(password, stored),
@@ -242,38 +242,11 @@ const options = {
           }
         },
       },
-      update: {
-        // Rollout safety: keep the legacy admin flag in step with the role.
-        after: async (user) => {
-          const role = (user as { role?: string | null }).role;
-          if (role === undefined) return;
-          await db
-            .update(users)
-            .set({ isAdmin: parseRoles(role).includes("admin") })
-            .where(eq(users.id, user.id));
-        },
-      },
     },
     account: {
-      // Rollout safety: mirror new password hashes to the legacy column so the
-      // old code could still sign this person in.
-      create: {
-        after: async (account) => {
-          if (account.providerId === "credential" && account.password) {
-            await db.update(users).set({ password: account.password }).where(eq(users.id, account.userId));
-          }
-          await fillMissingPhotoFromGoogle(account);
-        },
-      },
-      // Runs on every Google sign-in too (Better Auth refreshes the tokens).
-      update: {
-        after: async (account) => {
-          if (account.providerId === "credential" && account.password) {
-            await db.update(users).set({ password: account.password }).where(eq(users.id, account.userId));
-          }
-          await fillMissingPhotoFromGoogle(account);
-        },
-      },
+      // Update runs on every Google sign-in too (Better Auth refreshes the tokens).
+      create: { after: fillMissingPhotoFromGoogle },
+      update: { after: fillMissingPhotoFromGoogle },
     },
   },
 
