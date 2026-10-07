@@ -1,28 +1,31 @@
 import "server-only";
 
-import { getSignInMethods } from "@/features/users/user-access.service";
-import { ASSIGNABLE_ROLES, type AssignableRole } from "@/features/users/user-roles.constants";
 import { ownerProfileService } from "@/features/profiles/owner-profile.service";
+import type { AssignableRole } from "@/features/users/user-roles.constants";
 import { userService } from "@/features/users/user.service";
-import type { PaginatedUsersResponse, UserOption, UserWithRelations } from "@/features/users/user.types";
+import type { AdminUserProfile, PaginatedUsersResponse, UserOption } from "@/features/users/user.types";
 import {
+  assignableRolesSchema,
   createUserSchema,
-  updateUserSchema,
+  updateUserDetailsSchema,
   type CreateUserInput,
-  type UpdateUserInput,
+  type UpdateUserDetailsInput,
   type UserFilterInput,
 } from "@/features/users/user.validation";
-import { parseRoles } from "@/shared/lib/auth/permissions";
-import { UserFacingError } from "@/shared/lib/errors";
+import { invalidFieldsFrom, UserFacingError } from "@/shared/lib/errors";
 import { assertCan } from "@/shared/lib/utils/auth-utils";
 import { isUuid } from "@/shared/lib/utils/general-utils";
 
 /**
- * Users data layer (admins): the people list, a person's record, and creating,
- * editing or deleting accounts. Each function checks Better Auth's user
- * permissions (create, list, get, update, set-role, set-password, delete).
- * People manage their own accounts through profile.data.ts instead.
+ * Users data layer (admins): the people list, a person's page, and changes to
+ * their account. Each function checks Better Auth's user permissions (list,
+ * get, create, update, set-role, ban, delete). People manage their own
+ * accounts through profile.data.ts instead.
  */
+
+function requireUserId(id: string): void {
+  if (!isUuid(id)) throw new UserFacingError("User not found", 404);
+}
 
 // ============================================================================
 // READS
@@ -33,41 +36,10 @@ export async function listUsers(filters?: UserFilterInput): Promise<PaginatedUse
   return userService.getAllUsers(filters);
 }
 
-/** A person's record for the admin detail page: bookings, crew profiles, sign-in methods. */
-export async function getUserDetail(
-  id: string
-): Promise<{ user: UserWithRelations; signInMethods: string[] } | null> {
+/** Everything the admin person page shows. */
+export async function getUserProfile(id: string): Promise<AdminUserProfile | null> {
   await assertCan({ user: ["get"] });
-  if (!isUuid(id)) return null;
-  const user = await userService.getUserById(id, { bookings: { limit: 10 }, captainProfile: true, crewProfile: true });
-  return user ? { user, signInMethods: await getSignInMethods(id) } : null;
-}
-
-/** The edit form's starting values (only fields the form can change). */
-export async function getUserForEdit(id: string): Promise<Partial<UpdateUserInput> | null> {
-  await assertCan({ user: ["update"] });
-  const user = isUuid(id) ? await userService.getUserById(id) : null;
-  if (!user) return null;
-  return {
-    firstName: user.firstName || null,
-    lastName: user.lastName || null,
-    bio: user.bio || null,
-    username: user.username,
-    email: user.email,
-    phoneNumber: user.phoneNumber || null,
-    roles: parseRoles(user.role).filter((role): role is AssignableRole =>
-      (ASSIGNABLE_ROLES as readonly string[]).includes(role)
-    ),
-    address: user.address || null,
-    city: user.city || null,
-    state: user.state || null,
-    postalCode: user.postalCode || null,
-    country: user.country || null,
-    emailVerified: user.emailVerified,
-    phoneVerified: user.phoneVerified,
-    identityVerified: user.identityVerified || false,
-    identityVerificationType: user.identityVerificationType || null,
-  };
+  return isUuid(id) ? userService.getAdminProfile(id) : null;
 }
 
 /** People for the account pickers (linking a booking, choosing a boat owner). */
@@ -91,28 +63,56 @@ export async function listBoatOwnerOptions(search?: string) {
 // WRITES
 // ============================================================================
 
-/** Create an account with an email + password sign-in. Returns its id. */
+/** Create an account and email them a link to choose a password. Returns its id. */
 export async function createUser(input: CreateUserInput): Promise<{ id: string }> {
   await assertCan({ user: ["create"] });
-  const data = createUserSchema.parse(input);
-  if (data.roles.length > 0) await assertCan({ user: ["set-role"] });
-  const { id } = await userService.createUser(data);
-  return { id };
+  const parsed = createUserSchema.safeParse(input);
+  if (!parsed.success) throw invalidFieldsFrom(parsed.error);
+  if (parsed.data.roles.length > 0) await assertCan({ user: ["set-role"] });
+  return userService.createUser(parsed.data);
 }
 
-/** Update an account; changing roles or the password needs those permissions too. */
-export async function updateUser(id: string, input: Partial<UpdateUserInput>): Promise<void> {
+/** Change a person's name, email or phone (one row of their page). */
+export async function updateUserDetails(id: string, input: UpdateUserDetailsInput): Promise<void> {
   await assertCan({ user: ["update"] });
-  if (!isUuid(id)) throw new UserFacingError("User not found", 404);
-  const data = updateUserSchema.parse(input);
-  if (data.roles) await assertCan({ user: ["set-role"] });
-  if (data.password) await assertCan({ user: ["set-password"] });
-  await userService.updateUser(id, data);
+  requireUserId(id);
+  const parsed = updateUserDetailsSchema.safeParse(input);
+  if (!parsed.success) throw invalidFieldsFrom(parsed.error);
+  await userService.updateDetails(id, parsed.data);
 }
 
+/** Set someone's admin / broker / owner access. You can't take away your own admin. */
+export async function setUserAccess(id: string, roles: AssignableRole[]): Promise<void> {
+  const me = await assertCan({ user: ["set-role"] });
+  requireUserId(id);
+  const picked = assignableRolesSchema.parse(roles);
+  if (id === me.id && !picked.includes("admin")) {
+    throw new UserFacingError("You can't remove your own admin access.");
+  }
+  await userService.setAssignableRoles(id, picked);
+}
+
+/** Email them a link to choose a new password (or their first one). */
+export async function sendUserPasswordEmail(id: string): Promise<void> {
+  await assertCan({ user: ["update"] });
+  requireUserId(id);
+  const profile = await userService.getUserOption(id);
+  if (!profile) throw new UserFacingError("User not found", 404);
+  await userService.sendPasswordEmail(profile.email);
+}
+
+/** Deactivate (signed out everywhere, can't sign in; history kept) or reactivate. */
+export async function setUserDeactivated(id: string, deactivated: boolean): Promise<void> {
+  const me = await assertCan({ user: ["ban"] });
+  requireUserId(id);
+  if (id === me.id) throw new UserFacingError("You can't deactivate your own account.");
+  await userService.setDeactivated(id, deactivated);
+}
+
+/** Delete an account outright — only one with no bookings or history. */
 export async function deleteUser(id: string): Promise<void> {
-  const admin = await assertCan({ user: ["delete"] });
-  if (!isUuid(id)) throw new UserFacingError("User not found", 404);
-  if (id === admin.id) throw new UserFacingError("You can't delete your own account here.");
+  const me = await assertCan({ user: ["delete"] });
+  requireUserId(id);
+  if (id === me.id) throw new UserFacingError("You can't delete your own account here.");
   await userService.deleteUser(id);
 }

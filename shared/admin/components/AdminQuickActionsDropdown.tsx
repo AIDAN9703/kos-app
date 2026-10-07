@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Plus, Ship, Calendar, Users2, User, PenLine, PartyPopper } from "lucide-react";
+import { Plus, Ship, Calendar, User, PenLine } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,10 +14,8 @@ import { ADMIN_QUICK_ACTIONS } from "@/shared/lib/constants/navigation-data";
 const ACTION_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   "Create Boat": Ship,
   "Create Booking": Calendar,
-  "Create Booking Group": Users2,
   "Create User": User,
   "Create Blog Post": PenLine,
-  "Create Event": PartyPopper,
 };
 
 export function AdminQuickActionsDropdown() {

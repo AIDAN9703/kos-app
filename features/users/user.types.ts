@@ -1,59 +1,11 @@
-/**
- * User-related application types
- *
- * TYPE ORGANIZATION:
- * - Base types imported from @/database/types (single source of truth)
- * - Derived types created here for application-specific needs
- * - Relation types match what userService.getUserById() returns
- *
- * IMPORT CONVENTIONS:
- * - Always import base User type from @/database/types
- * - Derive application types using Pick, Omit, or intersection types
- * - Keep relation types aligned with service layer return types
- */
+import type { BookingStatus, CaptainStatus, CrewStatus, User } from "@/database/types";
+import type { Role } from "@/shared/lib/auth/permissions";
 
-import type {
-  User,
-  Boat,
-  CaptainProfile,
-  CrewProfile,
-  OwnerProfile,
-  Notification,
-  CaptainStatus,
-  CrewStatus,
-} from "@/database/types";
-import type { BookingListItemShared } from "@/shared/lib/types/booking-shared.types";
-
-/**
- * Re-export base types for convenience
- */
-export type { User, UserStatus } from "@/database/types";
-
-// ========================================
-// DERIVED USER TYPES
-// ========================================
-
-/**
- * User list item - minimal data for admin tables and lists
- * Optimized for table display with essential fields only
- */
+/** One row of the admin people list. */
 export type UserListItem = Pick<
   User,
-  | "id"
-  | "email"
-  | "username"
-  | "firstName"
-  | "lastName"
-  | "profileImage"
-  | "role"
-  | "phoneNumber"
-  | "emailVerified"
-  | "createdAt"
-  | "updatedAt"
-> & {
-  captainProfileStatus: CaptainStatus | null;
-  crewProfileStatus: CrewStatus | null;
-};
+  "id" | "email" | "firstName" | "lastName" | "profileImage" | "role" | "phoneNumber" | "emailVerified" | "banned" | "createdAt"
+>;
 
 /** A person in the account pickers (booking composer, boat owner). */
 export type UserOption = Pick<
@@ -61,57 +13,45 @@ export type UserOption = Pick<
   "id" | "firstName" | "lastName" | "email" | "phoneNumber" | "profileImage" | "username"
 >;
 
-/**
- * @example
- * // Basic user (no relations)
- * const user = await userService.getUserById(id);
- * // Type: User | null
- *
- * @example
- * // User with relations
- * const user = await userService.getUserById(id, {
- *   ownedBoats: { limit: 10 },
- *   captainProfile: true,
- *   bookings: { limit: 5 }
- * });
- * // Type: UserWithRelations | null
- */
-export type UserWithRelations = User & {
-  /** Boats owned by this user (limited fields for list views) */
-  ownedBoats?: Array<
-    Pick<Boat, "id" | "name" | "category" | "active" | "featured" | "mainImage" | "createdAt">
-  >;
+/** A booking as listed on a person's page (their trips, or deals assigned to them). */
+export interface UserBookingRow {
+  id: string;
+  status: BookingStatus;
+  customerName: string;
+  boatName: string | null;
+  startDateTime: Date | null;
+  totalAmountCents: number | null;
+  currency: string | null;
+}
 
-  /** Captain profile if user is a captain (columns match getUserById `captainProfile: true`) */
-  captainProfile?: Pick<CaptainProfile, "userId" | "status" | "uscgLicensed"> | null;
-
-  /** Crew profile if user is crew (columns match getUserById `crewProfile: true`) */
-  crewProfile?: Pick<CrewProfile, "userId" | "status"> | null;
-
-  /** Owner profile if user is an owner */
-  ownerProfile?: Pick<
-    OwnerProfile,
-    | "userId"
-    | "businessType"
-    | "businessName"
-    | "totalBoatsListed"
-    | "activeBoatsCount"
-    | "totalBookings"
-    | "stripeConnectOnboarded"
-    | "payoutsEnabled"
-    | "adminNotes"
-  > | null;
-
-  /** User's bookings (minimal data for list views) */
-  bookings?: BookingListItemShared[];
-
-  /** Reviews written by this user */
-
-  /** User's notifications */
-  notifications?: Array<
-    Pick<Notification, "id" | "type" | "title" | "body" | "status" | "readAt" | "createdAt">
-  >;
-};
+/** Everything the admin person page shows. */
+export interface AdminUserProfile {
+  id: string;
+  firstName: string | null;
+  lastName: string | null;
+  name: string;
+  email: string;
+  emailVerified: boolean;
+  phoneNumber: string | null;
+  phoneVerified: boolean;
+  profileImage: string | null;
+  roles: Role[];
+  deactivated: boolean;
+  createdAt: Date;
+  stripeCustomerId: string | null;
+  /** "credential" (email + password), "google", … */
+  signInMethods: string[];
+  captainStatus: CaptainStatus | null;
+  crewStatus: CrewStatus | null;
+  /** Bookings they made as a customer (newest first). */
+  trips: UserBookingRow[];
+  /** Deals assigned to them (staff). */
+  assignedDeals: UserBookingRow[];
+  /** Boats they own. */
+  boats: { id: string; name: string; active: boolean }[];
+  /** Nothing in the records points at them, so they can be deleted outright. */
+  canDelete: boolean;
+}
 
 export interface PaginatedUsersResponse {
   users: UserListItem[];

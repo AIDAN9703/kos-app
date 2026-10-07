@@ -1,39 +1,52 @@
 import "server-only";
 
-//drizzle
-import { db } from '@/database/db';
-import { claimGuestBookingsForUser } from '@/features/users/claim-guest-bookings.service';
+import { APIError } from "better-auth/api";
+import { and, count, desc, eq, ilike, or, sql, type SQL } from "drizzle-orm";
+import { headers } from "next/headers";
+
+import { db } from "@/database/db";
 import {
-  users,
+  boats,
+  bookingPricing,
+  bookings,
   captainProfiles,
   crewProfiles,
-  bookings,
-  bookingPricing,
-} from '@/database/schema';
-import { and, count, eq, desc, or, ilike, sql } from 'drizzle-orm';
-import { resolveAdminListPagination } from '@/shared/admin/list-pagination';
-import { type User   } from '@/database/types';
-
-//types
+  users,
+} from "@/database/schema";
+import { claimGuestBookingsForUser } from "@/features/users/claim-guest-bookings.service";
 import {
-  type UserFilterInput,
-  type CreateUserInput,
-  type UpdateUserInput,
-} from '@/features/users/user.validation';
-import {
-  type PaginatedUsersResponse,
-  type UserListItem,
-  type UserOption,
-  type UserWithRelations,
-} from '@/features/users/user.types';
+  getSignInMethods,
+  hasRoleSql,
+  mergeAssignableRoles,
+  notDeactivatedSql,
+  setUserRoles,
+} from "@/features/users/user-access.service";
+import type { AssignableRole } from "@/features/users/user-roles.constants";
+import type {
+  AdminUserProfile,
+  PaginatedUsersResponse,
+  UserBookingRow,
+  UserOption,
+} from "@/features/users/user.types";
+import type {
+  CreateUserData,
+  UpdateUserDetailsInput,
+  UserFilterInput,
+  UserListView,
+} from "@/features/users/user.validation";
+import { auth } from "@/shared/lib/auth/auth";
+import { DEFAULT_ROLE, formatRoles, parseRoles } from "@/shared/lib/auth/permissions";
+import { displayName } from "@/shared/lib/auth/session-user";
+import { pgErrorCode, UserFacingError } from "@/shared/lib/errors";
+import { resolveAdminListPagination } from "@/shared/admin/list-pagination";
+import { formatPhoneNumberE164 } from "@/shared/lib/utils/general-utils";
 
-//auth
-import { displayName } from '@/shared/lib/auth/session-user';
-import { formatRoles, parseRoles } from '@/shared/lib/auth/permissions';
-import { hasRoleSql, mergeAssignableRoles, setUserPassword, setUserRoles } from '@/features/users/user-access.service';
-import { auth } from '@/shared/lib/auth/auth';
-import { pgErrorCode, UserFacingError } from '@/shared/lib/errors';
-import { headers } from 'next/headers';
+/**
+ * User queries and account changes. Server-only and not access-checked:
+ * pages, routes and actions go through user.data.ts, which checks the admin
+ * permission first. Account changes run through Better Auth's admin API
+ * where it has one (create, roles, deactivate, delete).
+ */
 
 const userOptionColumns = {
   id: users.id,
@@ -45,292 +58,278 @@ const userOptionColumns = {
   username: users.username,
 };
 
-/**
- * User queries. Server-only and not access-checked: pages, routes and
- * actions go through user.data.ts, which checks the admin permission first.
- */
+function searchSql(term: string): SQL {
+  return or(
+    ilike(users.firstName, `%${term}%`),
+    ilike(users.lastName, `%${term}%`),
+    ilike(users.email, `%${term}%`),
+    ilike(users.phoneNumber, `%${term}%`)
+  )!;
+}
+
+function viewSql(view: UserListView): SQL {
+  if (view === "deactivated") return sql`${users.banned} IS TRUE`;
+  if (view === "customer") return sql`(${users.role} IS NULL OR ${users.role} = ${DEFAULT_ROLE})`;
+  return hasRoleSql(view);
+}
+
+/** Bookings for a person's page: as their customer, or assigned to them. */
+async function bookingRows(where: SQL, limit = 8): Promise<UserBookingRow[]> {
+  const rows = await db
+    .select({
+      id: bookings.id,
+      status: bookings.bookingStatus,
+      customerName: bookings.customerName,
+      boatName: boats.name,
+      startDateTime: bookings.startDateTime,
+      totalAmountCents: bookingPricing.totalAmountCents,
+      currency: bookingPricing.currency,
+    })
+    .from(bookings)
+    .leftJoin(boats, eq(bookings.boatId, boats.id))
+    .leftJoin(bookingPricing, eq(bookings.id, bookingPricing.bookingId))
+    .where(where)
+    .orderBy(desc(bookings.createdAt))
+    .limit(limit);
+  return rows.map((r) => ({ ...r, totalAmountCents: r.totalAmountCents != null ? Number(r.totalAmountCents) : null }));
+}
+
 class UserService {
-  /**
-   * Get paginated and filtered users
-   */
+  /** The people list: search, one view (a role, customers, or deactivated), newest first. */
   async getAllUsers(filters?: UserFilterInput): Promise<PaginatedUsersResponse> {
     const { page, limit, offset } = resolveAdminListPagination(filters);
+    const term = filters?.search?.trim();
+    const conditions = [term ? searchSql(term) : undefined, filters?.view ? viewSql(filters.view) : undefined].filter(
+      (c): c is SQL => c != null
+    );
+    const where = conditions.length > 0 ? and(...conditions) : undefined;
 
-    const conditions = [];
-
-    if (filters?.search) {
-      conditions.push(
-        or(
-          ilike(users.firstName, `%${filters.search}%`),
-          ilike(users.lastName, `%${filters.search}%`),
-          ilike(users.email, `%${filters.search}%`),
-          ilike(users.username, `%${filters.search}%`)
-        )!
-      );
-    }
-
-    if (filters?.isAdmin !== undefined) {
-      const isAdmin = hasRoleSql("admin");
-      conditions.push(filters.isAdmin ? isAdmin : sql`NOT (${isAdmin})`);
-    }
-
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
-
-    const dataBase = db
-      .select({
-        id: users.id,
-        email: users.email,
-        username: users.username,
-        firstName: users.firstName,
-        lastName: users.lastName,
-        profileImage: users.profileImage,
-        role: users.role,
-        phoneNumber: users.phoneNumber,
-        emailVerified: users.emailVerified,
-        createdAt: users.createdAt,
-        updatedAt: users.updatedAt,
-        captainProfileStatus: captainProfiles.status,
-        crewProfileStatus: crewProfiles.status,
-      })
-      .from(users)
-      .leftJoin(captainProfiles, eq(users.id, captainProfiles.userId))
-      .leftJoin(crewProfiles, eq(users.id, crewProfiles.userId));
-
-    const countBase = db
-      .select({ count: count() })
-      .from(users)
-      .leftJoin(captainProfiles, eq(users.id, captainProfiles.userId))
-      .leftJoin(crewProfiles, eq(users.id, crewProfiles.userId));
-
-    const dataQuery = whereClause ? dataBase.where(whereClause) : dataBase;
-    const countQuery = whereClause ? countBase.where(whereClause) : countBase;
-
-    const [usersData, totalCountResult] = await Promise.all([
-      dataQuery.orderBy(desc(users.createdAt)).limit(limit).offset(offset),
-      countQuery,
+    const [rows, [{ total }]] = await Promise.all([
+      db
+        .select({
+          id: users.id,
+          email: users.email,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          profileImage: users.profileImage,
+          role: users.role,
+          phoneNumber: users.phoneNumber,
+          emailVerified: users.emailVerified,
+          banned: users.banned,
+          createdAt: users.createdAt,
+        })
+        .from(users)
+        .where(where)
+        .orderBy(desc(users.createdAt))
+        .limit(limit)
+        .offset(offset),
+      db.select({ total: count() }).from(users).where(where),
     ]);
 
-    const totalCount = totalCountResult[0]?.count || 0;
+    return { users: rows, totalCount: total, page, limit, totalPages: Math.ceil(total / limit) };
+  }
+
+  /** Everything the admin person page shows, or null. */
+  async getAdminProfile(id: string): Promise<AdminUserProfile | null> {
+    const [row] = await db
+      .select({
+        id: users.id,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        name: users.name,
+        email: users.email,
+        emailVerified: users.emailVerified,
+        phoneNumber: users.phoneNumber,
+        phoneVerified: users.phoneVerified,
+        profileImage: users.profileImage,
+        role: users.role,
+        banned: users.banned,
+        createdAt: users.createdAt,
+        stripeCustomerId: users.stripeCustomerId,
+        captainStatus: captainProfiles.status,
+        crewStatus: crewProfiles.status,
+      })
+      .from(users)
+      .leftJoin(captainProfiles, eq(captainProfiles.userId, users.id))
+      .leftJoin(crewProfiles, eq(crewProfiles.userId, users.id))
+      .where(eq(users.id, id))
+      .limit(1);
+    if (!row) return null;
+
+    const roles = parseRoles(row.role);
+    const isStaff = roles.includes("admin") || roles.includes("broker");
+    const [signInMethods, trips, assignedDeals, ownedBoats, canDelete] = await Promise.all([
+      getSignInMethods(id),
+      bookingRows(eq(bookings.userId, id)),
+      isStaff ? bookingRows(eq(bookings.assignedAdminId, id)) : Promise.resolve([]),
+      db
+        .select({ id: boats.id, name: boats.name, active: boats.active })
+        .from(boats)
+        .where(eq(boats.ownerId, id))
+        .orderBy(boats.name)
+        .limit(20),
+      this.hasNoRecords(id),
+    ]);
 
     return {
-      users: usersData satisfies UserListItem[],
-      totalCount,
-      page,
-      limit,
-      totalPages: Math.ceil(totalCount / limit)
+      id: row.id,
+      firstName: row.firstName,
+      lastName: row.lastName,
+      name: row.name,
+      email: row.email,
+      emailVerified: row.emailVerified,
+      phoneNumber: row.phoneNumber,
+      phoneVerified: Boolean(row.phoneVerified),
+      profileImage: row.profileImage,
+      roles,
+      deactivated: Boolean(row.banned),
+      createdAt: row.createdAt,
+      stripeCustomerId: row.stripeCustomerId,
+      signInMethods,
+      captainStatus: row.captainStatus,
+      crewStatus: row.crewStatus,
+      trips,
+      assignedDeals,
+      boats: ownedBoats,
+      canDelete,
     };
   }
 
   /**
-   * Get single user by ID with optional relations
-   * 
-   * @param id - User ID
-   * @param options - Relations to include (if omitted, returns basic user only)
-   * @returns User with requested relations, or null if not found
-   * 
-   * @example
-   * // Basic user (no relations)
-   * const user = await userService.getUserById(id);
-   * 
-   * @example
-   * // User with relations for admin detail page
-   * const user = await userService.getUserById(id, {
-   *   ownedBoats: { limit: 10 },
-   *   captainProfile: true,
-   *   bookings: { limit: 5 }
-   * });
+   * True when nothing points at this person — no bookings (as customer,
+   * assignee, captain or owner), crew history, deal notes, boats or reviews —
+   * so deleting them loses no history.
    */
-  async getUserById(
-    id: string,
-    options?: {
-      ownedBoats?: { limit: number };
-      captainProfile?: true;
-      crewProfile?: true;
-      bookings?: { limit: number };
-      notifications?: { limit: number; unreadOnly?: boolean };
-    }
-  ): Promise<UserWithRelations | null> {
-    // If no options provided, use simple query
-    if (!options || Object.keys(options).length === 0) {
-      const [user] = await db.select().from(users).where(eq(users.id, id)).limit(1);
-      return user || null;
-    }
-
-    // Only the relations asked for are loaded.
-    const user = await db.query.users.findFirst({
-      where: eq(users.id, id),
-      with: {
-        ...(options.ownedBoats && {
-          ownedBoats: {
-            columns: {
-              id: true,
-              name: true,
-              category: true,
-              active: true,
-              featured: true,
-              mainImage: true,
-              createdAt: true,
-            },
-            limit: options.ownedBoats.limit,
-          },
-        }),
-        ...(options.captainProfile && {
-          captainProfile: { columns: { userId: true, status: true, uscgLicensed: true } },
-        }),
-        ...(options.crewProfile && {
-          crewProfile: { columns: { userId: true, status: true } },
-        }),
-        ...(options.notifications && {
-          notifications: {
-            columns: {
-              id: true,
-              type: true,
-              title: true,
-              body: true,
-              status: true,
-              readAt: true,
-              createdAt: true,
-            },
-            limit: options.notifications.limit,
-            orderBy: (n, { desc }) => [desc(n.createdAt)],
-            ...(options.notifications.unreadOnly && {
-              where: (n, { isNull }) => isNull(n.readAt),
-            }),
-          },
-        }),
-      },
-    });
-
-    if (!user) {
-      return null;
-    }
-
-    // Handle bookings separately to join with booking_pricing for totalAmountCents
-    if (options.bookings) {
-      const bookingsData = await db
-        .select({
-          id: bookings.id,
-          bookingStatus: bookings.bookingStatus,
-          bookingType: bookings.bookingType,
-          startDateTime: bookings.startDateTime,
-          createdAt: bookings.createdAt,
-          totalAmountCents: bookingPricing.totalAmountCents,
-        })
-        .from(bookings)
-        .leftJoin(bookingPricing, eq(bookings.id, bookingPricing.bookingId))
-        .where(eq(bookings.userId, id))
-        .orderBy(desc(bookings.createdAt))
-        .limit(options.bookings.limit);
-
-      // Transform to match BookingListItemShared type
-      const transformedBookings = bookingsData.map((b) => ({
-        id: b.id,
-        bookingStatus: b.bookingStatus,
-        bookingType: b.bookingType,
-        startDateTime: b.startDateTime,
-        totalAmountCents: b.totalAmountCents ? Number(b.totalAmountCents) : null,
-        createdAt: b.createdAt,
-      }));
-
-      // Properly type the user with bookings
-      (user as UserWithRelations).bookings = transformedBookings;
-    }
-
-    return user as UserWithRelations;
-  }
-
-  /**
-   * Create new user (with password hashing)
-   */
-  async createUser(userData: CreateUserInput): Promise<User> {
-    const { password, roles, email, firstName, lastName, phoneNumber, ...profile } = userData;
-
-    // Better Auth creates the account and its email + password sign-in, and
-    // checks the caller may assign these roles.
-    const { user: created } = await auth.api.createUser({
-      body: {
-        email,
-        password,
-        name: displayName(firstName, lastName, email),
-        role: parseRoles(formatRoles(roles)),
-        data: { firstName, lastName, phoneNumber },
-      },
-      headers: await headers(),
-    });
-
-    // The rest of the profile (username, address, verification flags…).
-    const [newUser] = await db
-      .update(users)
-      .set({ ...profile, updatedAt: new Date() })
-      .where(eq(users.id, created.id))
-      .returning();
-
-    // Admin vouches for the identity — adopt matching guest bookings even
-    // though nothing is verified yet.
-    claimGuestBookingsForUser(newUser.id, { adminAsserted: true }).catch((err) =>
-      console.error("Guest-booking claim failed:", err)
-    );
-
-    return newUser;
-  }
-
-  /**
-   * Update user (partial updates allowed)
-   */
-  async updateUser(id: string, data: Partial<UpdateUserInput>): Promise<User> {
-    const { password, roles, ...fields } = data;
-    const [current] = await db
-      .select({ firstName: users.firstName, lastName: users.lastName, email: users.email, role: users.role })
+  async hasNoRecords(id: string): Promise<boolean> {
+    const [row] = await db
+      .select({
+        used: sql<boolean>`(
+          EXISTS (SELECT 1 FROM booking WHERE user_id = ${id} OR assigned_admin_id = ${id} OR captain_user_id = ${id} OR boat_owner_id = ${id})
+          OR EXISTS (SELECT 1 FROM booking_crew WHERE user_id = ${id})
+          OR EXISTS (SELECT 1 FROM booking_admin_note WHERE admin_user_id = ${id})
+          OR EXISTS (SELECT 1 FROM boat WHERE owner_id = ${id} OR primary_captain_user_id = ${id})
+          OR EXISTS (SELECT 1 FROM review WHERE reviewer_id = ${id})
+        )`,
+      })
       .from(users)
       .where(eq(users.id, id))
       .limit(1);
-    if (!current) throw new Error(`User not found: ${id}`);
-
-    const updateData: Partial<User> = { ...fields, updatedAt: new Date() };
-    if (fields.email) updateData.email = fields.email.trim().toLowerCase();
-    if ("firstName" in fields || "lastName" in fields) {
-      updateData.name = displayName(
-        "firstName" in fields ? fields.firstName : current.firstName,
-        "lastName" in fields ? fields.lastName : current.lastName,
-        updateData.email ?? current.email
-      );
-    }
-    const [updatedUser] = await db
-      .update(users)
-      .set(updateData)
-      .where(eq(users.id, id))
-      .returning();
-
-    if (!updatedUser) {
-      throw new Error(`User not found: ${id}`);
-    }
-    if (roles) await setUserRoles(id, mergeAssignableRoles(current.role, roles));
-    if (password) await setUserPassword(id, password);
-
-    return updatedUser;
+    return row ? !row.used : false;
   }
 
-
   /**
-   * Delete user (hard delete)
+   * Create an account with no password and email them a link to choose one
+   * (finishing it also verifies their email). Returns its id.
    */
-  async deleteUser(id: string): Promise<void> {
+  async createUser(input: CreateUserData): Promise<{ id: string }> {
+    const email = input.email.trim().toLowerCase();
+    let createdId: string;
     try {
-      await db.delete(users).where(eq(users.id, id));
+      const { user } = await auth.api.createUser({
+        body: {
+          email,
+          name: displayName(input.firstName, input.lastName, email),
+          role: parseRoles(formatRoles(input.roles)),
+          data: { firstName: input.firstName, lastName: input.lastName, phoneNumber: input.phoneNumber || null },
+        },
+        headers: await headers(),
+      });
+      createdId = user.id;
     } catch (error) {
-      if (pgErrorCode(error) === '23503') {
-        throw new UserFacingError("This person still owns boats, so they can't be deleted. Reassign the boats first.", 409);
+      if (error instanceof APIError && String(error.body?.code ?? "").startsWith("USER_ALREADY_EXISTS")) {
+        throw new UserFacingError("Someone already has an account with this email.", 409);
       }
       throw error;
     }
+
+    // The admin vouches for who this is: adopt guest bookings made with this email.
+    claimGuestBookingsForUser(createdId, { adminAsserted: true }).catch((err) =>
+      console.error("Guest-booking claim failed:", err)
+    );
+    await this.sendPasswordEmail(email);
+    return { id: createdId };
   }
 
-
   /**
-   * Staff a deal can be assigned to: active admins and brokers.
+   * Change a person's name, email or phone. A new email or phone isn't
+   * verified until they prove it (a new email gets a confirmation link).
    */
+  async updateDetails(id: string, input: UpdateUserDetailsInput): Promise<void> {
+    const [current] = await db
+      .select({ firstName: users.firstName, lastName: users.lastName, email: users.email, phoneNumber: users.phoneNumber })
+      .from(users)
+      .where(eq(users.id, id))
+      .limit(1);
+    if (!current) throw new UserFacingError("User not found", 404);
+
+    const set: Partial<typeof users.$inferInsert> = { updatedAt: new Date() };
+    let newEmail: string | null = null;
+    if (input.email !== undefined) {
+      const email = input.email.trim().toLowerCase();
+      if (email !== current.email) {
+        set.email = newEmail = email;
+        set.emailVerified = false;
+      }
+    }
+    if (input.phoneNumber !== undefined) {
+      const phone = input.phoneNumber ? formatPhoneNumberE164(input.phoneNumber) : null;
+      if (phone !== current.phoneNumber) {
+        set.phoneNumber = phone;
+        set.phoneVerified = false;
+      }
+    }
+    if (input.firstName !== undefined || input.lastName !== undefined) {
+      set.firstName = input.firstName ?? current.firstName;
+      set.lastName = input.lastName ?? current.lastName;
+      set.name = displayName(set.firstName, set.lastName, set.email ?? current.email);
+    }
+
+    try {
+      await db.update(users).set(set).where(eq(users.id, id));
+    } catch (error) {
+      if (pgErrorCode(error) === "23505") throw new UserFacingError("Someone else already uses that email.", 409);
+      throw error;
+    }
+    if (newEmail) {
+      await auth.api.sendVerificationEmail({ body: { email: newEmail, callbackURL: "/profile" } }).catch((err) =>
+        console.error("Verification email failed:", err)
+      );
+    }
+  }
+
+  /** Replace the admin / broker / owner roles (captain and crew are kept). */
+  async setAssignableRoles(id: string, picked: AssignableRole[]): Promise<void> {
+    const [current] = await db.select({ role: users.role }).from(users).where(eq(users.id, id)).limit(1);
+    if (!current) throw new UserFacingError("User not found", 404);
+    await setUserRoles(id, mergeAssignableRoles(current.role, picked));
+  }
+
+  /** Deactivate (signs them out everywhere and blocks sign-in) or reactivate. */
+  async setDeactivated(id: string, deactivated: boolean): Promise<void> {
+    const requestHeaders = await headers();
+    if (deactivated) {
+      await auth.api.banUser({ body: { userId: id, banReason: "Deactivated by an admin" }, headers: requestHeaders });
+    } else {
+      await auth.api.unbanUser({ body: { userId: id }, headers: requestHeaders });
+    }
+  }
+
+  /** Email the set-password (or reset-password) link. */
+  async sendPasswordEmail(email: string): Promise<void> {
+    await auth.api.requestPasswordReset({ body: { email, redirectTo: "/reset-password" } });
+  }
+
+  /** Delete an account outright — only when nothing points at it (see hasNoRecords). */
+  async deleteUser(id: string): Promise<void> {
+    if (!(await this.hasNoRecords(id))) {
+      throw new UserFacingError("This person has bookings or history, so they can't be deleted. Deactivate them instead.", 409);
+    }
+    await auth.api.removeUser({ body: { userId: id }, headers: await headers() });
+  }
+
+  /** Staff a deal can be assigned to: active admins and brokers. */
   async getAdmins() {
-    const admins = await db
+    return db
       .select({
         id: users.id,
         firstName: users.firstName,
@@ -340,14 +339,9 @@ class UserService {
         profileImage: users.profileImage,
       })
       .from(users)
-      .where(and(
-        or(hasRoleSql("admin"), hasRoleSql("broker")),
-        eq(users.status, 'ACTIVE')
-      ))
+      .where(and(or(hasRoleSql("admin"), hasRoleSql("broker")), eq(users.status, "ACTIVE"), notDeactivatedSql()))
       .orderBy(desc(users.createdAt))
       .limit(50);
-    
-    return admins;
   }
 
   /** People for the account pickers (booking composer, boat owner), newest first. */
@@ -356,16 +350,7 @@ class UserService {
     return db
       .select(userOptionColumns)
       .from(users)
-      .where(
-        term
-          ? or(
-              ilike(users.firstName, `%${term}%`),
-              ilike(users.lastName, `%${term}%`),
-              ilike(users.email, `%${term}%`),
-              ilike(users.username, `%${term}%`)
-            )
-          : undefined
-      )
+      .where(and(notDeactivatedSql(), term ? searchSql(term) : undefined))
       .orderBy(desc(users.createdAt))
       .limit(limit);
   }
@@ -390,15 +375,12 @@ class UserService {
     const [row] = await db
       .select({ id: users.id })
       .from(users)
-      .where(and(
-        eq(users.id, userId),
-        or(hasRoleSql("admin"), hasRoleSql("broker")),
-        eq(users.status, 'ACTIVE')
-      ))
+      .where(
+        and(eq(users.id, userId), or(hasRoleSql("admin"), hasRoleSql("broker")), eq(users.status, "ACTIVE"), notDeactivatedSql())
+      )
       .limit(1);
     return row != null;
   }
 }
 
-// Export singleton instance
 export const userService = new UserService();

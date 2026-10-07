@@ -163,7 +163,7 @@ export function OpsCaptainAssignment({
             disabled={pending}
             asChild
           >
-            <Link href="/admin/users/create" target="_blank" rel="noopener noreferrer">
+            <Link href="/admin/users?newUser=true" target="_blank" rel="noopener noreferrer">
               <UserPlus className="h-4 w-4 shrink-0" aria-hidden />
               Add captain (new user)
             </Link>

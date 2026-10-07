@@ -236,7 +236,7 @@ export const ADMIN_QUICK_ACTIONS: AdminNavItem[] = [
   },
   {
     label: "Create User",
-    href: "/admin/users/create",
+    href: "/admin/users?newUser=true",
     iconClassName: "h-4 w-4 text-purple-400",
   },
   {

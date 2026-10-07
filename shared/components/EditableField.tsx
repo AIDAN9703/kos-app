@@ -8,7 +8,7 @@ import { Label } from "@/shared/components/ui/label";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { useToast } from "@/shared/lib/hooks/use-toast";
 import { cn } from "@/shared/lib/utils/general-utils";
-import type { ActionResult } from "../../profile.types";
+import type { ActionResponse } from "@/shared/lib/types/types";
 
 interface EditableFieldSpec {
   key: string;
@@ -29,13 +29,17 @@ interface EditableFieldProps {
   /** Read-mode text; defaults to the non-empty values joined with commas. */
   displayValue?: string | null;
   description?: string;
+  /** Shown under the inputs only while editing, e.g. what saving will do. */
+  editDescription?: string;
   /** Extra read-mode content next to the value, e.g. a "Verified" chip. */
   aside?: ReactNode;
-  onSave: (values: Record<string, string | null>) => Promise<ActionResult>;
+  onSave: (values: Record<string, string | null>) => Promise<ActionResponse<null>>;
 }
 
 /**
- * Read-mode row with an Edit link that flips into an inline form.
+ * Read-mode row with an Edit link that flips into an inline form. Used by the
+ * customer's account settings and the admin user page; colors come from the
+ * theme, so it fits both the site and the dark admin.
  * Saves go through a server action; field errors it returns are shown beside
  * the matching input, a general error above the buttons.
  */
@@ -45,6 +49,7 @@ export function EditableField({
   values,
   displayValue,
   description,
+  editDescription,
   aside,
   onSave,
 }: EditableFieldProps) {
@@ -105,17 +110,17 @@ export function EditableField({
 
   if (!editing) {
     return (
-      <div className="flex items-start justify-between gap-4 border-b border-gray-200 py-4">
+      <div className="flex items-start justify-between gap-4 border-b border-border py-4">
         <div className="min-w-0">
           <p className="text-sm font-medium text-primary">{label}</p>
           <div className="mt-0.5 flex flex-wrap items-center gap-2">
-            <p className={cn("text-[15px]", shown ? "text-slate-800" : "text-slate-400")}>
+            <p className={cn("text-[15px]", shown ? "text-foreground" : "text-muted-foreground")}>
               {shown || "Not provided"}
             </p>
             {aside}
           </div>
           {description ? (
-            <p className="mt-1 text-xs leading-5 text-slate-500">{description}</p>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>
           ) : null}
         </div>
         <button
@@ -148,7 +153,7 @@ export function EditableField({
         e.preventDefault();
         void save();
       }}
-      className="border-b border-gray-200 py-4"
+      className="border-b border-border py-4"
     >
       <p className="text-sm font-medium text-primary">{label}</p>
       <div className="mt-3 space-y-3">
@@ -172,7 +177,7 @@ export function EditableField({
               };
               return (
                 <div key={field.key}>
-                  <Label htmlFor={id} className="text-xs font-medium text-slate-600">
+                  <Label htmlFor={id} className="text-xs font-medium text-muted-foreground">
                     {field.label}
                     {field.required ? <span className="ml-0.5 text-destructive">*</span> : null}
                   </Label>
@@ -198,7 +203,8 @@ export function EditableField({
           </div>
         ))}
       </div>
-      {description ? <p className="mt-2 text-xs leading-5 text-slate-500">{description}</p> : null}
+      {description ? <p className="mt-2 text-xs leading-5 text-muted-foreground">{description}</p> : null}
+      {editDescription ? <p className="mt-2 text-xs leading-5 text-muted-foreground">{editDescription}</p> : null}
       {error ? <p className="mt-3 text-sm text-destructive">{error}</p> : null}
       <div className="mt-4 flex items-center gap-2">
         <Button type="submit" size="sm" disabled={saving || !dirty}>

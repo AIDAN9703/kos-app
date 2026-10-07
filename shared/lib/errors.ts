@@ -1,3 +1,5 @@
+import type { ZodError } from "zod";
+
 /**
  * Failures whose message is safe to show the person. The data layer throws
  * them; server actions turn them into { success: false, error } (actionError)
@@ -31,6 +33,17 @@ export class InvalidFields extends UserFacingError {
     super(message, 400);
     this.name = "InvalidFields";
   }
+}
+
+/** Zod's failures as InvalidFields, one message list per field. */
+export function invalidFieldsFrom(error: ZodError): InvalidFields {
+  return new InvalidFields(
+    Object.fromEntries(
+      Object.entries(error.flatten().fieldErrors).filter(
+        (entry): entry is [string, string[]] => Array.isArray(entry[1]) && entry[1].length > 0
+      )
+    )
+  );
 }
 
 /**

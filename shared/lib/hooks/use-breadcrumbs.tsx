@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { usePathname } from 'next/navigation';
 import { ADMIN_NAV_ITEMS } from '@/shared/lib/constants/navigation-data';
+import { isUuid } from '@/shared/lib/utils/general-utils';
 
 type BreadcrumbItem = {
   title: string;
@@ -10,6 +11,8 @@ type BreadcrumbItem = {
 };
 
 function titleFromSegment(segment: string) {
+  // A record id (a person, boat or booking) reads as "Details", not a uuid.
+  if (isUuid(segment)) return 'Details';
   return segment
     .replace(/[-_]/g, ' ')
     .replace(/\b\w/g, (char) => char.toUpperCase());

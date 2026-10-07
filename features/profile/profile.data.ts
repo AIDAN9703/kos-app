@@ -13,7 +13,7 @@ import { auth } from "@/shared/lib/auth/auth";
 import { getOrCreateStripeCustomer, getStripe } from "@/shared/lib/services/stripe.service";
 import { getBaseUrl } from "@/shared/lib/utils/base-url";
 import { displayName } from "@/shared/lib/auth/session-user";
-import { AccessDenied, InvalidFields, UserFacingError } from "@/shared/lib/errors";
+import { AccessDenied, InvalidFields, invalidFieldsFrom, UserFacingError } from "@/shared/lib/errors";
 import { assertSignedIn, hasRole } from "@/shared/lib/utils/auth-utils";
 import { formatPhoneNumberE164, isUuid } from "@/shared/lib/utils/general-utils";
 import { emailSchema, passwordSchema } from "@/shared/lib/validation/common";
@@ -23,14 +23,6 @@ import { emailSchema, passwordSchema } from "@/shared/lib/validation/common";
  * captains) assignments. Every function reads the person from the session —
  * never an id from the browser — so nobody can reach another account's rows.
  */
-
-function fieldErrorsOf(error: z.ZodError): Record<string, string[]> {
-  return Object.fromEntries(
-    Object.entries(error.flatten().fieldErrors).filter(
-      (entry): entry is [string, string[]] => Array.isArray(entry[1]) && entry[1].length > 0
-    )
-  );
-}
 
 // ============================================================================
 // READS
@@ -114,7 +106,7 @@ export async function updateMyAccount(input: Partial<ProfileFormValues>): Promis
     profileImage: current.profileImage,
     ...changes,
   });
-  if (!parsed.success) throw new InvalidFields(fieldErrorsOf(parsed.error));
+  if (!parsed.success) throw invalidFieldsFrom(parsed.error);
 
   // Only what the caller sent; empty strings clear optional columns. Phones
   // are stored as +1XXXXXXXXXX: phone sign-in and booking matching look them
@@ -205,7 +197,7 @@ export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 export async function changeMyPassword(input: ChangePasswordInput): Promise<void> {
   await assertSignedIn();
   const parsed = changePasswordSchema.safeParse(input);
-  if (!parsed.success) throw new InvalidFields(fieldErrorsOf(parsed.error));
+  if (!parsed.success) throw invalidFieldsFrom(parsed.error);
 
   const requestHeaders = await headers();
   const methods = await auth.api.listUserAccounts({ headers: requestHeaders });

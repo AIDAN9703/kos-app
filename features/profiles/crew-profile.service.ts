@@ -10,7 +10,7 @@ import { and, asc, eq, ilike, or } from "drizzle-orm";
 import type { CrewStatus } from "@/database/types";
 import type { CrewProfileAdminRow } from "@/features/profiles/crew.types";
 import type { PromoteCrewFormInput } from "@/features/profiles/promote-crew.validation";
-import { addUserRole } from "@/features/users/user-access.service";
+import { addUserRole, notDeactivatedSql } from "@/features/users/user-access.service";
 
 /** Profiles in these states cannot be overwritten by admin promote (already crew or restricted). */
 const NON_PROMOTABLE_CREW_STATUSES = new Set<CrewStatus>(["ACTIVE", "ON_LEAVE", "SUSPENDED"]);
@@ -27,7 +27,7 @@ class CrewProfileService {
       })
       .from(crewProfiles)
       .innerJoin(users, eq(crewProfiles.userId, users.id))
-      .where(and(eq(crewProfiles.status, "ACTIVE"), eq(users.status, "ACTIVE")))
+      .where(and(eq(crewProfiles.status, "ACTIVE"), eq(users.status, "ACTIVE"), notDeactivatedSql()))
       .orderBy(asc(users.lastName), asc(users.firstName))
       .limit(200);
   }
@@ -39,7 +39,7 @@ class CrewProfileService {
       .from(crewProfiles)
       .innerJoin(users, eq(crewProfiles.userId, users.id))
       .where(
-        and(eq(users.id, userId), eq(crewProfiles.status, "ACTIVE"), eq(users.status, "ACTIVE"))
+        and(eq(users.id, userId), eq(crewProfiles.status, "ACTIVE"), eq(users.status, "ACTIVE"), notDeactivatedSql())
       )
       .limit(1);
     return row != null;

@@ -7,7 +7,7 @@ import "server-only";
 import { db } from "@/database/db";
 import { users } from "@/database/schema";
 import { and, desc, eq, ilike, or } from "drizzle-orm";
-import { hasRoleSql } from "@/features/users/user-access.service";
+import { hasRoleSql, notDeactivatedSql } from "@/features/users/user-access.service";
 
 class OwnerProfileService {
   /**
@@ -15,7 +15,7 @@ class OwnerProfileService {
    * (The owner_profile row only holds business details, and may not exist yet.)
    */
   async getOwnersForAssignment(search?: string) {
-    const conditions = [eq(users.status, "ACTIVE"), hasRoleSql("owner")];
+    const conditions = [eq(users.status, "ACTIVE"), notDeactivatedSql(), hasRoleSql("owner")];
 
     if (search) {
       conditions.push(

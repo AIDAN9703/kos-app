@@ -3,19 +3,23 @@ import {
   parseAsBoolean,
   parseAsInteger,
   parseAsString,
+  parseAsStringLiteral,
 } from "nuqs/server";
 import { ADMIN_LIST_DEFAULT_PAGE_SIZE } from "@/shared/admin/list-pagination";
+import { USER_LIST_VIEWS } from "@/features/users/user.validation";
 
 /**
- * Shared search params config for users page.
- * Used by both Server Component (createSearchParamsCache) and Client (useQueryStates).
- * Single source of truth - no duplication between page and filters.
+ * The people list's URL state, shared by the page (createSearchParamsCache)
+ * and the toolbar (useQueryStates).
  */
 export const userSearchParams = {
   search: parseAsString.withDefault(""),
-  isAdmin: parseAsBoolean,
+  /** A role, customers, or deactivated accounts; none = everyone. */
+  view: parseAsStringLiteral(USER_LIST_VIEWS),
   page: parseAsInteger.withDefault(1),
   limit: parseAsInteger.withDefault(ADMIN_LIST_DEFAULT_PAGE_SIZE),
+  /** Opens the Add user sheet (toolbar button, the header's + menu, deep links). */
+  newUser: parseAsBoolean,
 };
 
 export const userSearchParamsCache = createSearchParamsCache(userSearchParams);

@@ -1,65 +1,60 @@
-import { getUserDetail } from "@/features/users/user.data";
-import { UserProfileHeader } from "@/features/users/components/AdminUserProfileHeader";
-import { AdminUserPersonalInfo } from "@/features/users/components/AdminUserPersonalInfo";
-import { AdminUserAccountInfo } from "@/features/users/components/AdminUserAccountInfo";
-import { AdminUserRecentBookings } from "@/features/users/components/AdminUserRecentBookings";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
-import { Skeleton } from "@/shared/components/ui/skeleton";
+import { Avatar, AvatarImage } from "@/shared/components/ui/avatar";
+import { DefaultUserAvatarFallback } from "@/shared/lib/utils/user-utils";
+import { formatDate } from "@/shared/lib/utils/general-utils";
+import config from "@/shared/lib/config";
+import { getSession } from "@/shared/lib/utils/auth-utils";
+import { getUserProfile } from "@/features/users/user.data";
+import { RoleChips } from "@/features/users/components/RoleChips";
+import { UserActionsMenu } from "@/features/users/components/UserActionsMenu";
+import { UserDetailsCard } from "@/features/users/components/UserDetailsCard";
+import { UserRecords } from "@/features/users/components/UserRecords";
 
-interface UserDetailPageProps {
-  params: Promise<{ id: string }>;
-}
+export default async function UserPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const [user, session] = await Promise.all([getUserProfile(id), getSession()]);
+  if (!user) notFound();
 
-export default async function UserDetailPage({ params }: UserDetailPageProps) {
-  const resolvedParams = await params;
-  const userId = resolvedParams.id;
-
-  return (
-    <div className="flex flex-1 flex-col space-y-6">
-      <Suspense fallback={<ProfileSkeleton />}>
-        <UserProfile userId={userId} />
-      </Suspense>
-    </div>
-  );
-}
-
-// Separate component for data fetching to enable Suspense
-async function UserProfile({ userId }: { userId: string }) {
-  const detail = await getUserDetail(userId);
-  if (!detail) notFound();
-  const { user, signInMethods } = detail;
+  const stripeHref = user.stripeCustomerId
+    ? `https://dashboard.stripe.com${config.stripeLive ? "" : "/test"}/customers/${user.stripeCustomerId}`
+    : null;
 
   return (
-    <div className="flex flex-1 flex-col space-y-6">
-      <UserProfileHeader
-        user={user}
-        captainProfileStatus={user.captainProfile?.status ?? null}
-        crewProfileStatus={user.crewProfile?.status ?? null}
-      />
+    <div className="mx-auto w-full max-w-6xl space-y-6 pt-6 pb-12">
+      <header className="flex flex-wrap items-center gap-4">
+        <Avatar className="size-14 shrink-0">
+          <AvatarImage src={user.profileImage || undefined} alt={user.name} />
+          <DefaultUserAvatarFallback size="md" />
+        </Avatar>
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-xl font-semibold text-foreground">{user.name || user.email}</h1>
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+            <RoleChips roles={user.roles} deactivated={user.deactivated} />
+            <span className="text-xs text-muted-foreground">Joined {formatDate(user.createdAt)}</span>
+          </div>
+        </div>
+        <UserActionsMenu
+          userId={user.id}
+          name={user.name || user.email}
+          hasPassword={user.signInMethods.includes("credential")}
+          deactivated={user.deactivated}
+          canDelete={user.canDelete}
+          isSelf={session?.user.id === user.id}
+          captainStatus={user.captainStatus}
+          crewStatus={user.crewStatus}
+        />
+      </header>
 
-      {/* Info Cards - bubble style */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <AdminUserPersonalInfo user={user} />
-        <AdminUserAccountInfo user={user} signInMethods={signInMethods} />
+      {user.deactivated ? (
+        <p className="rounded-lg border border-destructive/40 bg-destructive-soft px-4 py-3 text-sm text-destructive">
+          This account is deactivated: they can&apos;t sign in. Reactivate them from the ⋯ menu.
+        </p>
+      ) : null}
+
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
+        <UserDetailsCard user={user} stripeHref={stripeHref} />
+        <UserRecords user={user} />
       </div>
-
-      {/* Recent Bookings - full width */}
-      <AdminUserRecentBookings userId={user.id} bookings={user.bookings} />
-    </div>
-  );
-}
-// Skeleton UI for loading state
-function ProfileSkeleton() {
-  return (
-    <div className="flex flex-1 flex-col space-y-6">
-      <Skeleton className="h-5 w-32" />
-      <Skeleton className="h-20 w-full max-w-2xl" />
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Skeleton className="h-[280px] rounded-xl" />
-        <Skeleton className="h-[280px] rounded-xl" />
-      </div>
-      <Skeleton className="h-[320px] rounded-xl" />
     </div>
   );
 }

@@ -147,17 +147,47 @@ const options = {
     },
     revokeSessionsOnPasswordReset: true,
     sendResetPassword: async ({ user, url }) => {
-      logLinkInDevelopment("password reset", user.email, url);
-      void sendAccountEmail({
-        to: user.email,
-        name: (user as { firstName?: string | null }).firstName ?? user.name,
-        subject: "Reset your password — Kings Of The Sea",
-        previewText: "Use this link to choose a new password.",
-        lead: "We received a request to reset the password on your Kings Of The Sea account. The link below works for one hour.",
-        buttonLabel: "Choose a new password",
-        url,
-        footnote: "Didn't ask for this? You can ignore this email; your password stays the same.",
-      });
+      const name = (user as { firstName?: string | null }).firstName ?? user.name;
+      // No password yet = an account an admin created: this is its invitation.
+      const [credential] = await db
+        .select({ id: accounts.id })
+        .from(accounts)
+        .where(and(eq(accounts.userId, user.id), eq(accounts.providerId, "credential")))
+        .limit(1);
+      logLinkInDevelopment(credential ? "password reset" : "account setup", user.email, url);
+      void sendAccountEmail(
+        credential
+          ? {
+              to: user.email,
+              name,
+              subject: "Reset your password — Kings Of The Sea",
+              previewText: "Use this link to choose a new password.",
+              lead: "We received a request to reset the password on your Kings Of The Sea account. The link below works for one hour.",
+              buttonLabel: "Choose a new password",
+              url,
+              footnote: "Didn't ask for this? You can ignore this email; your password stays the same.",
+            }
+          : {
+              to: user.email,
+              name,
+              subject: "Set up your Kings Of The Sea account",
+              previewText: "Choose a password to finish setting up your account.",
+              lead: "An account has been created for you at Kings Of The Sea. Choose a password to sign in. The link works for one hour; after that, use \"Forgot password\" on the sign-in page with this email.",
+              buttonLabel: "Choose a password",
+              url,
+              footnote: "Not expecting this? You can ignore this email.",
+            }
+      );
+    },
+    // The reset link went to their inbox, so finishing it proves the email:
+    // mark it verified (an admin-created account's first sign-in) and adopt
+    // guest bookings made with it.
+    onPasswordReset: async ({ user }) => {
+      if (user.emailVerified) return;
+      await db.update(users).set({ emailVerified: true }).where(eq(users.id, user.id));
+      await claimGuestBookingsForUser(user.id).catch((err) =>
+        console.error("Guest-booking claim failed:", err)
+      );
     },
   },
 

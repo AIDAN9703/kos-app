@@ -4,7 +4,7 @@ import { SignOutButton } from "@/features/auth/components/SignOutButton";
 import { requestEmailChange, updateAccountDetails } from "@/features/profile/actions/account.actions";
 import { BillingPortalButton } from "@/features/profile/components/BillingPortalButton";
 import { PageHeader } from "@/features/profile/components/PageHeader";
-import { EditableField } from "@/features/profile/components/settings/EditableField";
+import { EditableField } from "@/shared/components/EditableField";
 import { NotificationPreferencesForm } from "@/features/profile/components/settings/NotificationPreferencesForm";
 import { PasswordSection } from "@/features/profile/components/settings/PasswordSection";
 import { ProfilePhotoField } from "@/features/profile/components/settings/ProfilePhotoField";

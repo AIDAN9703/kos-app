@@ -145,16 +145,14 @@ variables.
 
 ## 4. Accounts and staff (Better Auth)
 - **Two-step login** required for admins and brokers.
-- **Banning** (Better Auth has it built in) to replace the old "status" field. Staff
-  dropdowns still filter on that field, but nothing can change it any more.
+- **Retire the old "status" field.** Deactivating (a Better Auth ban) is live on the
+  person's page, and the staff, owner and account pickers skip deactivated people. They
+  also still check the old `user.status`, which nothing can change any more. Turn any
+  non-ACTIVE statuses into bans with a migration, then drop the checks.
 - **"Log in as this customer"** for support, with a log of every use.
 - **Audit log:** sign-ins, role changes, bans, impersonations.
 - **Customers can delete their own account** (privacy laws expect it).
 - **Prompt unverified users** to confirm their email.
-- **Admin user deletion is a hard delete today.** The person's notes on deals are
-  deleted, they disappear from past trips' crew lists, and their deals lose their
-  assignee. Should become "deactivate" (ban) instead. Discuss with the admin Users UI
-  changes.
 - Optional: shorter login sessions for staff, passkeys.
 
 ## 5. Safety nets
@@ -164,8 +162,12 @@ variables.
 - **Startup check** that every required environment variable is set.
 
 ## 6. Cleanup
-- Rename the four `*.mutations.ts` files (add-ons, settings, boats, users) to
-  `*.actions.ts`.
+- Rename the three remaining `*.mutations.ts` files (add-ons, settings, boats) to
+  `*.actions.ts`. Users is done.
+- **Admin styling leftovers:** the shared `Badge` and `StatusBadge` use light-theme
+  colours (`bg-slate-100`, `bg-emerald-50`), so the boats, blog and add-ons tables look
+  washed out on the dark admin. Toasts also render light in admin. Give them the
+  admin's semantic tokens, the way the Users screens now do.
 - Replace the stale `public/sitemap.xml` / `robots.txt` with Next's built-in
   `app/sitemap.ts` and `app/robots.ts`. That also removes the last `npm audit` warnings,
   which come from next-sitemap.

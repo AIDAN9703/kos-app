@@ -10,7 +10,7 @@ import { and, asc, eq, ilike, or } from "drizzle-orm";
 import type { CaptainStatus } from "@/database/types";
 import type { CaptainProfileAdminRow } from "@/features/profiles/crew.types";
 import type { PromoteCaptainFormInput } from "@/features/profiles/promote-captain.validation";
-import { addUserRole } from "@/features/users/user-access.service";
+import { addUserRole, notDeactivatedSql } from "@/features/users/user-access.service";
 
 const DISABLED_STATUS: CaptainStatus = "INACTIVE";
 
@@ -27,7 +27,7 @@ class CaptainProfileService {
       .from(captainProfiles)
       .innerJoin(users, eq(captainProfiles.userId, users.id))
       .where(
-        and(eq(captainProfiles.status, "ACTIVE"), eq(users.status, "ACTIVE"))
+        and(eq(captainProfiles.status, "ACTIVE"), eq(users.status, "ACTIVE"), notDeactivatedSql())
       )
       .orderBy(asc(users.lastName), asc(users.firstName))
       .limit(200);
@@ -43,7 +43,7 @@ class CaptainProfileService {
         and(
           eq(users.id, userId),
           eq(captainProfiles.status, "ACTIVE"),
-          eq(users.status, "ACTIVE")
+          eq(users.status, "ACTIVE"), notDeactivatedSql()
         )
       )
       .limit(1);

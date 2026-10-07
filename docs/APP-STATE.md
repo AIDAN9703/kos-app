@@ -133,7 +133,16 @@ Unset boats fall back to America/New_York. Prod's remaining 12: 2 at La Coloma M
   Account settings. Guest checkout throughout.
 - **Roles** — `user.role`, comma-separated: admin, broker, owner, captain, crew, customer.
   Permissions in `shared/lib/auth/permissions.ts` (Better Auth access control). Admins set
-  admin/broker/owner in the user form; captain/crew come from their promotion flows.
+  admin/broker/owner on the person's page; captain/crew come from their promotion flows.
+- **Admin people (`/admin/users`, 2026-10)** — list with role views; **Add user** is a
+  right-hand sheet (`?newUser=true`, also in the header's + menu) that creates the account
+  with no password and emails a set-password link. Finishing that link marks the email
+  verified (`emailAndPassword.onPasswordReset`). The person's page edits each row in
+  place (the shared `shared/components/EditableField.tsx`). Its ⋯ menu covers:
+  password email, make captain or crew, deactivate (a Better Auth ban: signed out, can't
+  sign in, history kept), and delete permanently, offered only when nothing references
+  them. An admin changing someone's email or phone clears its verified flag (a new email
+  gets a confirmation link).
 - **Broker portal (`/brokers`, 2026-10)** — the admin shell and deal screens, limited to
   deals assigned to the broker. Every deal action checks
   `features/bookings/lib/deal-access.ts`; brokers never see company costs/margin,

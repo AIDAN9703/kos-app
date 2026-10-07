@@ -1,82 +1,69 @@
 "use client";
 
-import { useMemo } from "react";
-import Link from "next/link";
 import { useQueryStates } from "nuqs";
-import { Plus, ShieldCheck } from "lucide-react";
-import {
-  AdminToolbar,
-  FilterChips,
-  FilterField,
-  FilterPopover,
-  FilterSearch,
-  type FilterChipItem,
-} from "@/shared/admin/filters";
+import { Plus } from "lucide-react";
+import { AdminToolbar, FilterSearch } from "@/shared/admin/filters";
 import { Button } from "@/shared/components/ui/button";
-import { Checkbox } from "@/shared/components/ui/checkbox";
+import { cn } from "@/shared/lib/utils/general-utils";
+import type { UserListView } from "@/features/users/user.validation";
 import { userSearchParams } from "../searchParams";
 
+const VIEWS: { value: UserListView | null; label: string }[] = [
+  { value: null, label: "Everyone" },
+  { value: "admin", label: "Admins" },
+  { value: "broker", label: "Brokers" },
+  { value: "owner", label: "Owners" },
+  { value: "captain", label: "Captains" },
+  { value: "crew", label: "Crew" },
+  { value: "customer", label: "Customers" },
+  { value: "deactivated", label: "Deactivated" },
+];
+
+/** People list toolbar: search, who to show, and Add user (opens the sheet). */
 export function AdminUserFilter() {
-  const [filters, setFilters] = useQueryStates(userSearchParams, {
-    clearOnDefault: true,
-    shallow: false,
-  });
-
-  const updateFilter = (updates: Partial<typeof filters>) => {
-    setFilters({ ...updates, page: 1 });
-  };
-
-  const activeCount = useMemo(
-    () => (filters.isAdmin === true ? 1 : 0),
-    [filters.isAdmin]
-  );
-
-  const clearAll = () => {
-    setFilters({ search: "", isAdmin: null, page: 1 });
-  };
-
-  const chips: FilterChipItem[] = [];
-  if (filters.isAdmin === true) {
-    chips.push({
-      key: "isAdmin",
-      label: "Admins only",
-      onRemove: () => updateFilter({ isAdmin: null }),
-    });
-  }
+  const [filters, setFilters] = useQueryStates(userSearchParams, { clearOnDefault: true, shallow: false });
 
   return (
-    <div className="space-y-2 pb-3">
+    <div className="space-y-3 pb-3">
       <AdminToolbar
         trailing={
-          <Button asChild size="sm" className="h-9 gap-1.5">
-            <Link href="/admin/users/create">
-              <Plus className="h-3.5 w-3.5" />
-              Add user
-            </Link>
+          <Button size="sm" className="h-9 gap-1.5" onClick={() => setFilters({ newUser: true }, { shallow: true })}>
+            <Plus className="h-3.5 w-3.5" />
+            Add user
           </Button>
         }
       >
         <FilterSearch
           value={filters.search}
-          onChange={(v) => updateFilter({ search: v })}
-          placeholder="Search by name, email, or username..."
+          onChange={(search) => setFilters({ search, page: 1 })}
+          placeholder="Search by name, email or phone…"
         />
-        <FilterPopover activeCount={activeCount} onClearAll={clearAll}>
-          <FilterField icon={ShieldCheck} label="Role" className="sm:col-span-2">
-            <label className="flex cursor-pointer items-center gap-2 text-sm text-foreground">
-              <Checkbox
-                checked={filters.isAdmin === true}
-                onCheckedChange={(checked) =>
-                  updateFilter({ isAdmin: checked ? true : null })
-                }
-              />
-              Admins only
-            </label>
-          </FilterField>
-        </FilterPopover>
       </AdminToolbar>
 
-      <FilterChips chips={chips} onClearAll={clearAll} />
+      <div className="-mx-1 overflow-x-auto px-1">
+        <div role="tablist" aria-label="Show" className="inline-flex h-10 items-center rounded-full bg-muted p-1">
+          {VIEWS.map(({ value, label }) => {
+            const active = filters.view === value;
+            return (
+              <button
+                key={label}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => setFilters({ view: value, page: 1 })}
+                className={cn(
+                  "inline-flex h-8 shrink-0 items-center rounded-full px-3 text-sm font-medium whitespace-nowrap transition-colors",
+                  active
+                    ? "bg-background text-foreground shadow-sm ring-1 ring-border/60"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }

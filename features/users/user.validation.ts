@@ -1,63 +1,48 @@
 import * as z from "zod";
-import { passwordSchema, phoneSchema, emailSchema } from "@/shared/lib/validation/common";
+import { emailSchema, phoneSchema } from "@/shared/lib/validation/common";
 import { ASSIGNABLE_ROLES } from "./user-roles.constants";
 
-// Common user schema for admin create/edit (no profile image URL; captain/crew via promote flows)
-const userBaseSchema = z.object({
-  // Personal Information
-  firstName: z.string().optional().nullable(),
-  lastName: z.string().optional().nullable(),
-  bio: z.string().max(500, "Bio must be less than 500 characters").optional().nullable(),
+/**
+ * What an admin sets on a person. Their bio, address and photo are theirs to
+ * edit (profile settings); captain and crew come from the promote flows;
+ * verification comes from the person proving their email or phone.
+ */
 
-  // Account Information
-  username: z
-    .string()
-    .min(3, "Username must be at least 3 characters")
-    .max(30, "Username must be less than 30 characters")
-    .regex(
-      /^[a-zA-Z0-9_-]+$/,
-      "Username can only contain letters, numbers, underscores, and hyphens"
-    ),
+const nameSchema = z.string().trim().min(1, "Required").max(60);
+
+/** Admin, broker, owner. Captain and crew are granted through their own flows. */
+export const assignableRolesSchema = z.array(z.enum(ASSIGNABLE_ROLES));
+
+export const createUserSchema = z.object({
+  firstName: nameSchema,
+  lastName: nameSchema,
   email: emailSchema,
   phoneNumber: phoneSchema,
-  // Admin, broker, owner. Captain and crew are granted through their own flows.
-  roles: z.array(z.enum(ASSIGNABLE_ROLES)).default([]),
-
-  // Contact Information
-  address: z.string().max(100, "Address must be less than 100 characters").optional().nullable(),
-  city: z.string().max(50, "City must be less than 50 characters").optional().nullable(),
-  state: z.string().max(50, "State must be less than 50 characters").optional().nullable(),
-  postalCode: z
-    .string()
-    .regex(/^[0-9a-zA-Z\s-]{3,10}$/, "Please enter a valid postal/zip code")
-    .optional()
-    .nullable(),
-  country: z.string().max(50, "Country must be less than 50 characters").optional().nullable(),
-
-  // Admin can set verification status (for testing/manual verification)
-  emailVerified: z.boolean().default(false),
-  phoneVerified: z.boolean().default(false),
-  identityVerified: z.boolean().default(false),
-  identityVerificationType: z.string().optional().nullable(),
+  roles: assignableRolesSchema.default([]),
 });
 
-// Create user schema (requires password)
-export const createUserSchema = userBaseSchema.extend({
-  password: passwordSchema,
-});
+/** One row of the person's page at a time: their name, email or phone. */
+export const updateUserDetailsSchema = z
+  .object({
+    firstName: nameSchema,
+    lastName: nameSchema,
+    email: emailSchema,
+    phoneNumber: phoneSchema,
+  })
+  .partial();
 
-// Update user schema (password is optional, all other fields are optional)
-export const updateUserSchema = userBaseSchema.partial().extend({
-  password: passwordSchema.optional(),
-});
+/** Who appears in the people list. */
+export const USER_LIST_VIEWS = ["admin", "broker", "owner", "captain", "crew", "customer", "deactivated"] as const;
+export type UserListView = (typeof USER_LIST_VIEWS)[number];
 
 /** User list filters. */
 export interface UserFilterInput {
   page?: number;
   limit?: number;
   search?: string;
-  isAdmin?: boolean;
+  view?: UserListView;
 }
 
-export type CreateUserInput = z.infer<typeof createUserSchema>;
-export type UpdateUserInput = z.infer<typeof updateUserSchema>;
+export type CreateUserInput = z.input<typeof createUserSchema>;
+export type CreateUserData = z.output<typeof createUserSchema>;
+export type UpdateUserDetailsInput = z.infer<typeof updateUserDetailsSchema>;

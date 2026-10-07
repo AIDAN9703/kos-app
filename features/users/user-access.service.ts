@@ -10,9 +10,8 @@ import { formatRoles, parseRoles, type Role } from "@/shared/lib/auth/permission
 import type { AssignableRole } from "./user-roles.constants";
 
 /**
- * Admin changes to who someone is and how they sign in. Each goes through
- * Better Auth's admin API, which checks the caller may do it (user:set-role,
- * user:set-password).
+ * Admin changes to someone's roles, through Better Auth's admin API, which
+ * checks the caller may do it (user:set-role); and how a person can sign in.
  */
 
 export { ASSIGNABLE_ROLES, type AssignableRole } from "./user-roles.constants";
@@ -20,6 +19,11 @@ export { ASSIGNABLE_ROLES, type AssignableRole } from "./user-roles.constants";
 /** WHERE clause: the user holds `role`. */
 export function hasRoleSql(role: Role): SQL {
   return sql`${role} = ANY(string_to_array(${users.role}, ','))`;
+}
+
+/** WHERE clause: the account isn't deactivated (a Better Auth ban). */
+export function notDeactivatedSql(): SQL {
+  return sql`${users.banned} IS NOT TRUE`;
 }
 
 export async function setUserRoles(userId: string, list: Role[]): Promise<void> {
@@ -43,11 +47,6 @@ export async function addUserRole(userId: string, role: Role): Promise<void> {
 export function mergeAssignableRoles(currentRole: string | null, picked: AssignableRole[]): Role[] {
   const kept = parseRoles(currentRole).filter((role) => role === "captain" || role === "crew");
   return [...kept, ...picked];
-}
-
-/** Set or replace someone's password (creates their email + password sign-in if they had none). */
-export async function setUserPassword(userId: string, newPassword: string): Promise<void> {
-  await auth.api.setUserPassword({ body: { userId, newPassword }, headers: await headers() });
 }
 
 /** How a person can sign in: "credential" (email + password), "google", … */

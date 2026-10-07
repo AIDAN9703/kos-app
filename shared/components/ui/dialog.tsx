@@ -5,10 +5,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-import {
-  adminShellClassName,
-  isAdminShellActive,
-} from "@/shared/admin/admin-shell-classes";
+import { useAdminShellClassName } from "@/shared/admin/admin-shell-classes";
 import { cn } from "@/shared/lib/utils/general-utils";
 
 const Dialog = DialogPrimitive.Root;
@@ -38,11 +35,7 @@ const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
 >(({ className, children, ...props }, ref) => {
-  const [adminShellClasses, setAdminShellClasses] = React.useState("");
-
-  React.useEffect(() => {
-    setAdminShellClasses(isAdminShellActive() ? adminShellClassName() : "");
-  }, []);
+  const adminShellClasses = useAdminShellClassName();
 
   return (
     <DialogPortal>
