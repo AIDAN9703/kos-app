@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { Button } from "@/shared/components/ui/button";
-import { Input } from "@/shared/components/ui/input";
+import { PasswordInput } from "@/shared/components/ui/password-input";
 import { Label } from "@/shared/components/ui/label";
 import { authClient } from "@/shared/lib/auth/auth-client";
 import { passwordSchema } from "@/shared/lib/validation/common";
@@ -73,9 +73,8 @@ export default function ResetPasswordForm() {
           <Label htmlFor="new-password" className="ml-1 text-sm font-medium text-gray-700">
             New password
           </Label>
-          <Input
+          <PasswordInput
             id="new-password"
-            type="password"
             required
             autoComplete="new-password"
             value={password}
@@ -90,9 +89,8 @@ export default function ResetPasswordForm() {
           <Label htmlFor="confirm-password" className="ml-1 text-sm font-medium text-gray-700">
             Confirm new password
           </Label>
-          <Input
+          <PasswordInput
             id="confirm-password"
-            type="password"
             required
             autoComplete="new-password"
             value={confirm}

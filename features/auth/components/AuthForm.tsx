@@ -22,6 +22,7 @@ import {
   FormMessage,
 } from "@/shared/components/ui/form";
 import { Input } from "@/shared/components/ui/input";
+import { PasswordInput } from "@/shared/components/ui/password-input";
 import Link from "next/link";
 import { FIELD_NAMES, FIELD_TYPES } from "@/shared/lib/constants";
 import { useSearchParams } from "next/navigation";
@@ -211,17 +212,23 @@ const AuthForm = <T extends FieldValues>({
                     {FIELD_NAMES[field.name as keyof typeof FIELD_NAMES]}
                   </FormLabel>
                   <FormControl>
-                    <Input
-                      required
-                      type={FIELD_TYPES[field.name as keyof typeof FIELD_TYPES]}
-                      {...field}
-                      className={
-                        isEmbedded
-                          ? bookingAuthInputClass
-                          : "h-10 text-sm"
-                      }
-                      placeholder={`Enter your ${((FIELD_NAMES[field.name as keyof typeof FIELD_NAMES] ?? field.name) || "").toLowerCase()}`}
-                    />
+                    {FIELD_TYPES[field.name as keyof typeof FIELD_TYPES] === "password" ? (
+                      <PasswordInput
+                        required
+                        autoComplete={isSignIn ? "current-password" : "new-password"}
+                        {...field}
+                        className={isEmbedded ? bookingAuthInputClass : "h-10 text-sm"}
+                        placeholder="Enter your password"
+                      />
+                    ) : (
+                      <Input
+                        required
+                        type={FIELD_TYPES[field.name as keyof typeof FIELD_TYPES]}
+                        {...field}
+                        className={isEmbedded ? bookingAuthInputClass : "h-10 text-sm"}
+                        placeholder={`Enter your ${((FIELD_NAMES[field.name as keyof typeof FIELD_NAMES] ?? field.name) || "").toLowerCase()}`}
+                      />
+                    )}
                   </FormControl>
                   <FormMessage />
                 </FormItem>
