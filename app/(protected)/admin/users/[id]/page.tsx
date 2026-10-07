@@ -24,13 +24,17 @@ export default async function UserPage({ params }: { params: Promise<{ id: strin
       <header className="flex flex-wrap items-center gap-4">
         <Avatar className="size-14 shrink-0">
           <AvatarImage src={user.profileImage || undefined} alt={user.name} />
-          <DefaultUserAvatarFallback size="md" />
+          <DefaultUserAvatarFallback size="lg" />
         </Avatar>
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-xl font-semibold text-foreground">{user.name || user.email}</h1>
+          <h1 className="truncate text-xl font-semibold text-foreground">
+            {user.name || user.email}
+          </h1>
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
             <RoleChips roles={user.roles} deactivated={user.deactivated} />
-            <span className="text-xs text-muted-foreground">Joined {formatDate(user.createdAt)}</span>
+            <span className="text-xs text-muted-foreground">
+              Joined {formatDate(user.createdAt)}
+            </span>
           </div>
         </div>
         <UserActionsMenu
