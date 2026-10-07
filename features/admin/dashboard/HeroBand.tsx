@@ -109,8 +109,8 @@ export function HeroBand({
                 <AreaChart data={spark} margin={{ top: 4, right: 0, bottom: 0, left: 0 }}>
                   <defs>
                     <linearGradient id="bridgeSpark" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="var(--color-primary)" stopOpacity={0.55} />
-                      <stop offset="100%" stopColor="var(--color-primary)" stopOpacity={0} />
+                      <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.55} />
+                      <stop offset="100%" stopColor="var(--primary)" stopOpacity={0} />
                     </linearGradient>
                     <linearGradient id="bridgeSparkSky" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.25} />
@@ -137,7 +137,7 @@ export function HeroBand({
                   <Area
                     type="monotone"
                     dataKey="gmv"
-                    stroke="var(--color-primary)"
+                    stroke="var(--primary)"
                     strokeWidth={2.25}
                     fill="url(#bridgeSpark)"
                     filter="url(#bridgeGlow)"

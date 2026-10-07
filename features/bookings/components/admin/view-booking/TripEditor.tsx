@@ -467,7 +467,7 @@ export function TripEditor({
                   <SelectTrigger className="h-10">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="admin-theme">
+                  <SelectContent>
                     <SelectItem value={CUSTOM}>Custom price</SelectItem>
                     {tiers.map((t) => (
                       <SelectItem key={t.id} value={t.id}>

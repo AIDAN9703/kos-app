@@ -65,13 +65,6 @@ export function DateTimePicker({
 }: DateTimePickerProps) {
   const [open, setOpen] = React.useState(false);
   const [time, setTime] = React.useState("09:00");
-  const containerRef = React.useRef<HTMLDivElement>(null);
-  const [isAdminTheme, setIsAdminTheme] = React.useState(false);
-
-  React.useEffect(() => {
-    setIsAdminTheme(!!containerRef.current?.closest("[data-admin-theme]"));
-  }, []);
-
   const date = value ? new Date(value) : undefined;
   const isValid = date && !isNaN(date.getTime());
   // Boat-local wall clock for the stored instant (e.g. "2026-08-17", "08:00").
@@ -110,7 +103,7 @@ export function DateTimePicker({
     : placeholder;
 
   return (
-    <div ref={containerRef} className={cn("flex flex-col gap-3", className)}>
+    <div className={cn("flex flex-col gap-3", className)}>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
@@ -128,7 +121,7 @@ export function DateTimePicker({
           </Button>
         </PopoverTrigger>
         <PopoverContent
-          className={cn("overflow-hidden p-0", isAdminTheme && "admin-theme")}
+          className="overflow-hidden p-0"
           align="start"
           style={{ width: 280, maxWidth: "calc(100vw - 2rem)" }}
         >
@@ -150,7 +143,7 @@ export function DateTimePicker({
               <SelectTrigger id={id ? `${id}-time` : undefined}>
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className={isAdminTheme ? "admin-theme" : undefined}>
+              <SelectContent>
                 {TIME_OPTIONS.map((t) => (
                   <SelectItem key={t} value={t}>
                     {to12Hour(t)}

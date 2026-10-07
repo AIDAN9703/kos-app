@@ -12,7 +12,6 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { useKBar, useRegisterActions } from 'kbar';
 import RenderResults from './render-result';
-import { adminShellClassName } from '@/shared/admin/admin-shell-classes';
 
 export default function KBar({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -46,7 +45,7 @@ const KBarComponent = ({ children }: { children: React.ReactNode }) => {
     <>
       <KBarPortal>
         <KBarPositioner
-          className={`${adminShellClassName()} bg-background/80 fixed inset-0 z-50 p-0 backdrop-blur-sm`}
+          className='bg-background/80 fixed inset-0 z-50 p-0 backdrop-blur-sm'
         >
           <KBarAnimator className='bg-background text-foreground relative mt-64 w-full max-w-[600px] -translate-y-12 overflow-hidden rounded-lg border border-border shadow-lg'>
             <div className='bg-background border-border sticky top-0 z-10 border-b'>

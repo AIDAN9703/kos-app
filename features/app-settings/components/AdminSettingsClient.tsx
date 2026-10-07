@@ -9,7 +9,7 @@ import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { useToast } from "@/shared/lib/hooks/use-toast";
 import { cn } from "@/shared/lib/utils/general-utils";
-import { updateAppSettings } from "@/features/app-settings/app-settings.mutations";
+import { updateAppSettings } from "@/features/app-settings/app-settings.actions";
 import { formatCentsAsCurrency } from "@/shared/lib/utils/money-utils";
 import { serviceFeeOn } from "@/shared/lib/utils/pricing-utils";
 import type { AppSettings } from "@/features/app-settings/app-settings.types";

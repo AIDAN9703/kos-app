@@ -66,7 +66,7 @@ export function AdminDashboardView({
               pricingTiers={pricingTiers}
               canLinkAccounts
               triggerLabel="New booking"
-              triggerClassName="h-10 gap-1.5 rounded-full px-5 text-sm font-semibold shadow-[0_0_20px_-8px_var(--color-primary)]"
+              triggerClassName="h-10 gap-1.5 rounded-full px-5 text-sm font-semibold shadow-[0_0_20px_-8px_var(--primary)]"
             />
           }
         />

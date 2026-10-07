@@ -4,96 +4,33 @@
 @plugin 'tailwindcss-animate';
 
 
+/* ── Brand palette and scales: fixed values, the same in every theme. ── */
 @theme {
   /* Montserrat: --font-montserrat is set on <body> via next/font in layout.tsx */
   --font-sans: var(--font-montserrat), ui-sans-serif, sans-serif;
   --font-serif: var(--font-montserrat), ui-sans-serif, sans-serif;
 
-  --color-background: hsl(var(--background));
-  --color-foreground: hsl(var(--foreground));
-
-  --color-card: hsl(var(--card));
-  --color-card-foreground: hsl(var(--card-foreground));
-
-  --color-popover: hsl(var(--popover));
-  --color-popover-foreground: hsl(var(--popover-foreground));
-
-  --color-secondary: hsl(var(--secondary));
-  --color-secondary-foreground: hsl(var(--secondary-foreground));
-
-  --color-muted: hsl(var(--muted));
-  --color-muted-foreground: hsl(var(--muted-foreground));
-
-  --color-accent: hsl(var(--accent));
-  --color-accent-foreground: hsl(var(--accent-foreground));
-
-  --color-destructive: hsl(var(--destructive));
-  --color-destructive-foreground: hsl(var(--destructive-foreground));
-
-  --color-border: hsl(var(--border));
-  --color-input: hsl(var(--input));
-  --color-ring: hsl(var(--ring));
-
-  /* Primary = the action color (buttons, selected states, rings).
-     Marketing keeps navy; .admin-theme re-points the family to gold.
-     -soft = translucent tint for highlights/pills
-     -strong = AA-readable text shade (links, labels) — a solid fill color
-     rarely has enough contrast to double as text, hence the split. */
-  --color-primary: #27445c;
-  --color-primary-foreground: #f8fafc;
-  --color-primary-soft: color-mix(in srgb, #27445c 10%, transparent);
-  --color-primary-strong: #27445c;
-  --color-destructive-foreground: #ffffff;
-  --color-success-foreground: var(--success-foreground, #ffffff);
-
-  /* ── KOS palette staples — the single source of truth ─────────────
-     Gold accents + the layered surface colors for each mode. The admin
-     theme assigns these to semantic roles; use the utilities directly
-     (bg-gold-accent, bg-dark-card, …) only for one-off brand moments. */
-  --color-gold-accent: #b2a37a;    /* THE gold — fills/rings/highlights, both modes */
+  /* KOS palette staples. The themes below assign these to semantic roles;
+     use the utilities directly (bg-gold-accent, bg-dark-card, …) only for
+     one-off brand moments. */
+  --color-gold-accent: #b2a37a;    /* THE gold — fills/rings/highlights */
   --color-gold-deep: #6a5d38;      /* gold text on light surfaces (AA) */
   --color-gold-glow: #d4c590;      /* gold text on dark surfaces (AA) */
-  /* Translucent gold tint for hover/selected highlights — the same color
-     in both modes so highlights read identically everywhere. */
-  --color-gold-soft: color-mix(in srgb, var(--color-gold-accent) 22%, transparent);
+  --color-gold-soft: color-mix(in srgb, #b2a37a 22%, transparent); /* gold tint for highlights */
+  --color-gold: #b2a37a;           /* marketing alias of gold-accent */
 
-  --color-dark-bg: #0e1b27;        /* dark mode canvas */
-  --color-dark-card: #15283a;      /* dark mode surfaces */
-  --color-dark-main: #0c1722;      /* dark mode deepest layer (sidebar/root) */
+  --color-dark-bg: #0e1b27;        /* admin canvas */
+  --color-dark-card: #15283a;      /* admin surfaces */
+  --color-dark-main: #0c1722;      /* admin deepest layer (sidebar) */
+  --color-light-main: #eef1f5;     /* site secondary fills */
 
-  --color-light-card: #ffffff;     /* light mode surfaces */
-  --color-light-main: #eef1f5;     /* light mode secondary fills */
-
-  /* Marketing-site alias — same gold, one definition */
-  --color-gold: var(--color-gold-accent);
-
-  /* Semantic state tokens. Bare vars are set by .admin-theme (dark-only
-     admin); fallbacks = the marketing site's light values. */
-  --color-success: var(--success, #1f7a55);
-  --color-success-soft: var(--success-soft, #e9f6ef);
-  --color-warning: var(--warning, #8a5a16);
-  --color-warning-soft: var(--warning-soft, #fbf1e2);
-  --color-destructive-soft: var(--destructive-soft, #fdece9);
-
-  /* Sidebar/header chrome tokens — required for bg-sidebar, border-sidebar-border,
-     etc. to exist as utilities. Defaults suit the marketing site;
-     .admin-theme overrides them (dark-only admin). */
-  --color-sidebar: var(--color-light-card);
-  --color-sidebar-foreground: #1e293b;
-  --color-sidebar-primary: #27445c;
-  --color-sidebar-primary-foreground: #f8fafc;
-  --color-sidebar-accent: var(--color-gold-soft);
-  --color-sidebar-accent-foreground: var(--color-gold-deep);
-  --color-sidebar-border: #e4e8ee;
-  --color-sidebar-ring: var(--color-gold-deep);
-
+  /* Older one-offs that replace Tailwind's default shades of the same name
+     (gray-100 here is a slate-300 tone, red-500 an orange). Kept as they are
+     used across the site; prefer semantic colors in new code. */
   --color-red-400: #f46f70;
   --color-red-500: #e27233;
-
   --color-blue-100: #0089f1;
-
   --color-light-200: #eed1ac;
-
   --color-gray-100: #cbd5e1;
 
   --breakpoint-xs: 480px;
@@ -127,21 +64,175 @@
   }
 }
 
-/*
-  The default border color has changed to `currentcolor` in Tailwind CSS v4,
-  so we've added these compatibility styles to make sure everything still
-  looks the same as it did with Tailwind CSS v3.
+/* ── Semantic colors. Each maps to a theme variable (below), so utilities
+   like bg-card or text-success follow whichever theme is active — the site
+   or the admin — including dialogs, menus and toasts rendered into <body>.
+   "inline" matters: Tailwind writes var(--card) into the utility instead of
+   resolving it once at :root. ── */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
 
-  If we ever want to remove these styles, we need to add an explicit border
-  color utility to any element that depends on these defaults.
-*/
+  /* Primary = the action color (buttons, selected states, rings).
+     -soft = translucent tint for highlights/pills
+     -strong = AA-readable text shade (links, labels) — a fill color rarely
+     has enough contrast to double as text, hence the split. */
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-strong: var(--primary-strong);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  /* States: solid for text and fills, -soft for tinted backgrounds. */
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-soft: var(--destructive-soft);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Sidebar/header chrome (bg-sidebar, border-sidebar-border, …). */
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+/* ── Site theme: light, navy primary. ── */
+:root {
+  --radius: 0.5rem;
+
+  /* Sticky main-site navbar height. Used by sticky/scroll layouts (e.g.
+     /boats/search map column) so they don't drift if the navbar resizes.
+     Matches Navigation's compact variant (in-nav search). Home uses a
+     taller navbar but has no sticky consumers, so a single value is fine. */
+  --header-h: 4.25rem;
+
+  --background: hsl(0 0% 100%);
+  --foreground: hsl(222.2 84% 4.9%);
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(222.2 84% 4.9%);
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(222.2 84% 4.9%);
+  --primary: #27445c;
+  --primary-foreground: #f8fafc;
+  --primary-soft: color-mix(in srgb, #27445c 10%, transparent);
+  --primary-strong: #27445c;
+  --secondary: hsl(210 40% 96.1%);
+  --secondary-foreground: hsl(222.2 47.4% 11.2%);
+  --muted: hsl(210 40% 96.1%);
+  --muted-foreground: hsl(215.4 16.3% 46.9%);
+  --accent: hsl(210 40% 96.1%);
+  --accent-foreground: hsl(222.2 47.4% 11.2%);
+  --destructive: hsl(0 84.2% 60.2%);
+  --destructive-foreground: #ffffff;
+  --destructive-soft: #fdece9;
+  --success: #1f7a55;
+  --success-foreground: #ffffff;
+  --success-soft: #e9f6ef;
+  --warning: #8a5a16;
+  --warning-soft: #fbf1e2;
+  --info: #1d4f91;
+  --info-soft: #e8f0fb;
+  --border: hsl(214.3 31.8% 91.4%);
+  --input: hsl(214.3 31.8% 91.4%);
+  --ring: hsl(222.2 84% 4.9%);
+
+  --sidebar: #ffffff;
+  --sidebar-foreground: #1e293b;
+  --sidebar-primary: #27445c;
+  --sidebar-primary-foreground: #f8fafc;
+  --sidebar-accent: var(--color-gold-soft);
+  --sidebar-accent-foreground: var(--color-gold-deep);
+  --sidebar-border: #e4e8ee;
+  --sidebar-ring: var(--color-gold-deep);
+}
+
+/* ── Admin theme: dark only, gold primary. The admin and broker layouts
+   mark their shell with data-admin-theme; matching on <html> puts the
+   whole page in the admin theme — popups rendered into <body> included —
+   with no per-component code. Layering (lighter = closer): sidebar
+   dark-main → canvas dark-bg → cards dark-card. ── */
+html:has([data-admin-theme]) {
+  color-scheme: dark; /* native scrollbars, inputs and pickers render dark */
+  background-color: var(--background); /* overscroll matches the canvas */
+
+  --background: var(--color-dark-bg);
+  --foreground: #e9eef3;
+  --card: var(--color-dark-card);
+  --card-foreground: #e9eef3;
+  --popover: var(--color-dark-card);
+  --popover-foreground: #e9eef3;
+  /* Gold fill, black text on it, glow shade for gold text on dark. */
+  --primary: var(--color-gold-accent);
+  --primary-foreground: #000000;
+  --primary-soft: var(--color-gold-soft);
+  --primary-strong: var(--color-gold-glow);
+  --secondary: #1c2f40;
+  --secondary-foreground: #e9eef3;
+  --muted: #142634;
+  --muted-foreground: #93a4b4;
+  --accent: #1c2f40;
+  --accent-foreground: #e9eef3;
+  --destructive: #ef5a52;
+  --destructive-soft: #2c1513;
+  --success: #4ade80;
+  --success-foreground: #052e16;
+  --success-soft: #0f2a1d;
+  --warning: #e0a23a;
+  --warning-soft: #2a2210;
+  --info: #7cb7ff;
+  --info-soft: #11263b;
+  --border: #213548;
+  --input: #213548;
+  --ring: var(--color-gold-accent);
+
+  --sidebar: var(--color-dark-main);
+  --sidebar-foreground: #e9eef3;
+  --sidebar-primary: var(--color-gold-accent);
+  --sidebar-primary-foreground: #15110a;
+  /* Active/hover nav items glow brand gold, not gray */
+  --sidebar-accent: var(--color-gold-soft);
+  --sidebar-accent-foreground: var(--color-gold-glow);
+  --sidebar-border: #213548;
+  --sidebar-ring: var(--color-gold-accent);
+}
+
 @layer base {
+  /* Tailwind v4 borders default to currentcolor; ours default to the
+     theme's border color, on elements and pseudo-elements alike. */
   *,
   ::after,
   ::before,
   ::backdrop,
   ::file-selector-button {
-    border-color: var(--color-gray-200, currentcolor);
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
   }
 
   /* 
@@ -165,16 +256,6 @@
 }
 
 @layer base {
-  :root {
-    --radius: 0.5rem;
-
-    /* Sticky main-site navbar height. Used by sticky/scroll layouts (e.g.
-       /boats/search map column) so they don't drift if the navbar resizes.
-       Matches Navigation's compact variant (in-nav search). Home uses a
-       taller navbar but has no sticky consumers, so a single value is fine. */
-    --header-h: 4.25rem;
-  }
-
   /* Fix scroll locking issues from Radix UI components */
   html {
     scrollbar-gutter: stable;
@@ -205,35 +286,6 @@
   .hide-scrollbar::-webkit-scrollbar-thumb:hover {
     background: transparent;
   }
-}
-
-@layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-  }
-
-  /* No dark mode on the main site. The admin's dark styling is fully
-     scoped via admin-theme.css (.admin-theme tokens + html:has() root
-     rules); portaled admin surfaces re-stamp .admin-theme on their
-     content. There is no html.dark class anywhere. */
 }
 
 @layer utilities {
@@ -277,14 +329,6 @@
 }
 
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-
-  body {
-    @apply bg-background text-foreground;
-  }
-
   /* Fix iOS Safari date/time input - removes webkit default that causes overflow */
   input[type="date"],
   input[type="time"] {
@@ -353,4 +397,65 @@
     animation: none;
     opacity: 1;
   }
+}
+
+/* ════════════ Admin-only effects ════════════ */
+
+/* ── KOS Command (admin assistant) ─────────────────────────────────
+   One gradient, one slow drift. A large soft-stop gradient panned
+   across the surface — no blobs, no scale pulsing. */
+@keyframes kos-sheen-drift {
+  0%   { background-position: 0% 0%; }
+  100% { background-position: 100% 100%; }
+}
+.kos-sheen {
+  background-image:
+    radial-gradient(ellipse 80% 60% at 15% 10%, rgb(139 92 246 / 0.22), transparent 60%),
+    radial-gradient(ellipse 70% 55% at 85% 90%, rgb(34 211 238 / 0.16), transparent 60%),
+    radial-gradient(ellipse 50% 40% at 60% 40%, rgb(217 70 239 / 0.10), transparent 60%);
+  background-size: 160% 160%;
+  animation: kos-sheen-drift 40s ease-in-out infinite alternate;
+}
+
+/* ── Featured nav (Assistant): a light sweep every few seconds + a soft
+   breathing glow on the icon. Subtle enough to live in a sidebar. ── */
+@keyframes kos-nav-sweep {
+  0%, 70% { transform: translateX(-120%); }
+  100%    { transform: translateX(220%); }
+}
+@keyframes kos-nav-breathe {
+  0%, 100% { filter: drop-shadow(0 0 0 rgb(240 171 252 / 0)); }
+  50%      { filter: drop-shadow(0 0 6px rgb(240 171 252 / 0.9)); }
+}
+.kos-featured-nav::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  background: linear-gradient(100deg, transparent, rgb(255 255 255 / 0.10), transparent);
+  animation: kos-nav-sweep 6s ease-in-out infinite;
+  pointer-events: none;
+}
+.kos-featured-icon {
+  animation: kos-nav-breathe 3.2s ease-in-out infinite;
+}
+
+/* ── Dashboard "bridge" hero: fine grid texture + one slow gold sheen ── */
+.kos-bridge-grid {
+  background-image:
+    linear-gradient(to right, rgb(255 255 255 / 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(255 255 255 / 0.04) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: radial-gradient(ellipse 90% 80% at 50% 40%, #000 30%, transparent 100%);
+}
+@keyframes kos-bridge-drift {
+  0%   { background-position: 0% 0%; }
+  100% { background-position: 100% 100%; }
+}
+.kos-bridge-sheen {
+  background-image:
+    radial-gradient(ellipse 60% 50% at 20% 100%, rgb(212 175 55 / 0.14), transparent 60%),
+    radial-gradient(ellipse 50% 40% at 90% 0%, rgb(56 189 248 / 0.08), transparent 60%);
+  background-size: 160% 160%;
+  animation: kos-bridge-drift 36s ease-in-out infinite alternate;
 }

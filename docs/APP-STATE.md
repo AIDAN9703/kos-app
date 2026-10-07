@@ -50,12 +50,35 @@ search, blog, add-ons, auth, admin, booking-groups, app-settings, `_marketing`.
 
 ### Hard constraints
 
-- **No transactions.** The Neon HTTP driver throws on `db.transaction()`. All
-  multi-step writes are sequential and must be idempotent.
+- **No interactive transactions.** The Neon HTTP driver throws on `db.transaction()`.
+  Multi-step writes are sequential and idempotent, or one `db.batch([...])`, which IS
+  atomic, when no statement needs another's result.
 - **Availability is enforced by a Postgres exclusion constraint**, so double-booking
   is impossible regardless of which code path writes.
 - **Charter times are stored as absolute instants** (timestamptz) and displayed in
   the BOAT's timezone. See the timezone section below.
+
+### Styling (two themes, one file)
+
+`app/globals.css` follows shadcn's Tailwind v4 pattern:
+- **Brand palette:** fixed values in `@theme` (`gold-accent`, `dark-card`, …).
+- **Semantic colors:** mapped in `@theme inline` to plain variables
+  (`--color-card: var(--card)`).
+- **Site theme:** the plain variables live in `:root` (light, navy primary).
+- **Admin theme:** the same variables under `html:has([data-admin-theme])` (dark, gold
+  primary). The admin and broker layouts carry `data-admin-theme`, so the whole page,
+  including dialogs, menus, sheets and toasts rendered into `<body>`, picks up the admin
+  colors with no per-component code.
+
+Rules:
+- Components use semantic utilities only: `bg-card`, `text-muted-foreground`,
+  `bg-success-soft text-success`, `bg-warning-soft`, `bg-info-soft`,
+  `bg-destructive-soft`. Never hard-coded palette shades like `bg-green-50`; they ignore
+  the theme.
+- **To add a color:** a `--x` in both theme blocks, plus `--color-x: var(--x)` in
+  `@theme inline`.
+- **Never put `var()` inside the plain `@theme`.** Tailwind resolves it once at `:root`,
+  so the admin value never applies. That was the old success/warning bug.
 
 ---
 

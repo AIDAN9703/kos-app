@@ -125,7 +125,7 @@ export function AdminBookingMakePaymentButton({
                   <SelectTrigger className="h-10">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="admin-theme">
+                  <SelectContent>
                     {MANUAL_PAYMENT_METHODS.map((m) => (
                       <SelectItem key={m} value={m}>
                         {MANUAL_PAYMENT_METHOD_LABELS[m]}

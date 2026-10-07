@@ -116,7 +116,7 @@ export function BoatSelect({
           </Button>
         </PopoverTrigger>
         <PopoverContent
-          className="admin-theme w-[400px] p-0 rounded-lg border-border bg-popover text-popover-foreground z-50"
+          className="w-[400px] p-0 rounded-lg border-border bg-popover text-popover-foreground z-50"
           sideOffset={4}
         >
           <Command className="rounded-lg border-0">

@@ -2,7 +2,7 @@ import { cn } from "@/shared/lib/utils/general-utils";
 
 /**
  * Tailwind class bundles for admin header/sidebar chrome — not theme state.
- * Accent colors come from `admin-theme.css`; these use semantic `primary` tokens.
+ * Accent colors come from the admin theme in globals.css; these use semantic `primary` tokens.
  */
 const ADMIN_THEMED_SURFACE = cn(
   "border-0 shadow-none outline-none",

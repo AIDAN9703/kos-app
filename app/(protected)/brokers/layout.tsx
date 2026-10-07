@@ -7,7 +7,6 @@ import AdminHeader from "@/shared/admin/components/AdminHeader";
 import { DealsBasePathProvider } from "@/features/bookings/components/admin/deal-links";
 import { QueryProvider } from "@/shared/lib/providers/QueryProvider";
 import { SidebarInset, SidebarProvider } from "@/shared/components/ui/sidebar";
-import "@/shared/admin/admin-theme.css";
 
 /**
  * The broker portal: the admin area's shell and deal screens, limited to the
@@ -23,7 +22,7 @@ export default async function BrokerLayout({ children }: { children: ReactNode }
     <SidebarProvider
       defaultOpen={defaultOpen}
       data-admin-theme
-      className="admin-theme bg-background text-foreground font-sans antialiased h-svh overflow-hidden"
+      className="bg-background text-foreground font-sans antialiased h-svh overflow-hidden"
     >
       <AdminSidebar nav="broker" />
       <SidebarInset className="flex min-h-0 flex-1 flex-col overflow-hidden">

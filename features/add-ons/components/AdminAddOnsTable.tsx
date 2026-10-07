@@ -17,7 +17,7 @@ import { StatusBadge } from "@/shared/lib/utils/badge-utils";
 import { formatCentsAsCurrency } from "@/shared/lib/utils/money-utils";
 import { useToast } from "@/shared/lib/hooks/use-toast";
 import { AdminDataTable } from "@/shared/admin/components/AdminDataTable";
-import { deleteAddOn } from "@/features/add-ons/add-on.mutations";
+import { deleteAddOn } from "@/features/add-ons/add-on.actions";
 import { addOnCategoryLabel } from "@/features/add-ons/add-on.constants";
 import { AddOnFormModal } from "@/features/add-ons/components/AddOnFormModal";
 import type { AddOnListItem } from "@/features/add-ons/add-on.types";

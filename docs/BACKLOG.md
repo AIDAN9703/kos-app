@@ -162,12 +162,10 @@ variables.
 - **Startup check** that every required environment variable is set.
 
 ## 6. Cleanup
-- Rename the three remaining `*.mutations.ts` files (add-ons, settings, boats) to
-  `*.actions.ts`. Users is done.
-- **Admin styling leftovers:** the shared `Badge` and `StatusBadge` use light-theme
-  colours (`bg-slate-100`, `bg-emerald-50`), so the boats, blog and add-ons tables look
-  washed out on the dark admin. Toasts also render light in admin. Give them the
-  admin's semantic tokens, the way the Users screens now do.
+- **Palette overrides:** `gray-100`, `red-500`, `red-400`, `blue-100` and `light-200`
+  in `globals.css` replace Tailwind's default shades with different colours. For example,
+  `gray-100` is really a slate-300 tone and `red-500` is an orange. About 70 uses across
+  the site; move them to semantic colours page by page as screens are redone.
 - Replace the stale `public/sitemap.xml` / `robots.txt` with Next's built-in
   `app/sitemap.ts` and `app/robots.ts`. That also removes the last `npm audit` warnings,
   which come from next-sitemap.

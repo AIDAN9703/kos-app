@@ -14,7 +14,7 @@ import {
   type CreateBoatInput,
   type UpdateBoatInput,
 } from "@/features/boats/boat.validation";
-import { createBoat, updateBoat } from "@/features/boats/boat.mutations";
+import { createBoat, updateBoat } from "@/features/boats/boat.actions";
 import { MediaSection } from "./sections/MediaSection";
 import { useBoatImages } from "./hooks/useBoatImages";
 import { BasicInfoSection } from "./sections/BasicInfoSection";

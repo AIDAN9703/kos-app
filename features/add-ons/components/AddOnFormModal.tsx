@@ -26,7 +26,7 @@ import {
 import { useToast } from "@/shared/lib/hooks/use-toast";
 import { addOnCategoryEnum } from "@/database/schema";
 import { centsToDollars, dollarsToCents } from "@/shared/lib/utils/money-utils";
-import { createAddOn, updateAddOn } from "@/features/add-ons/add-on.mutations";
+import { createAddOn, updateAddOn } from "@/features/add-ons/add-on.actions";
 import { ADD_ON_CATEGORY_LABELS } from "@/features/add-ons/add-on.constants";
 import type { AddOnCategory, AddOnListItem } from "@/features/add-ons/add-on.types";
 
@@ -42,7 +42,7 @@ const CATEGORIES = addOnCategoryEnum.enumValues as readonly AddOnCategory[];
 export function AddOnFormModal({ open, onOpenChange, addOn }: AddOnFormModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="admin-theme sm:max-w-md">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{addOn ? "Edit add-on" : "New add-on"}</DialogTitle>
           <DialogDescription>

@@ -54,7 +54,7 @@ export function FilterPopover({
       <PopoverContent
         align="end"
         sideOffset={6}
-        className={cn("admin-theme w-[min(95vw,560px)] bg-popover p-0 text-popover-foreground")}
+        className="w-[min(95vw,560px)] bg-popover p-0 text-popover-foreground"
       >
         <div
           className={cn(

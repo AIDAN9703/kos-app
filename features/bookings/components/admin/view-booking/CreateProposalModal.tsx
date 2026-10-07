@@ -41,7 +41,7 @@ export function CreateProposalModal({
         Create proposal
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="admin-theme max-h-[92vh] overflow-y-auto rounded-2xl sm:max-w-5xl">
+        <DialogContent className="max-h-[92vh] overflow-y-auto rounded-2xl sm:max-w-5xl">
           <DialogHeader>
             <DialogTitle>
               New proposal for {dealPrefill.customerName || "this lead"}

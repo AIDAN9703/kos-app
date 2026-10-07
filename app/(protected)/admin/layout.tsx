@@ -6,7 +6,6 @@ import { QueryProvider } from "@/shared/lib/providers/QueryProvider";
 import { SidebarInset, SidebarProvider } from "@/shared/components/ui/sidebar";
 import KBar from "@/shared/admin/components/kbar";
 import { cookies } from "next/headers";
-import "@/shared/admin/admin-theme.css";
 import "@/shared/admin/admin-fullcalendar.css";
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
@@ -21,7 +20,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         <SidebarProvider
           defaultOpen={defaultOpen}
           data-admin-theme
-          className="admin-theme bg-background text-foreground font-sans antialiased h-svh overflow-hidden"
+          className="bg-background text-foreground font-sans antialiased h-svh overflow-hidden"
         >
           <AdminSidebar />
           <SidebarInset className="flex min-h-0 flex-1 flex-col overflow-hidden">

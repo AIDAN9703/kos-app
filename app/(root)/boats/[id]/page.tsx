@@ -11,7 +11,7 @@ import { Metadata } from "next";
 // ================================
 
 // Static generation with ISR - revalidate every 6 hours. Boat edits refresh
-// the page right away (boat.mutations.ts).
+// the page right away (boat.actions.ts).
 export const revalidate = 21600; // 6 hours
 
 // Pre-render featured boats at build time; the rest render on first visit.
