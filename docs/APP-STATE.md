@@ -169,8 +169,6 @@ then set each boat's timezone in the admin boat editor.
 
 **🟠 Boat-page inquiry sends no acknowledgment email.** Only general + term-charter do.
 
-**🟠 Legacy REQUEST flow undecided.** Approve/deny emails still use the old template.
-
 **🟢 SMS.** Proposal / payment-link texts go out through Twilio (on create and on
 resend); OTP too. GoHighLevel is disconnected (2026-09-04), so Twilio is the only
 SMS sender and the "two phone numbers" problem is gone with it.
@@ -184,14 +182,14 @@ auto-generated and not editable; partial refunds record against the lead booking
 owner-payout automation, customer-submitted reviews (the `review` table is empty since
 migration 0067; homepage testimonials come from Google).
 
-**Tech debt:** repo-wide lint sits at 255 problems (136 errors / 119 warnings) — all
-pre-existing: refs-during-render in AdminBookingsCalendar, set-state-in-effect in
-PaymentSuccessClient, and `any` types across several services.
+**Tech debt:** lint shows 7 problems (3 errors, 4 warnings), all pre-existing:
+set-state-in-effect in PaymentSuccessClient, FilterModal and VisGLSearchMap, plus
+React Compiler / `<img>` warnings.
 
-**Dependencies:** `npm audit` is clean of high severities. 4 moderates remain, all in
-drizzle-kit / esbuild dev tooling; the only "fix" npm offers is a breaking downgrade to
-drizzle-kit@0.18.1, and the esbuild issue affects the local dev server only — not
-production. Leave them unless drizzle-kit is upgraded for other reasons.
+**Dependencies (2026-10-06):** Next 16.3.8; `npm audit --omit=dev` shows no runtime
+issues. What remains is build/dev tooling: next-sitemap's glob dependency (gone once the
+sitemap moves to a built-in `app/sitemap.ts`) and drizzle-kit/esbuild (local only; npm's
+"fix" is a breaking downgrade).
 
 ---
 
@@ -213,8 +211,7 @@ production. Leave them unless drizzle-kit is upgraded for other reasons.
    back to contact@kosyachts.com when unset.
 2. Confirm the Stripe webhook is registered for the prod domain — **refunds only sync
    via webhook**; the verify fallback covers checkout only.
-3. Decide the SMS provider question.
-4. Set timezones on the last 12 boats (2 La Coloma, 10 unlabelled) once their
+3. Set timezones on the last 12 boats (2 La Coloma, 10 unlabelled) once their
    locations are known.
 
 **Money semantics (fixed 2026-08-19):** `booking_ops.expense_cents` aggregates
