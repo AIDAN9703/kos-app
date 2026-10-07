@@ -146,6 +146,18 @@ Unset boats fall back to America/New_York. Prod's remaining 12: 2 at La Coloma M
 - **Admin** — bookings board (money columns, status emblems, filters, assignment),
   unified booking detail page, dashboard, calendar, boats/users/captains/crew/add-ons/
   blog/settings CRUD.
+- **Admin dashboard (2026-10-07)** — `app/(protected)/admin/page.tsx`, data in
+  `features/admin/dashboard.service.ts`. A numbers row, then a "Needs action" queue of
+  everything waiting on a person:
+  - proposals the customer can't pay because the boat's calendar now conflicts (the same
+    availability check the payment page runs)
+  - unanswered change requests and failed Stripe events
+  - trips missing a captain or carrying a balance
+  - untouched leads, and proposals that are unpaid or were never sent
+  - failing calendar syncs
+
+  Below it, a fleet timeline (each boat in its own time zone; proposals that can't be
+  paid are outlined red). Activity runs the full height on the right.
 - **Auth (Better Auth, 2026-10)** — one module in `shared/lib/auth/` (config, roles,
   browser client); server code checks access only through `shared/lib/utils/auth-utils.ts`.
   Email/password (bcrypt), Google (links to an existing account only once its email is

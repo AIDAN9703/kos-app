@@ -439,23 +439,3 @@ html:has([data-admin-theme]) {
 .kos-featured-icon {
   animation: kos-nav-breathe 3.2s ease-in-out infinite;
 }
-
-/* ── Dashboard "bridge" hero: fine grid texture + one slow gold sheen ── */
-.kos-bridge-grid {
-  background-image:
-    linear-gradient(to right, rgb(255 255 255 / 0.04) 1px, transparent 1px),
-    linear-gradient(to bottom, rgb(255 255 255 / 0.04) 1px, transparent 1px);
-  background-size: 32px 32px;
-  mask-image: radial-gradient(ellipse 90% 80% at 50% 40%, #000 30%, transparent 100%);
-}
-@keyframes kos-bridge-drift {
-  0%   { background-position: 0% 0%; }
-  100% { background-position: 100% 100%; }
-}
-.kos-bridge-sheen {
-  background-image:
-    radial-gradient(ellipse 60% 50% at 20% 100%, rgb(212 175 55 / 0.14), transparent 60%),
-    radial-gradient(ellipse 50% 40% at 90% 0%, rgb(56 189 248 / 0.08), transparent 60%);
-  background-size: 160% 160%;
-  animation: kos-bridge-drift 36s ease-in-out infinite alternate;
-}

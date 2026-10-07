@@ -33,22 +33,6 @@ export interface DashboardLead {
   createdAt: Date;
 }
 
-/** New deals landing per day and per channel — where business comes from. */
-export interface LeadIntake {
-  days: { key: string; label: string; count: number }[];
-  bySource: { source: string; count: number }[];
-  total: number;
-  previousTotal: number;
-}
-
-export interface AdminWorkload {
-  adminId: string | null;
-  name: string;
-  liveDeals: number;
-  /** Value of their open deals (quote total, else lead estimate). */
-  valueCents: number;
-}
-
 export interface ActivityItem {
   id: string;
   bookingId: string;
@@ -57,4 +41,76 @@ export interface ActivityItem {
   message: string | null;
   actorType: string;
   createdAt: Date;
+}
+
+/* ── Desk (the dashboard rebuilt 2026-10-07) ───────────────────────── */
+
+export type ActionKind =
+  | "conflict"
+  | "change-request"
+  | "stripe"
+  | "captain"
+  | "balance"
+  | "past-due"
+  | "lead"
+  | "proposal-unpaid"
+  | "proposal-unsent"
+  | "calendar-sync";
+
+/** One thing the team has to deal with. */
+export interface ActionItem {
+  key: string;
+  kind: ActionKind;
+  /** 3 = now, 2 = this week, 1 = when there's time. */
+  severity: 1 | 2 | 3;
+  /** Customer, calendar or Stripe event the item is about. */
+  subject: string;
+  boatName: string | null;
+  /** The fact that makes it an action, already worded. */
+  detail: string;
+  tripStart: Date | null;
+  timezone: string | null;
+  /** When the clock started: lead received, proposal sent, error seen. */
+  since: Date | null;
+  href: string;
+  external?: boolean;
+  /** Set on calendar conflicts, so the timeline can mark the same proposals. */
+  bookingId?: string;
+}
+
+/** A booked trip near today, with what it still lacks. */
+export interface DeskTrip {
+  id: string;
+  customerName: string;
+  boatName: string | null;
+  timezone: string | null;
+  start: Date;
+  needsCaptain: boolean;
+  dueCents: number;
+}
+
+export interface DeskNumbers {
+  openProposals: { count: number; valueCents: number };
+  owed: { trips: number; dueCents: number };
+  totalUsers: number;
+  totalBoats: number;
+}
+
+export type TimelineKind = "booked" | "proposed" | "block" | "external";
+
+export interface TimelineSegment {
+  id: string;
+  kind: TimelineKind;
+  label: string;
+  start: Date;
+  end: Date;
+  href: string | null;
+}
+
+export interface TimelineBoat {
+  id: string;
+  name: string;
+  /** The boat's IANA zone: its row is drawn in boat-local time. */
+  timezone: string | null;
+  segments: TimelineSegment[];
 }

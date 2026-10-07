@@ -33,17 +33,22 @@ export async function getFleetLeaders(limit?: number) {
   return dashboard.getFleetLeaders(limit);
 }
 
-export async function getLeadIntake(days?: number) {
-  await assertDashboard();
-  return dashboard.getLeadIntake(days);
-}
-
-export async function getAdminWorkload() {
-  await assertDashboard();
-  return dashboard.getAdminWorkload();
-}
-
 export async function getRecentActivity(limit?: number) {
   await assertDashboard();
   return dashboard.getRecentActivity(limit);
+}
+
+export async function getActionQueue() {
+  await assertDashboard();
+  return dashboard.getActionQueue();
+}
+
+export async function getDeskNumbers() {
+  await assertDashboard();
+  return dashboard.getDeskNumbers();
+}
+
+export async function getFleetTimeline(days?: number) {
+  await assertDashboard();
+  return dashboard.getFleetTimeline(days);
 }
