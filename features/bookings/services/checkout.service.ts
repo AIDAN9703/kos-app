@@ -247,6 +247,12 @@ async function createSession(
       bookingType: lead.booking.bookingType,
       paymentRecordType: plan.kind,
     },
+    // Copied to the payment, so refunds and disputes in the Stripe Dashboard
+    // say which booking they belong to.
+    payment_intent_data: {
+      description: `${lead.boat?.name ?? "Charter"} · ${lead.booking.customerName}${party.length > 1 ? ` (+${party.length - 1} boats)` : ""}`,
+      metadata: { bookingId, bookingGroupId: lead.booking.bookingGroupId ?? "", paymentRecordType: plan.kind },
+    },
     success_url: `${baseUrl}/bookings/payment-success?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${baseUrl}/bookings/payment-success?session_id={CHECKOUT_SESSION_ID}&cancelled=true`,
   });

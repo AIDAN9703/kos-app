@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 /**
  * POST /api/webhook/stripe
- * Stripe events (checkout completed, invoice paid, charge refunded). A bad
+ * Stripe events (checkout, refunds, disputes). A bad
  * signature is a 400; a failure while settling is a 500, so Stripe retries.
  */
 export async function POST(request: NextRequest) {

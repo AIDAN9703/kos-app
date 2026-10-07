@@ -95,6 +95,12 @@ export const bookings = pgTable(
     publishedAt: timestamp("published_at", { mode: "date", withTimezone: true }),
     acceptedAt: timestamp("accepted_at", { mode: "date", withTimezone: true }),
     acceptedCustomerNote: text("accepted_customer_note"),
+    /**
+     * The Stripe Checkout Session that created this booking (Instant Book
+     * only). Unique, so the webhook and the payment-success page can never
+     * both create a booking for one payment.
+     */
+    stripeCheckoutSessionId: text("stripe_checkout_session_id"),
 
     // ==========================================================================
     // CANCELLATION
@@ -112,6 +118,7 @@ export const bookings = pgTable(
   },
   (table) => [
     unique("booking_public_token_unique").on(table.publicToken),
+    unique("booking_stripe_checkout_session_unique").on(table.stripeCheckoutSessionId),
     index("booking_type_idx").on(table.bookingType),
     index("booking_status_idx").on(table.bookingStatus),
     index("booking_source_idx").on(table.source),

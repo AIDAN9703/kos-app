@@ -18,6 +18,11 @@ let stripeInstance: Stripe | null = null;
  */
 export function getStripe(): Stripe {
   if (!stripeInstance) {
+    // A live key on a preview or test deployment would charge real cards
+    // from a build nobody meant for customers. Refuse rather than guess.
+    if (!config.stripeLive && /^(sk|rk)_live_/.test(config.stripeSecretKey ?? "")) {
+      throw new Error("A live Stripe key is configured on a non-production deployment");
+    }
     stripeInstance = new Stripe(config.stripeSecretKey, {
       apiVersion: STRIPE_API_VERSION,
     });
@@ -77,39 +82,4 @@ export async function getOrCreateStripeCustomer(
     name: name || undefined,
   });
   return customer.id;
-}
-
-/**
- * Extract PaymentIntent ID from Stripe value (string or expanded object).
- * Use for session.payment_intent, invoice payments, etc.
- */
-function extractPaymentIntentId(
-  value: string | Stripe.PaymentIntent | null | undefined
-): string | undefined {
-  if (!value) return undefined;
-  return typeof value === "string" ? value : value.id;
-}
-
-/**
- * Get PaymentIntent ID from an Invoice.
- * Stripe moved payment_intent from top-level to invoice.payments.data[].payment.payment_intent.
- * If not in webhook payload, fetches invoice with expand.
- */
-export async function getInvoicePaymentIntentId(
-  invoice: Stripe.Invoice
-): Promise<string | undefined> {
-  const firstPayment = invoice.payments?.data?.[0];
-  const pi = firstPayment?.payment?.payment_intent;
-  if (pi) return extractPaymentIntentId(pi);
-
-  const invoiceId = invoice.id;
-  if (!invoiceId) return undefined;
-
-  const stripe = getStripe();
-  const expanded = await stripe.invoices.retrieve(invoiceId, {
-    expand: ["payments"],
-  });
-  const expandedPayment = expanded.payments?.data?.[0];
-  const expandedPi = expandedPayment?.payment?.payment_intent;
-  return expandedPi ? extractPaymentIntentId(expandedPi) : undefined;
 }

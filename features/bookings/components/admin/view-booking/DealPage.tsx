@@ -4,6 +4,7 @@ import { DealRequestCard } from "@/features/bookings/components/admin/view-booki
 import { getDisplayKind } from "@/features/bookings/deal-presentation";
 import { adminInitials } from "@/shared/lib/utils/people-display";
 import { cn } from "@/shared/lib/utils/general-utils";
+import config from "@/shared/lib/config";
 import { formatCentsAsCurrency } from "@/shared/lib/utils/money-utils";
 import {
   BookingTripCard,
@@ -123,7 +124,7 @@ export async function DealPage({ deal }: { deal: DealPageData }) {
 
   // Completed payments read as activity ("Payment $2,450 ↗"). Pending and
   // failed attempts aren't shown anywhere — only money that actually moved.
-  const stripeDashboardBase = process.env.STRIPE_SECRET_KEY?.startsWith("sk_live")
+  const stripeDashboardBase = config.stripeLive
     ? "https://dashboard.stripe.com"
     : "https://dashboard.stripe.com/test";
   const paymentEvents: BookingActivityEventEntry[] = bookingPayments

@@ -5,15 +5,18 @@ import "server-only";
  * actions go through the data layer (deal.data.ts, proposal.data.ts,
  * booking-request.data.ts), which checks who's asking first.
  *
- * - No transactions (neon-http): multi-step writes are sequential and safe
- *   to re-run.
+ * - No interactive transactions (neon-http): multi-step writes are
+ *   sequential and safe to re-run, or one db.batch (atomic) when nothing
+ *   needs reading in between.
  * - Delegates to the pricing, status and events services, and to payments
  *   (features/payments).
  * - All money is in CENTS.
  */
 
+import { randomUUID } from "crypto";
+
 import { db } from "@/database/db";
-import { bookings, boats, users, bookingPricing, bookingGroups, payments, bookingOps, boatPricingTiers } from "@/database/schema";
+import { bookings, boats, users, bookingPricing, bookingGroups, bookingStatusHistory, payments, bookingOps, boatPricingTiers } from "@/database/schema";
 import {
   and,
   count,
@@ -57,6 +60,7 @@ import { bookingGroupService } from "@/features/booking-groups/booking-group.ser
 import { bookingPricingService } from "@/features/bookings/services/booking-pricing.service";
 import { bookingStatusService } from "@/features/bookings/services/booking-status.service";
 import { bookingEventsService } from "@/features/bookings/services/booking-events.service";
+import { netPaidCentsSql, paymentService } from "@/features/payments/payment.service";
 import { BOOKING_EVENT_TYPES } from "@/features/bookings/booking-events.constants";
 import { fetchBoatAndTier, fetchBoatsAndTiersBulk } from "@/features/bookings/services/booking-helpers";
 import { getAppSettings } from "@/features/app-settings/app-settings.service";
@@ -373,22 +377,8 @@ class BookingService {
 
     // Paid so far across the group — drives the public page's state
     // (unpaid → pay buttons, paid → confirmation).
-    const [paidRow] = await db
-      .select({
-        paid: sql<number>`COALESCE(SUM(${payments.amountCents}), 0)`,
-      })
-      .from(payments)
-      .where(
-        and(
-          eq(payments.payableType, "BOOKING"),
-          inArray(
-            payments.payableId,
-            proposalBookings.map((b) => b.id)
-          ),
-          eq(payments.status, "SUCCEEDED"),
-          ne(payments.paymentType, "REFUND")
-        )
-      );
+    const paidByBooking = await paymentService.getPaidCentsByBooking(proposalBookings.map((b) => b.id));
+    const paidRow = { paid: [...paidByBooking.values()].reduce((sum, cents) => sum + cents, 0) };
 
     return {
       id: first.id,
@@ -632,12 +622,25 @@ class BookingService {
     }
 
     const now = new Date();
+    const bookingId = randomUUID();
+    const status = input.holdForReview ? "PROPOSED" : "BOOKED";
+    const historyReason = input.holdForReview
+      ? "Instant booking — PAID but slot conflict, held for manual resolution"
+      : "Instant booking - payment received";
+    const bookingCurrency = boat.currency ?? "USD";
 
-    const [newBooking] = await db
+    // One atomic batch: the booking, its pricing, its first status and its
+    // payment land together or not at all. The checkout session id is unique
+    // on the booking, so when the webhook and the success page race, the
+    // second insert fails as a whole and the caller finds the first booking.
+    const [[newBooking]] = await db.batch([
+      db
       .insert(bookings)
       .values({
+        id: bookingId,
         bookingType: "INSTANT_BOOK",
-        bookingStatus: input.holdForReview ? "PROPOSED" : "BOOKED",
+        bookingStatus: status,
+        stripeCheckoutSessionId: input.stripeCheckoutSessionId ?? null,
         adminNotes: input.holdForReview
           ? `⚠ OVERLAP — paid instant booking held for manual resolution: ${input.holdForReview.reason}`
           : null,
@@ -658,46 +661,48 @@ class BookingService {
         createdAt: now,
         updatedAt: now,
       })
-      .returning();
+      .returning(),
+      db.insert(bookingPricing).values({
+        bookingId,
+        basePriceCents: priceBreakdown.basePriceCents,
+        captainFeeCents: priceBreakdown.captainFeeCents || null,
+        cleaningFeeCents: priceBreakdown.cleaningFeeCents || null,
+        serviceFeeCents: priceBreakdown.serviceFeeCents,
+        serviceFeeBps: serviceFee.bps,
+        serviceFeeFixedCents: serviceFee.fixedCents,
+        depositAmountCents: depositAmountCents || null,
+        totalAmountCents: priceBreakdown.totalPriceCents,
+        currency: bookingCurrency,
+      }),
+      db.insert(bookingStatusHistory).values({
+        bookingId,
+        fromStatus: null,
+        toStatus: status,
+        changedByUserId: input.userId ?? null,
+        reason: historyReason,
+      }),
+      db.insert(payments).values({
+        payableType: "BOOKING",
+        payableId: bookingId,
+        paymentType: "FULL_PAYMENT",
+        amountCents: priceBreakdown.totalPriceCents,
+        currency: bookingCurrency,
+        status: "SUCCEEDED",
+        paymentMethodType: "STRIPE_CHECKOUT",
+        stripePaymentIntentId: input.stripePaymentIntentId ?? null,
+        stripeCheckoutSessionId: input.stripeCheckoutSessionId ?? null,
+        stripeCustomerId: input.stripeCustomerId ?? null,
+        processedAt: now,
+      }),
+    ]);
 
-    const bookingCurrency = boat.currency ?? "USD";
-
-    // Create pricing record via pricing service
-    await bookingPricingService.createPricing({
-      bookingId: newBooking.id,
-      basePriceCents: priceBreakdown.basePriceCents,
-      captainFeeCents: priceBreakdown.captainFeeCents || null,
-      cleaningFeeCents: priceBreakdown.cleaningFeeCents || null,
-      serviceFeeCents: priceBreakdown.serviceFeeCents,
-      serviceFee,
-      depositAmountCents: depositAmountCents || null,
-      totalAmountCents: priceBreakdown.totalPriceCents,
-      currency: bookingCurrency,
-    });
-
-    // Create status history
-    await bookingStatusService.createInitialHistory(
-      newBooking.id,
-      input.holdForReview ? "PROPOSED" : "BOOKED",
-      input.userId,
-      input.holdForReview
-        ? "Instant booking — PAID but slot conflict, held for manual resolution"
-        : "Instant booking - payment received"
-    );
-
-    // Create payment record
-    await db.insert(payments).values({
-      payableType: "BOOKING",
-      payableId: newBooking.id,
-      paymentType: "FULL_PAYMENT",
-      amountCents: priceBreakdown.totalPriceCents,
-      currency: bookingCurrency,
-      status: "SUCCEEDED",
-      paymentMethodType: "STRIPE_CHECKOUT",
-      stripePaymentIntentId: input.stripePaymentIntentId ?? null,
-      stripeCheckoutSessionId: input.stripeCheckoutSessionId ?? null,
-      stripeCustomerId: input.stripeCustomerId ?? null,
-      processedAt: now,
+    await bookingEventsService.logStatusChange({
+      bookingId,
+      fromStatus: null,
+      toStatus: status,
+      actorType: input.userId ? "user" : "system",
+      actorId: input.userId ?? null,
+      reason: historyReason,
     });
 
     return newBooking;
@@ -732,41 +737,27 @@ class BookingService {
     }
     if (filters?.paymentStatus) {
       const ps = filters.paymentStatus;
+      // Same rules as the status badge (computePaymentDisplayStatus), on net paid.
+      const netPaid = netPaidCentsSql(bookings.id);
       if (ps === "UNPAID") {
         whereConditions.push(
+          sql`${netPaid} = 0`,
           sql`NOT EXISTS (
             SELECT 1 FROM payment p
             WHERE p.payable_type = 'BOOKING' AND p.payable_id = ${bookings.id}
-              AND p.status = 'SUCCEEDED' AND p.payment_type != 'REFUND'
+              AND (p.status = 'REFUNDED' OR (p.payment_type = 'REFUND' AND p.status = 'SUCCEEDED'))
           )`
         );
       } else if (ps === "PAID") {
-        whereConditions.push(
-          sql`COALESCE((
-            SELECT SUM(p.amount_cents) FROM payment p
-            WHERE p.payable_type = 'BOOKING' AND p.payable_id = ${bookings.id}
-              AND p.status = 'SUCCEEDED' AND p.payment_type != 'REFUND'
-          ), 0) >= ${bookingPricing.totalAmountCents}`
-        );
+        whereConditions.push(sql`${netPaid} >= ${bookingPricing.totalAmountCents}`);
       } else if (ps === "DEPOSIT_PAID") {
-        whereConditions.push(
-          sql`COALESCE((
-            SELECT SUM(p.amount_cents) FROM payment p
-            WHERE p.payable_type = 'BOOKING' AND p.payable_id = ${bookings.id}
-              AND p.status = 'SUCCEEDED' AND p.payment_type != 'REFUND'
-          ), 0) > 0`,
-          sql`COALESCE((
-            SELECT SUM(p.amount_cents) FROM payment p
-            WHERE p.payable_type = 'BOOKING' AND p.payable_id = ${bookings.id}
-              AND p.status = 'SUCCEEDED' AND p.payment_type != 'REFUND'
-          ), 0) < ${bookingPricing.totalAmountCents}`
-        );
+        whereConditions.push(sql`${netPaid} > 0`, sql`${netPaid} < ${bookingPricing.totalAmountCents}`);
       } else if (ps === "REFUNDED") {
         whereConditions.push(
           sql`EXISTS (
             SELECT 1 FROM payment p
             WHERE p.payable_type = 'BOOKING' AND p.payable_id = ${bookings.id}
-              AND (p.status = 'REFUNDED' OR p.payment_type = 'REFUND')
+              AND (p.status = 'REFUNDED' OR (p.payment_type = 'REFUND' AND p.status = 'SUCCEEDED'))
           )`
         );
       } else if (ps === "FAILED") {
@@ -875,18 +866,14 @@ class BookingService {
       source: bookings.source,
       paymentStatus: sql<string>`(
         SELECT p.status FROM payment p 
-        WHERE p.payable_type = 'BOOKING' AND p.payable_id = ${bookings.id} 
+        WHERE p.payable_type = 'BOOKING' AND p.payable_id = ${bookings.id} AND p.payment_type != 'REFUND'
         ORDER BY p.created_at DESC LIMIT 1
       )`.as("paymentStatus"),
-      totalPaidCents: sql<number>`COALESCE((
-        SELECT SUM(p.amount_cents) FROM payment p
-        WHERE p.payable_type = 'BOOKING' AND p.payable_id = ${bookings.id}
-          AND p.status = 'SUCCEEDED' AND p.payment_type != 'REFUND'
-      ), 0)`.as("totalPaidCents"),
+      totalPaidCents: netPaidCentsSql(bookings.id).as("totalPaidCents"),
       hasRefund: sql<boolean>`EXISTS (
         SELECT 1 FROM payment p
         WHERE p.payable_type = 'BOOKING' AND p.payable_id = ${bookings.id}
-          AND (p.status = 'REFUNDED' OR p.payment_type = 'REFUND')
+          AND (p.status = 'REFUNDED' OR (p.payment_type = 'REFUND' AND p.status = 'SUCCEEDED'))
       )`.as("hasRefund"),
       customerName: bookings.customerName,
       customerEmail: bookings.customerEmail,
@@ -1160,23 +1147,19 @@ class BookingService {
         currency: bookingPricing.currency,
         paymentStatus: sql<string>`(
           SELECT p.status FROM payment p 
-          WHERE p.payable_type = 'BOOKING' AND p.payable_id = ${bookings.id} 
+          WHERE p.payable_type = 'BOOKING' AND p.payable_id = ${bookings.id} AND p.payment_type != 'REFUND'
           ORDER BY p.created_at DESC LIMIT 1
         )`.as("paymentStatus"),
         paymentMethod: sql<string>`(
           SELECT p.payment_method_type FROM payment p 
-          WHERE p.payable_type = 'BOOKING' AND p.payable_id = ${bookings.id} 
+          WHERE p.payable_type = 'BOOKING' AND p.payable_id = ${bookings.id} AND p.payment_type != 'REFUND'
           ORDER BY p.created_at DESC LIMIT 1
         )`.as("paymentMethod"),
-        totalPaidCents: sql<number>`COALESCE((
-          SELECT SUM(p.amount_cents) FROM payment p
-          WHERE p.payable_type = 'BOOKING' AND p.payable_id = ${bookings.id}
-            AND p.status = 'SUCCEEDED' AND p.payment_type != 'REFUND'
-        ), 0)`.as("totalPaidCents"),
+        totalPaidCents: netPaidCentsSql(bookings.id).as("totalPaidCents"),
         hasRefund: sql<boolean>`EXISTS (
           SELECT 1 FROM payment p
           WHERE p.payable_type = 'BOOKING' AND p.payable_id = ${bookings.id}
-            AND (p.status = 'REFUNDED' OR p.payment_type = 'REFUND')
+            AND (p.status = 'REFUNDED' OR (p.payment_type = 'REFUND' AND p.status = 'SUCCEEDED'))
         )`.as("hasRefund"),
         bookingGroupId: bookings.bookingGroupId,
         bookingGroupName: bookingGroups.name,

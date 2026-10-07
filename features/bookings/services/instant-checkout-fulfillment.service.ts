@@ -12,8 +12,8 @@ import { paymentService } from "@/features/payments/payment.service";
 import { confirmPaidBooking } from "@/features/bookings/services/confirm-paid-booking.service";
 import { sendBookingConfirmationEmail } from "@/shared/lib/services/email.service";
 import { alertTeam } from "@/features/bookings/lib/team-alerts";
-import { formatCentsAsCurrency } from "@/shared/lib/utils/money-utils";
-import { dollarsToCents } from "@/shared/lib/utils/money-utils";
+import { pgErrorCode } from "@/shared/lib/errors";
+import { dollarsToCents, formatCentsAsCurrency } from "@/shared/lib/utils/money-utils";
 import { serviceFeeFromSnapshot } from "@/shared/lib/utils/pricing-utils";
 import type { BookingAddOn } from "@/features/bookings/booking.types";
 
@@ -52,6 +52,20 @@ function pricingFromMetadata(metadata: Record<string, string>) {
 }
 
 /**
+ * The webhook and the success page fulfilled the same checkout at the same
+ * moment: the booking's unique checkout session id rejected the second one.
+ */
+function isDuplicateCheckout(error: unknown): boolean {
+  return pgErrorCode(error) === "23505";
+}
+
+async function alreadyFulfilled(sessionId: string): Promise<InstantCheckoutFulfillmentResult> {
+  const payment = await paymentService.getPaymentByStripeCheckoutSessionId(sessionId);
+  if (!payment) throw new Error(`Checkout ${sessionId} was fulfilled elsewhere but has no payment row`);
+  return { status: "already_processed", bookingId: payment.payableId };
+}
+
+/**
  * Create (or idempotently confirm) an instant-booking from a paid Stripe Checkout
  * session. Shared by the webhook handler and the success-page verify fallback.
  */
@@ -70,6 +84,12 @@ export async function fulfillInstantCheckoutSession(
 
   if (!metadata.boatId || !metadata.userId || !metadata.startDateTime) {
     return { status: "skipped", reason: "Missing instant booking metadata" };
+  }
+
+  // Only money that has arrived books a boat (Instant Book takes cards,
+  // which are paid by the time checkout completes).
+  if (session.payment_status === "unpaid") {
+    return { status: "skipped", reason: "Checkout complete but not paid yet" };
   }
 
   const paymentIntentId =
@@ -141,14 +161,20 @@ export async function fulfillInstantCheckoutSession(
       ...(holdReason ? { holdForReview: { reason: holdReason } } : {}),
     });
   } catch (error) {
+    if (isDuplicateCheckout(error)) return alreadyFulfilled(session.id);
     if (!isOverlapConstraintError(error)) throw error;
     // Race loser: another booking landed between our check and this insert.
     // The DB constraint did its job — hold the paid booking instead.
     holdReason = holdReason ?? "Lost a booking race — slot was taken at payment time";
-    newBooking = await bookingService.createInstantBooking({
-      ...instantInput,
-      holdForReview: { reason: holdReason },
-    });
+    try {
+      newBooking = await bookingService.createInstantBooking({
+        ...instantInput,
+        holdForReview: { reason: holdReason },
+      });
+    } catch (retryError) {
+      if (isDuplicateCheckout(retryError)) return alreadyFulfilled(session.id);
+      throw retryError;
+    }
   }
 
   if (holdReason) {

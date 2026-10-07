@@ -19,6 +19,7 @@ export * from "./bookingExpenseLines.table";
 
 // Payment tables
 export * from "./payments.table";
+export * from "./stripeEvents.table";
 
 // Other tables
 export * from "./reviews.table";

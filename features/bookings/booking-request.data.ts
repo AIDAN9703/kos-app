@@ -14,7 +14,7 @@ import {
   sendAdminAlertEmail,
   sendInquiryAcknowledgmentEmail,
 } from "@/shared/lib/services/email.service";
-import { getStripe } from "@/shared/lib/services/stripe.service";
+import { getOrCreateStripeCustomer, getStripe } from "@/shared/lib/services/stripe.service";
 import { assertSignedIn } from "@/shared/lib/utils/auth-utils";
 import { getBaseUrl } from "@/shared/lib/utils/base-url";
 import { calculateEndDateTime } from "@/shared/lib/utils/date-helpers";
@@ -374,17 +374,25 @@ export async function startInstantCheckout(data: BookingRequest & { boatId: stri
   const currency = (boat.currency ?? "USD").toLowerCase();
   const needsCaptain = validated.needsCaptain || boat.crewRequired;
 
+  // Saved on the account, so the billing portal shows this receipt later.
+  const customer = await getOrCreateStripeCustomer(account.email, account.name, account.id);
+
   // The base line carries everything except the add-ons, so add-ons show as
   // their own checkout lines. The lines still sum to the grand total.
   const session = await getStripe().checkout.sessions.create({
+    customer,
     payment_method_types: ["card"],
+    submit_type: "book",
+    // Short-lived: the slot isn't held while the guest is in checkout, so an
+    // old tab must not be able to pay for a slot sold since.
+    expires_at: Math.floor(Date.now() / 1000) + 35 * 60,
     line_items: [
       {
         price_data: {
           currency,
           product_data: {
             name: `${boat.name} - ${tier.name || `${tier.hours}hr Charter`}`,
-            images: [boat.mainImage || "https://via.placeholder.com/800x600.png?text=Boat+Image"],
+            images: boat.mainImage?.startsWith("https://") ? [boat.mainImage] : undefined,
             description: `${needsCaptain ? "With Captain" : "Self-Drive"} - ${startDateTime.toLocaleDateString()} at ${startDateTime.toLocaleTimeString()}`,
           },
           unit_amount: breakdown.totalPriceCents - addOnsCents,
@@ -432,8 +440,13 @@ export async function startInstantCheckout(data: BookingRequest & { boatId: stri
       currency: currency.toUpperCase(),
       createdAt: new Date().toISOString(),
     },
+    // Copied to the payment, so refunds and disputes in the Stripe Dashboard
+    // say which boat and guest they belong to.
+    payment_intent_data: {
+      description: `Instant Book · ${boat.name} · ${startDateTime.toISOString().slice(0, 10)}`,
+      metadata: { bookingType: "INSTANT_BOOK", boatId: boat.id, userId: account.id },
+    },
     mode: "payment",
-    allow_promotion_codes: true,
     success_url: `${getBaseUrl()}/bookings/payment-success?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${getBaseUrl()}/boats/${boat.id}?canceled=true`,
   });

@@ -8,6 +8,10 @@ export const BOOKING_EVENT_TYPES = {
   NOTE_ADDED: "booking.note_added",
   CONTACT_LOGGED: "booking.contact_logged",
   PAYMENT_RECEIVED: "booking.payment_received",
+  /** The customer's bank opened a dispute (chargeback) on a card payment */
+  DISPUTE_OPENED: "booking.dispute_opened",
+  /** That dispute was decided or withdrawn */
+  DISPUTE_CLOSED: "booking.dispute_closed",
   /** Admin edited booking fields (dates, customer, boat, pricing, …) */
   UPDATED: "booking.updated",
   /** assignedAdminId changed */

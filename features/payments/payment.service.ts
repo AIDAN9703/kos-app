@@ -11,7 +11,7 @@ import "server-only";
 
 import { db } from '@/database/db';
 import { payments } from '@/database/schema';
-import { eq, and, desc, inArray, ne, sql } from 'drizzle-orm';
+import { eq, and, asc, desc, inArray, isNull, ne, sql, type AnyColumn, type SQL } from 'drizzle-orm';
 import type { 
   Payment, 
   PaymentStatus,
@@ -37,7 +37,6 @@ interface CreatePaymentInput {
   stripePaymentIntentId?: string | null;
   stripeCheckoutSessionId?: string | null;
   stripePaymentLinkId?: string | null;
-  stripeInvoiceId?: string | null;
   stripeCustomerId?: string | null;
   notes?: string | null;
   processedAt?: Date | null;
@@ -50,10 +49,36 @@ interface UpdatePaymentInput {
   stripePaymentIntentId?: string | null;
   stripeCheckoutSessionId?: string | null;
   stripePaymentLinkId?: string | null;
-  stripeInvoiceId?: string | null;
   stripeCustomerId?: string | null;
   notes?: string | null;
   processedAt?: Date | null;
+}
+
+// ============================================================================
+// NET PAID
+// ============================================================================
+
+/**
+ * Money a booking has actually kept, in cents: succeeded payments minus
+ * succeeded refunds, never below zero. The one definition every list, page,
+ * filter and charge plan uses. (Payments a full refund marked REFUNDED before
+ * refunds became their own rows are excluded by their status.)
+ */
+export function netPaidCentsSql(bookingId: AnyColumn | SQL) {
+  return sql<number>`GREATEST(COALESCE((
+    SELECT SUM(CASE WHEN p.payment_type = 'REFUND' THEN -p.amount_cents ELSE p.amount_cents END)
+    FROM payment p
+    WHERE p.payable_type = 'BOOKING' AND p.payable_id = ${bookingId} AND p.status = 'SUCCEEDED'
+  ), 0), 0)`;
+}
+
+/** Same rule over loaded rows. */
+export function netPaidCents(rows: Pick<Payment, 'status' | 'paymentType' | 'amountCents'>[]): number {
+  const net = rows.reduce((sum, p) => {
+    if (p.status !== 'SUCCEEDED') return sum;
+    return p.paymentType === 'REFUND' ? sum - Number(p.amountCents) : sum + Number(p.amountCents);
+  }, 0);
+  return Math.max(0, net);
 }
 
 // ============================================================================
@@ -79,7 +104,6 @@ class PaymentService {
         stripePaymentIntentId: input.stripePaymentIntentId ?? null,
         stripeCheckoutSessionId: input.stripeCheckoutSessionId ?? null,
         stripePaymentLinkId: input.stripePaymentLinkId ?? null,
-        stripeInvoiceId: input.stripeInvoiceId ?? null,
         stripeCustomerId: input.stripeCustomerId ?? null,
         notes: input.notes ?? null,
         processedAt: input.processedAt ?? null,
@@ -118,7 +142,7 @@ class PaymentService {
   }
 
   /**
-   * Money already received per booking: succeeded payments, refunds excluded.
+   * Money each booking has kept (net of refunds; see netPaidCentsSql).
    * Bookings with nothing paid map to 0.
    */
   async getPaidCentsByBooking(bookingIds: string[]): Promise<Map<string, number>> {
@@ -127,19 +151,18 @@ class PaymentService {
     const rows = await db
       .select({
         bookingId: payments.payableId,
-        paid: sql<number>`COALESCE(SUM(${payments.amountCents}), 0)`,
+        paid: sql<number>`COALESCE(SUM(CASE WHEN ${payments.paymentType} = 'REFUND' THEN -${payments.amountCents} ELSE ${payments.amountCents} END), 0)`,
       })
       .from(payments)
       .where(
         and(
           eq(payments.payableType, 'BOOKING'),
           inArray(payments.payableId, bookingIds),
-          eq(payments.status, 'SUCCEEDED'),
-          ne(payments.paymentType, 'REFUND')
+          eq(payments.status, 'SUCCEEDED')
         )
       )
       .groupBy(payments.payableId);
-    for (const row of rows) paid.set(row.bookingId, Number(row.paid));
+    for (const row of rows) paid.set(row.bookingId, Math.max(0, Number(row.paid)));
     return paid;
   }
 
@@ -211,12 +234,130 @@ class PaymentService {
 
 
   /**
-   * Mark a payment as refunded
+   * Move every row on a checkout session from one of `from` to `to`
+   * (async payment processing / failed, expired sessions).
    */
-  async markPaymentRefunded(id: string): Promise<Payment> {
-    return this.updatePayment(id, {
-      status: 'REFUNDED',
-    });
+  async setStatusForSession(
+    checkoutSessionId: string,
+    from: PaymentStatus[],
+    to: PaymentStatus
+  ): Promise<Payment[]> {
+    return db
+      .update(payments)
+      .set({ status: to })
+      .where(and(eq(payments.stripeCheckoutSessionId, checkoutSessionId), inArray(payments.status, from)))
+      .returning();
+  }
+
+  /**
+   * The rows that took money on a payment intent (refund rows excluded),
+   * oldest first. A charter party's payment has one per boat.
+   */
+  async getChargeRowsForIntent(stripePaymentIntentId: string): Promise<Payment[]> {
+    return db
+      .select()
+      .from(payments)
+      .where(
+        and(
+          eq(payments.stripePaymentIntentId, stripePaymentIntentId),
+          ne(payments.paymentType, 'REFUND'),
+          inArray(payments.status, ['SUCCEEDED', 'REFUNDED', 'CHARGEBACK'])
+        )
+      )
+      .orderBy(asc(payments.createdAt), asc(payments.id));
+  }
+
+  /** Move a payment intent's charge rows from one of `from` to `to` (disputes). */
+  async setChargeStatusForIntent(
+    stripePaymentIntentId: string,
+    from: PaymentStatus[],
+    to: PaymentStatus
+  ): Promise<Payment[]> {
+    return db
+      .update(payments)
+      .set({ status: to })
+      .where(
+        and(
+          eq(payments.stripePaymentIntentId, stripePaymentIntentId),
+          ne(payments.paymentType, 'REFUND'),
+          inArray(payments.status, from)
+        )
+      )
+      .returning();
+  }
+
+  /** Refund rows recorded against a payment intent. */
+  async getRefundRowsForIntent(stripePaymentIntentId: string): Promise<Payment[]> {
+    return db
+      .select()
+      .from(payments)
+      .where(and(eq(payments.stripePaymentIntentId, stripePaymentIntentId), eq(payments.paymentType, 'REFUND')));
+  }
+
+  /**
+   * Record one Stripe refund's share of one charge row, or update it (status
+   * or amount) when it already exists. Keyed by (refund id, charge row).
+   */
+  async upsertRefund(input: {
+    refundedPayment: Payment;
+    stripeRefundId: string;
+    amountCents: Cents;
+    status: PaymentStatus;
+    processedAt: Date;
+    notes: string;
+  }): Promise<void> {
+    const charge = input.refundedPayment;
+    await db
+      .insert(payments)
+      .values({
+        payableType: charge.payableType,
+        payableId: charge.payableId,
+        paymentType: 'REFUND',
+        amountCents: input.amountCents,
+        currency: charge.currency,
+        status: input.status,
+        paymentMethodType: charge.paymentMethodType,
+        stripePaymentIntentId: charge.stripePaymentIntentId,
+        stripeCustomerId: charge.stripeCustomerId,
+        stripeRefundId: input.stripeRefundId,
+        refundedPaymentId: charge.id,
+        notes: input.notes,
+        processedAt: input.processedAt,
+      })
+      .onConflictDoUpdate({
+        target: [payments.stripeRefundId, payments.refundedPaymentId],
+        set: { amountCents: input.amountCents, status: input.status },
+      });
+  }
+
+  /** Remove one refund share (its allocation dropped to zero). */
+  async deleteRefundShare(stripeRefundId: string, refundedPaymentId: string): Promise<void> {
+    await db
+      .delete(payments)
+      .where(
+        and(
+          eq(payments.paymentType, 'REFUND'),
+          eq(payments.stripeRefundId, stripeRefundId),
+          eq(payments.refundedPaymentId, refundedPaymentId)
+        )
+      );
+  }
+
+  /**
+   * Refund rows written for a payment intent before refunds were keyed by
+   * Stripe refund id. They carried Stripe's running total, so a sync from
+   * Stripe's own refund list replaces them.
+   */
+  async deleteUnkeyedRefundRows(stripePaymentIntentId: string): Promise<void> {
+    await db
+      .delete(payments)
+      .where(
+        and(
+          eq(payments.paymentType, 'REFUND'),
+          eq(payments.stripePaymentIntentId, stripePaymentIntentId),
+          isNull(payments.stripeRefundId)
+        )
+      );
   }
 
   /**
@@ -245,47 +386,6 @@ class PaymentService {
     return payment ?? null;
   }
 
-  async getPaymentByStripeInvoiceId(stripeInvoiceId: string): Promise<Payment | null> {
-    const [payment] = await db
-      .select()
-      .from(payments)
-      .where(eq(payments.stripeInvoiceId, stripeInvoiceId))
-      .limit(1);
-
-    return payment ?? null;
-  }
-
-
-
-
-
-
-
-  /**
-   * Create a refund payment (negative amount conceptually, but stored as positive with REFUND type)
-   */
-  async createRefund(
-    payableType: PayableType,
-    payableId: string,
-    amountCents: Cents,
-    options: {
-      paymentMethodType?: PaymentMethodType;
-      stripePaymentIntentId?: string;
-      notes?: string;
-    } = {}
-  ): Promise<Payment> {
-    return this.createPayment({
-      payableType,
-      payableId,
-      paymentType: 'REFUND',
-      amountCents,
-      paymentMethodType: options.paymentMethodType ?? 'MANUAL',
-      stripePaymentIntentId: options.stripePaymentIntentId,
-      notes: options.notes,
-      status: 'SUCCEEDED', // Refunds are typically already processed
-      processedAt: new Date(),
-    });
-  }
 }
 
 // Export singleton instance

@@ -117,7 +117,8 @@ Unset boats fall back to America/New_York. Prod's remaining 12: 2 at La Coloma M
   Santo Domingo, including the no-DST Santo Domingo case.
 - **Charter parties (multi-boat)** — one group, a row per boat, one proposal link, one
   Stripe session with per-boat line items, one payment row per boat, webhook/verify
-  confirm every boat, full refunds cancel the whole party. Board shows a violet
+  confirm every boat. Refunds are split across the boats by what each paid; a
+  full refund cancels the whole party. Board shows a violet
   "×N party" badge; detail page has a Charter Party card.
 - **Admin** — bookings board (money columns, status emblems, filters, assignment),
   unified booking detail page, dashboard, calendar, boats/users/captains/crew/add-ons/
@@ -174,7 +175,7 @@ resend); OTP too. GoHighLevel is disconnected (2026-09-04), so Twilio is the onl
 SMS sender and the "two phone numbers" problem is gone with it.
 
 **🟡 Party editing incomplete.** Can't add/remove a boat after creation; group name is
-auto-generated and not editable; partial refunds record against the lead booking only.
+auto-generated and not editable.
 
 **🟡 Google Maps loads via `window.google` polling** instead of a proper provider.
 
@@ -200,6 +201,23 @@ sitemap moves to a built-in `app/sitemap.ts`) and drizzle-kit/esbuild (local onl
   team's spreadsheet. Change it knowingly or not at all.
 - **GMV is derived server-side per boat** (`pricing total − card fee`). The client cannot
   submit a GMV. Party financials are per booking, never pooled onto the lead.
+- **Payments (Stripe).** The webhook (`features/payments/stripe-settlement.service.ts`)
+  logs every event in `stripe_event` and claims it before handling, so repeats and
+  retries are handled once; events from the other mode (test vs live) are logged and
+  ignored. Live keys only when `VERCEL_ENV=production` (previews use test keys; a live
+  key elsewhere throws). Checkout books a boat only when `payment_status` isn't
+  `unpaid`; bank debits book on `async_payment_succeeded`.
+- **Net paid = succeeded payments − succeeded refunds** (`netPaidCentsSql` /
+  `netPaidCents` in `features/payments/payment.service.ts`) — the one definition the
+  board, filters, detail page, customer trips, proposal page and charge planning use.
+  A partial refund raises the balance; when a refund is really a discount, lower the
+  price too. Refunds are issued in the Stripe Dashboard and synced from Stripe's own
+  refund list: one REFUND row per Stripe refund per boat (`stripe_refund_id` +
+  `refunded_payment_id`, unique). Disputes move the charge to CHARGEBACK (not paid)
+  until won, and alert the team with the evidence deadline.
+- **Instant Book** writes booking + pricing + history + payment in one atomic
+  `db.batch`; the booking's unique `stripe_checkout_session_id` stops the webhook and
+  the success page from both creating it.
 - **Emails** all render from one shared brand shell (logo header, photo backdrop,
   contact@kosyachts.com footer) in `shared/lib/services/email.service.ts`.
 
@@ -209,8 +227,13 @@ sitemap moves to a built-in `app/sitemap.ts`) and drizzle-kit/esbuild (local onl
 
 1. Set `ADMIN_ALERT_EMAIL` in Vercel (comma-separated) — the team-alert inbox. Falls
    back to contact@kosyachts.com when unset.
-2. Confirm the Stripe webhook is registered for the prod domain — **refunds only sync
-   via webhook**; the verify fallback covers checkout only.
+2. The Stripe webhook (`https://www.kosyachts.com/api/webhook/stripe`, exact URL — the
+   apex domain redirects, and Stripe counts a redirect as a failed delivery) must be
+   subscribed to: `checkout.session.completed`, `checkout.session.async_payment_succeeded`,
+   `checkout.session.async_payment_failed`, `checkout.session.expired`, `charge.refunded`,
+   `refund.created`, `refund.updated`, `refund.failed`, `charge.dispute.created`,
+   `charge.dispute.closed`. **Refunds and disputes only arrive via webhook**; the
+   success-page verify covers checkout only.
 3. Set timezones on the last 12 boats (2 La Coloma, 10 unlabelled) once their
    locations are known.
 

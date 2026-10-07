@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, bigint, timestamp, index } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, bigint, timestamp, index, unique, type AnyPgColumn } from "drizzle-orm/pg-core";
 import { 
   paymentStatusEnum, 
   paymentTypeEnum, 
@@ -13,6 +13,8 @@ import {
  * to be attached to any payable entity (bookings, event tickets, etc.)
  * 
  * One booking can have many payments (deposit, remainder, refunds).
+ * Money in is a SUCCEEDED row of any type but REFUND; a SUCCEEDED REFUND row
+ * is money given back. Net paid = money in − refunds (see netPaidCentsSql).
  * 
  * NOTE: All monetary values are stored in CENTS (integer) for precision.
  * $10.50 = 1050 cents. Matches Stripe's API format.
@@ -41,6 +43,14 @@ export const payments = pgTable("payment", {
   stripeInvoiceId: text("stripe_invoice_id"),
   stripeCustomerId: text("stripe_customer_id"),
 
+  // Refund rows (paymentType REFUND): the Stripe refund (re_…) and the charge
+  // row it gives money back on. One Stripe refund on a charter-party payment
+  // is split across the boats' rows, so the pair is unique, not the refund id.
+  stripeRefundId: text("stripe_refund_id"),
+  refundedPaymentId: uuid("refunded_payment_id").references((): AnyPgColumn => payments.id, {
+    onDelete: "set null",
+  }),
+
   // Admin notes for manual payments
   notes: text("notes"),
 
@@ -54,4 +64,6 @@ export const payments = pgTable("payment", {
   index("payment_status_idx").on(table.status),
   // Index for Stripe lookups
   index("payment_stripe_intent_idx").on(table.stripePaymentIntentId),
+  index("payment_stripe_session_idx").on(table.stripeCheckoutSessionId),
+  unique("payment_stripe_refund_unique").on(table.stripeRefundId, table.refundedPaymentId),
 ]);

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, eq, gte, inArray, ne, or, sql } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, or, sql } from "drizzle-orm";
 import { db } from "@/database/db";
 import {
   boats,
@@ -70,20 +70,14 @@ export async function updateAccount(
 
 // ── Trips (the customer's own bookings) ────────────────────────────────────
 
-/** Money in per booking — same rule the admin board uses: succeeded, refunds excluded. */
+/** Money kept per booking — same rule the admin board uses: succeeded payments minus succeeded refunds. */
 const paidByBooking = db
   .select({
     bookingId: payments.payableId,
-    paidCents: sql<string>`coalesce(sum(${payments.amountCents}), 0)`.as("paid_cents"),
+    paidCents: sql<string>`greatest(coalesce(sum(case when ${payments.paymentType} = 'REFUND' then -${payments.amountCents} else ${payments.amountCents} end), 0), 0)`.as("paid_cents"),
   })
   .from(payments)
-  .where(
-    and(
-      eq(payments.payableType, "BOOKING"),
-      eq(payments.status, "SUCCEEDED"),
-      ne(payments.paymentType, "REFUND")
-    )
-  )
+  .where(and(eq(payments.payableType, "BOOKING"), eq(payments.status, "SUCCEEDED")))
   .groupBy(payments.payableId)
   .as("paid");
 

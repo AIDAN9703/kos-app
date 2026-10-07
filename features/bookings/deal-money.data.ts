@@ -19,7 +19,7 @@ import { bookingOpsService } from "@/features/bookings/services/booking-ops.serv
 import { bookingPricingService } from "@/features/bookings/services/booking-pricing.service";
 import { bookingStatusService } from "@/features/bookings/services/booking-status.service";
 import { bookingService } from "@/features/bookings/services/booking.service";
-import { paymentService } from "@/features/payments/payment.service";
+import { netPaidCents, paymentService } from "@/features/payments/payment.service";
 import { UserFacingError } from "@/shared/lib/errors";
 import { sendBookingConfirmationEmail } from "@/shared/lib/services/email.service";
 import {
@@ -40,13 +40,9 @@ async function requireBooking(bookingId: string) {
   return booking;
 }
 
-/** Succeeded, non-refund money in, in cents. */
+/** Money the booking has kept, net of refunds, in cents. */
 async function paidCents(bookingId: string): Promise<number> {
-  const payments = await paymentService.getBookingPayments(bookingId);
-  return payments.reduce(
-    (sum, p) => (p.status !== "SUCCEEDED" || p.paymentType === "REFUND" ? sum : sum + Number(p.amountCents)),
-    0
-  );
+  return netPaidCents(await paymentService.getBookingPayments(bookingId));
 }
 
 // ============================================================================
