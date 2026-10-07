@@ -8,7 +8,6 @@
     "postbuild": "next-sitemap",
     "start": "next start",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
     "db:migrate:dev": "npx tsx database/scripts/migrate.ts dev",
     "db:migrate:prod": "npx tsx database/scripts/migrate.ts prod",
     "db:migrate:both": "npx tsx database/scripts/migrate.ts both",
