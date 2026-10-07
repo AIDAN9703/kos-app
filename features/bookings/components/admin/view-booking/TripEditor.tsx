@@ -40,7 +40,7 @@ import { reanchorWallTime } from "@/features/bookings/components/admin/booking-f
 import { useBookingEditMode } from "./BookingEditMode";
 
 /** One pricing option of a boat, as the editor needs it. */
-export interface TierOption {
+interface TierOption {
   id: string;
   hours: number;
   price: number;
@@ -48,7 +48,7 @@ export interface TierOption {
   isDefault: boolean | null;
 }
 
-export interface TripEditorTrip {
+interface TripEditorTrip {
   numberOfPassengers: number | null;
   needsCaptain: boolean | null;
   pickupLocation: string | null;

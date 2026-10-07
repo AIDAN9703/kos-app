@@ -18,11 +18,11 @@ import type {
 const OCCUPANCY_WINDOW_DAYS = 30;
 
 /** Charters that count toward earnings and activity (cancelled ones don't). */
-export function isEarning(c: OwnerCharter): boolean {
+function isEarning(c: OwnerCharter): boolean {
   return c.status === "BOOKED" || c.status === "COMPLETED";
 }
 
-export function charterHours(c: Pick<OwnerCharter, "startsAt" | "endsAt">): number {
+function charterHours(c: Pick<OwnerCharter, "startsAt" | "endsAt">): number {
   return c.endsAt ? Math.max(0, Math.round((c.endsAt.getTime() - c.startsAt.getTime()) / 36e5)) : 0;
 }
 
@@ -47,7 +47,7 @@ export function charterDayKeys(
 const sumPayout = (charters: OwnerCharter[]) =>
   charters.reduce((s, c) => s + (c.payoutCents ?? 0), 0);
 
-export function isUpcomingCharter(c: OwnerCharter, now: Date): boolean {
+function isUpcomingCharter(c: OwnerCharter, now: Date): boolean {
   return c.status === "BOOKED" && c.startsAt >= now;
 }
 

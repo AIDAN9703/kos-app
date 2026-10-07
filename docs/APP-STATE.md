@@ -283,8 +283,8 @@ Manual payments record method in `payment_method_detail`.
   Before this a Zelle-paid trip stayed DRAFT forever — never blocking the calendar,
   never completable. Interim until the status-vocabulary rebuild.
 - **Board row "Delete" removed** (it was a hard delete on any status, orphaning payment
-  rows). Archive / Cancel / Mark lost are the parking verbs. Dead hook + action deleted;
-  `bookingService.deleteBooking` kept for scripts.
+  rows). Archive / Cancel / Mark lost are the parking verbs. Dead hook, action and
+  `bookingService.deleteBooking` deleted.
 - **Contract readiness dropped** from trip-readiness, the board emblem and the list
   type — nothing could ever set `booking_ops.contract_signed`, so every trip showed a
   permanent "Contract" gap. Column stays in the DB for when e-signature exists.

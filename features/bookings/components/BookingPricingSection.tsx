@@ -12,7 +12,7 @@ import {
 } from "@/shared/lib/utils/pricing-utils";
 import { dollarsToCents } from "@/shared/lib/utils/money-utils";
 
-export interface PricingSectionAddOn {
+interface PricingSectionAddOn {
   name: string;
   quantity: number;
   /** Line total in dollars (0 when complimentary). */

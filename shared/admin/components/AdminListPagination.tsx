@@ -11,7 +11,7 @@ import {
 } from "@/shared/components/ui/select";
 import { ADMIN_LIST_PAGE_SIZES } from "@/shared/admin/list-pagination";
 
-export interface AdminListPaginationProps {
+interface AdminListPaginationProps {
   totalCount: number;
   totalPages: number;
   page: number;

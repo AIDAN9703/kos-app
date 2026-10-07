@@ -62,14 +62,16 @@ export default function BookingSummary({
   return (
     <section className="space-y-5">
       <div className="relative aspect-[16/10] w-full overflow-hidden rounded-2xl bg-gray-100">
-        <Image
-          src={boat.mainImage || "/images/boats/default-boat.jpg"}
-          alt={boat.name}
-          fill
-          className="object-cover"
-          sizes="(max-width: 1024px) 100vw, 60vw"
-          priority
-        />
+        {boat.mainImage && (
+          <Image
+            src={boat.mainImage}
+            alt={boat.name}
+            fill
+            className="object-cover"
+            sizes="(max-width: 1024px) 100vw, 60vw"
+            priority
+          />
+        )}
         {boat.instantBook && (
           <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-xs font-medium text-foreground backdrop-blur-sm">
             <Zap className="h-3 w-3 fill-current" />

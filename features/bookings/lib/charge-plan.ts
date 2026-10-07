@@ -33,7 +33,7 @@ export interface ChargeableBoat {
   paidCents: number;
 }
 
-export interface ChargeLine {
+interface ChargeLine {
   bookingId: string;
   /** What this boat's payment row records — base + fee. */
   amountCents: number;
@@ -43,7 +43,7 @@ export interface ChargeLine {
   feeCents: number;
 }
 
-export type PaymentKind = "DEPOSIT" | "FULL_PAYMENT" | "PARTIAL";
+type PaymentKind = "DEPOSIT" | "FULL_PAYMENT" | "PARTIAL";
 
 export interface ChargePlan {
   kind: PaymentKind;
@@ -53,7 +53,7 @@ export interface ChargePlan {
 }
 
 /** A deposit the guest may pay first: set, positive, below the subtotal. */
-export function validDepositCents(boat: ChargeableBoat): number | null {
+function validDepositCents(boat: ChargeableBoat): number | null {
   const subtotal = boat.totalCents - boat.serviceFeeCents;
   const deposit = boat.depositCents ?? 0;
   return deposit > 0 && deposit < subtotal ? deposit : null;

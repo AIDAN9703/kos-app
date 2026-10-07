@@ -5,7 +5,7 @@ import type { ServiceFee } from "@/shared/lib/utils/pricing-utils";
  * Used when customers open the SMS/link to view and accept their charter proposal.
  */
 
-export interface ProposalAddOn {
+interface ProposalAddOn {
   name: string;
   description?: string | null;
   unitPrice: number;

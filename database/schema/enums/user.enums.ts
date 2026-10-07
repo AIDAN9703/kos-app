@@ -1,7 +1,6 @@
 import { pgEnum } from "drizzle-orm/pg-core";
 
-// User related enums
-// REMOVED: userRoleEnum - replaced with isAdmin boolean flag
+// User related enums (roles live in user.role as text — see shared/lib/auth/permissions.ts)
 
 export const userStatusEnum = pgEnum("UserStatus", [
   "ACTIVE",

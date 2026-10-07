@@ -9,7 +9,7 @@ import { formatCentsAsCurrency } from "@/shared/lib/utils/money-utils";
 type AlertLine = AdminAlertEmailParams["lines"][number];
 
 /** The rows every booking alert opens with: who, which boat, when, how much. */
-export function bookingAlertLines(b: BookingDetails): AlertLine[] {
+function bookingAlertLines(b: BookingDetails): AlertLine[] {
   return [
     { label: "Customer", value: b.customerName },
     { label: "Email", value: b.customerEmail },

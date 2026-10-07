@@ -1,4 +1,3 @@
-import React from 'react'
 
 // Force static generation - this about page has no dynamic content
 export const dynamic = 'force-static';

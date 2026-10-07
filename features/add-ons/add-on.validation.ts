@@ -2,7 +2,7 @@ import * as z from "zod";
 import { addOnCategoryEnum } from "@/database/schema";
 
 /** Catalog add-on base fields. Prices are stored in USD cents. */
-export const addOnBaseSchema = z.object({
+const addOnBaseSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional().nullable(),
   category: z.enum(addOnCategoryEnum.enumValues).default("OTHER"),
@@ -15,14 +15,14 @@ export const addOnBaseSchema = z.object({
 export const createAddOnSchema = addOnBaseSchema;
 export const updateAddOnSchema = addOnBaseSchema.partial();
 
-export const addOnFilterSchema = z.object({
-  search: z.string().optional(),
-  category: z.enum(addOnCategoryEnum.enumValues).optional(),
-  active: z.coerce.boolean().optional(),
-  page: z.coerce.number().optional(),
-  limit: z.coerce.number().max(200).optional(),
-});
+/** Catalog list filters. */
+export interface AddOnFilterInput {
+  search?: string;
+  category?: (typeof addOnCategoryEnum.enumValues)[number];
+  active?: boolean;
+  page?: number;
+  limit?: number;
+}
 
 export type CreateAddOnInput = z.infer<typeof createAddOnSchema>;
 export type UpdateAddOnInput = z.infer<typeof updateAddOnSchema>;
-export type AddOnFilterInput = z.infer<typeof addOnFilterSchema>;

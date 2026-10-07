@@ -21,7 +21,7 @@ export const PAYMENT_DISPLAY_STATUSES = [
 
 export type PaymentDisplayStatus = (typeof PAYMENT_DISPLAY_STATUSES)[number];
 
-export interface PaymentDisplayInput {
+interface PaymentDisplayInput {
   totalPaidCents: number;
   totalAmountCents: number;
   latestPaymentStatus: string | null;

@@ -77,7 +77,7 @@ const cardColumns = {
  * go through boat.data.ts, which checks the viewer and picks one of these.
  * Public reads only ever see active boats, public columns and active tiers.
  */
-export class BoatService {
+class BoatService {
   // ========================================
   // PUBLIC
   // ========================================

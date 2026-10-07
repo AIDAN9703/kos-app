@@ -22,7 +22,7 @@ export async function startProposalPayment(
   }
 }
 
-export interface RequestProposalChangesResponse {
+interface RequestProposalChangesResponse {
   success: boolean;
   error?: string;
 }

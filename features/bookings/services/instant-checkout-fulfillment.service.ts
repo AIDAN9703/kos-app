@@ -17,7 +17,7 @@ import { dollarsToCents } from "@/shared/lib/utils/money-utils";
 import { serviceFeeFromSnapshot } from "@/shared/lib/utils/pricing-utils";
 import type { BookingAddOn } from "@/features/bookings/booking.types";
 
-export type InstantCheckoutFulfillmentResult =
+type InstantCheckoutFulfillmentResult =
   | { status: "created"; bookingId: string }
   | { status: "already_processed"; bookingId: string }
   | { status: "skipped"; reason: string };

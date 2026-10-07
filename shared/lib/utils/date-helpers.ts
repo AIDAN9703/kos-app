@@ -8,7 +8,7 @@
 import { toZonedTime, fromZonedTime, formatInTimeZone } from 'date-fns-tz';
 import { timezoneEnum } from '@/database/schema/enums';
 
-export type SupportedTimezones = typeof timezoneEnum.enumValues[number];
+type SupportedTimezones = typeof timezoneEnum.enumValues[number];
 const DEFAULT_TIMEZONE: SupportedTimezones = 'America/New_York';
 
 /**

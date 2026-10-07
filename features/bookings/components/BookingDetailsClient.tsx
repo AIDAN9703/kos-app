@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useMemo, useState, useEffect } from "react";
+import { useCallback, useMemo, useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useQueryStates, parseAsString, parseAsInteger, parseAsBoolean } from "nuqs";

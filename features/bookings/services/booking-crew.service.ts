@@ -11,7 +11,7 @@ import { bookingCrew, users } from "@/database/schema";
 
 import { bookingEventsService } from "@/features/bookings/services/booking-events.service";
 
-export class BookingCrewService {
+class BookingCrewService {
   async listByBookingId(bookingId: string) {
     return db
       .select({

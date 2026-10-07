@@ -23,7 +23,7 @@ import type { SessionUser } from "@/shared/lib/auth/session-user";
 
 export type { SessionUser };
 
-export interface AppSession {
+interface AppSession {
   user: SessionUser;
   session: { id: string; expiresAt: Date; impersonatedBy?: string | null };
 }

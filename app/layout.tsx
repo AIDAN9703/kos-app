@@ -68,7 +68,7 @@ export const metadata: Metadata = {
         addressRegion: "FL",
         addressCountry: "US",
       },
-      telephone: "+1-305-XXX-XXXX",
+      telephone: "+1-305-521-8877",
       priceRange: "$$$",
       serviceArea: {
         "@type": "GeoCircle",

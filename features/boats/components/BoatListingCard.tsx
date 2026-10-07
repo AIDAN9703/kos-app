@@ -11,7 +11,7 @@ import { getImageKitProps } from "@/shared/lib/utils/imagekit";
 import { formatStartingHourly } from "@/shared/lib/utils/pricing-utils";
 import { cn } from "@/shared/lib/utils/general-utils";
 
-export type BoatListingCardSize = "sm" | "md" | "lg";
+type BoatListingCardSize = "sm" | "md" | "lg";
 
 const SIZE_STYLES: Record<
   BoatListingCardSize,
@@ -86,7 +86,7 @@ const SIZE_STYLES: Record<
   },
 };
 
-export interface BoatListingCardProps {
+interface BoatListingCardProps {
   boat: BoatCard;
   index?: number;
   size?: BoatListingCardSize;
@@ -156,7 +156,7 @@ export default function BoatListingCard({
         ) : (
           <div className="flex h-full flex-col items-center justify-center text-slate-400">
             <Image
-              src="/icons/updatekoslogo-branded.png"
+              src="/icons/transparent-logo.png"
               alt=""
               width={styles.placeholderLogo}
               height={styles.placeholderLogo}

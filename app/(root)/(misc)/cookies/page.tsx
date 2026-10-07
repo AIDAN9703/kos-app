@@ -1,4 +1,3 @@
-import React from 'react'
 import Link from 'next/link'
 
 import { Mail, Phone, Globe, Cookie, Settings, Eye, Users, Calendar, Monitor } from 'lucide-react';

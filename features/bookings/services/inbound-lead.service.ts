@@ -11,7 +11,7 @@ import { revalidateDeal } from "@/features/bookings/lib/revalidate-deal";
 type MarketplaceSourceValue = "BOATSETTER" | "GETMYBOAT";
 
 /** Marketplace sources this service knows how to ingest. */
-export type MarketplaceSource = MarketplaceSourceValue;
+type MarketplaceSource = MarketplaceSourceValue;
 
 export const MARKETPLACE_SENDER_DOMAINS: Record<string, MarketplaceSource> = {
   "boatsetter.com": "BOATSETTER",
@@ -23,7 +23,7 @@ const SOURCE_DISPLAY: Record<MarketplaceSource, string> = {
   GETMYBOAT: "GetMyBoat",
 };
 
-export interface InboundEmailContent {
+interface InboundEmailContent {
   source: MarketplaceSource;
   fromAddress: string;
   subject: string;
@@ -42,7 +42,7 @@ interface ExtractedLead {
   threadUrl: string | null;
 }
 
-export type ParseMethod = "PARSED" | "FALLBACK_LLM" | "FAILED";
+type ParseMethod = "PARSED" | "FALLBACK_LLM" | "FAILED";
 
 /** Very light HTML → text for emails that arrive without a text part. */
 export function htmlToText(html: string): string {

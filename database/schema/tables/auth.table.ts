@@ -57,10 +57,7 @@ export const accounts = pgTable(
   ]
 );
 
-/**
- * Email-verification and password-reset tokens. Named auth_verification
- * because the legacy Twilio table already owns "verification".
- */
+/** Email-verification and password-reset tokens (Better Auth's verification table). */
 export const authVerifications = pgTable(
   "auth_verification",
   {

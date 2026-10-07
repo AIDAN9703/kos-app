@@ -111,7 +111,8 @@ async function BoatFormWithData({ boatId }: { boatId: string }) {
 
     // Location
     locationLabel: boatData.locationLabel || null,
-    locationCoordinates: null, // TODO: Parse from geometry field if needed
+    // Start from the saved point: saving null would clear the boat's map location.
+    locationCoordinates: boatData.locationCoordinates,
     availableDestinations: boatData.availableDestinations || [],
     dockInfo: boatData.dockInfo || null,
     parkingInfo: boatData.parkingInfo || null,

@@ -36,14 +36,14 @@ const SYNC_LOOKAHEAD_DAYS = 365;
 const FETCH_TIMEOUT_MS = 15_000;
 const MAX_EVENTS_PER_CALENDAR = 5_000;
 
-export interface ParsedBusyEvent {
+interface ParsedBusyEvent {
   uid: string | null;
   summary: string | null;
   start: Date;
   end: Date;
 }
 
-export type SyncResult =
+type SyncResult =
   | { status: "SUCCESS"; eventCount: number }
   | { status: "ERROR"; eventCount: 0; error: string };
 

@@ -4,14 +4,6 @@ import { getImageKit } from "@/shared/lib/services/imagekit-server";
 import { UserFacingError } from "@/shared/lib/errors";
 import { assertCan, assertSignedIn } from "@/shared/lib/utils/auth-utils";
 
-/**
- * Image uploads (ImageKit). Anyone signed in may upload to their own folders
- * (profile photo, misc); boat photos need boat:edit and news images
- * blog:edit.
- */
-
-export type UploadType = "profile" | "boat" | "misc" | "blog";
-
 const MAX_BYTES = 10 * 1024 * 1024;
 
 export async function uploadImage(input: {

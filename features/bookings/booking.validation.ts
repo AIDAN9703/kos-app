@@ -20,56 +20,36 @@ export const INQUIRY_GROUP_TYPES = [
   "REQUEST",
 ] as const;
 
-/**
- * Booking filter/search schema for URL params - Comprehensive filters for admin
- * Uses database enums as single source of truth (matches searchParams).
- */
-export const bookingFilterSchema = z.object({
-  // Pagination
-  page: z.coerce.number().optional(),
-  limit: z.coerce.number().max(100).optional(),
-  
-  // Text search
-  search: z.string().optional(),
-  
-  // Status filters (from database schema)
-  bookingStatus: z.enum(bookingStatusEnum.enumValues).optional(),
-  paymentStatus: z.enum(PAYMENT_DISPLAY_STATUSES).optional(),
-  // Raw types plus the stage-aware pseudo-values over the inquiry family:
-  // "INQUIRY" = still a lead, "BOOKING" = priced past inquiry.
-  bookingType: z.enum([...bookingTypeEnum.enumValues, "INQUIRY", "BOOKING"]).optional(),
-  
-  // Date range
-  dateFrom: z.string().optional(),
-  dateTo: z.string().optional(),
-
-  // Column sort (default: newest created first)
-  sortBy: z.enum(["date", "gmv"]).optional(),
-  sortOrder: z.enum(["asc", "desc"]).optional(),
-  
-  // Related entities
-  boatId: z.string().uuid("Invalid boat ID").optional(),
-  bookingGroupId: z.string().uuid("Invalid booking group ID").optional(),
-  customerId: z.string().uuid("Invalid customer ID").optional(),
-  assignedAdminId: z.string().uuid("Invalid admin ID").optional(),
-  
-  // Boolean filters
-  needsCaptain: z.coerce.boolean().optional(),
+/** Deal list filters — the admin board and the master list. */
+export interface BookingFilterInput {
+  page?: number;
+  limit?: number;
+  search?: string;
+  bookingStatus?: (typeof bookingStatusEnum.enumValues)[number];
+  paymentStatus?: (typeof PAYMENT_DISPLAY_STATUSES)[number];
+  /** Raw types plus the stage-aware pseudo-values over the inquiry family:
+   *  "INQUIRY" = still a lead, "BOOKING" = priced past inquiry. */
+  bookingType?: (typeof bookingTypeEnum.enumValues)[number] | "INQUIRY" | "BOOKING";
+  dateFrom?: string;
+  dateTo?: string;
+  /** Column sort (default: newest created first). */
+  sortBy?: "date" | "gmv";
+  sortOrder?: "asc" | "desc";
+  boatId?: string;
+  bookingGroupId?: string;
+  customerId?: string;
+  assignedAdminId?: string;
+  needsCaptain?: boolean;
   /** Only bookings no admin owns yet ("Unassigned" scope tab). */
-  unassignedOnly: z.coerce.boolean().optional(),
+  unassignedOnly?: boolean;
   /**
    * Master-list buckets: true = archive bucket only (archivedAt set or
    * CANCELLED); false = live bucket only; undefined = no bucket filter.
    */
-  archivedView: z.coerce.boolean().optional(),
-  
-  // Amount range
-  minAmount: z.coerce.number().min(0).optional(),
-  maxAmount: z.coerce.number().min(0).optional(),
-});
-
-// Inferred type from validation schema
-export type BookingFilterInput = z.infer<typeof bookingFilterSchema>;
+  archivedView?: boolean;
+  minAmount?: number;
+  maxAmount?: number;
+}
 
 /** Typed expense line captured at booking creation (amounts in cents). */
 export const bookingExpenseLineInputSchema = z.object({
@@ -81,7 +61,7 @@ export const bookingExpenseLineInputSchema = z.object({
 });
 
 /** Add-on input schema - matches BookingAddOnInput */
-export const bookingAddOnSchema = z.object({
+const bookingAddOnSchema = z.object({
   name: z.string().min(1, "Add-on name is required"),
   description: z.string().nullable().optional(),
   unitPrice: z.number().min(0.01, "Unit price must be greater than 0"),
@@ -92,7 +72,7 @@ export const bookingAddOnSchema = z.object({
  * Single booking section - resolved on client (full data per booking)
  * Option C: pricingTierId optional. When null = custom pricing, basePrice + endDateTime required.
  */
-export const bookingSectionSchema = z
+const bookingSectionSchema = z
   .object({
     boatId: z.string().uuid("Please select a boat"),
     usePricingTier: z.boolean().optional(),
@@ -142,24 +122,23 @@ export const bookingSectionSchema = z
   );
 
 /**
- * Unified create bookings schema - one or more bookings in a group
+ * What bookingService.createBookings takes: createDeal builds it from a
+ * parsed createBookingFullSchema, adding the group name and publish flag.
  */
-export const createBookingsSchema = z.object({
-  /** INQUIRY-status deal being priced — that row is UPGRADED to PROPOSED
-   *  in place (same id, same history) instead of a new row. */
-  dealId: z.string().uuid().nullable().optional(),
-  numberOfPassengers: z.number().int().min(1, "Must have at least 1 passenger"),
-  pickupLocation: z.string().nullable().optional(),
-  dropoffLocation: z.string().nullable().optional(),
-  adminNotes: z.string().nullable().optional(),
-  bookings: z.array(bookingSectionSchema).min(1, "At least one booking is required"),
-  groupName: z.string().nullable().optional(),
-  sendProposalEmail: z.boolean().optional().default(false),
-  sendProposalSms: z.boolean().optional().default(false),
-  publishNow: z.boolean().optional(),
-});
-
-export type CreateBookingsInput = z.infer<typeof createBookingsSchema>;
+export type CreateBookingsInput = Pick<
+  CreateBookingFullInput,
+  | "dealId"
+  | "numberOfPassengers"
+  | "pickupLocation"
+  | "dropoffLocation"
+  | "adminNotes"
+  | "bookings"
+  | "sendProposalEmail"
+  | "sendProposalSms"
+> & {
+  groupName?: string | null;
+  publishNow?: boolean;
+};
 
 /**
  * THE booking-creation schema (used by every door: create page, deal-page

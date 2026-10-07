@@ -83,7 +83,7 @@ function draftsToInput(drafts: BookingExpenseLineDraft[]): BookingExpenseLineInp
     }));
 }
 
-export interface BookingExpensesModalProps {
+interface BookingExpensesModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   bookingId: string;

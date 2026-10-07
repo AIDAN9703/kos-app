@@ -14,7 +14,7 @@ import { addUserRole } from "@/features/users/user-access.service";
 
 const DISABLED_STATUS: CaptainStatus = "INACTIVE";
 
-export class CaptainProfileService {
+class CaptainProfileService {
   /** Captains available for booking assignment (active profile + active user). */
   async getCaptainsForAssignment() {
     return db

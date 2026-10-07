@@ -9,7 +9,7 @@ import { db } from "@/database/db";
 import { boats, boatPricingTiers } from "@/database/schema";
 import { and, eq, inArray } from "drizzle-orm";
 
-export type BoatForBooking = {
+type BoatForBooking = {
   id: string;
   ownerId: string;
   cleaningFee: number | null;
@@ -18,7 +18,7 @@ export type BoatForBooking = {
   currency: string;
 };
 
-export type TierForBooking = {
+type TierForBooking = {
   id: string;
   price: number;
   hours: number;
@@ -78,7 +78,7 @@ export async function fetchBoatAndTier(
   };
 }
 
-export type BoatForBulkBooking = {
+type BoatForBulkBooking = {
   id: string;
   name: string;
   mainImage: string | null;
@@ -89,7 +89,7 @@ export type BoatForBulkBooking = {
   currency: string;
 };
 
-export type TierForBulkBooking = {
+type TierForBulkBooking = {
   id: string;
   boatId: string;
   hours: number;

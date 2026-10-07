@@ -16,7 +16,7 @@ export const pricingTierSchema = z.object({
 export type PricingTierInput = z.infer<typeof pricingTierSchema>;
 
 // Per-boat add-on offering (which catalog add-on a boat offers, at what price)
-export const boatAddOnAssignmentSchema = z.object({
+const boatAddOnAssignmentSchema = z.object({
   id: z.string().uuid("Invalid ID format").optional(), // boat_add_on row id (omit for new)
   addOnId: z.string().uuid("Invalid add-on"),
   priceCents: z.number().int().min(0).nullable().optional(), // null = use catalog default
@@ -27,7 +27,7 @@ export const boatAddOnAssignmentSchema = z.object({
 export type BoatAddOnAssignmentInput = z.infer<typeof boatAddOnAssignmentSchema>;
 
 // Common boat schema for shared fields between create and update
-export const boatBaseSchema = z.object({
+const boatBaseSchema = z.object({
   // Core Information
   name: z.string().min(2, "Boat name is required"),
   displayTitle: z.string().optional().nullable(),
@@ -131,50 +131,31 @@ export const createBoatSchema = boatBaseSchema;
 // Schema for updating a boat - all fields are optional
 export const updateBoatSchema = boatBaseSchema.partial();
 
-// Boat filter/search schema for URL params - Comprehensive filters for admin
-export const boatFilterSchema = z.object({
-  // Pagination
-  page: z.coerce.number().optional(),
-  limit: z.coerce.number().max(1000).optional(), // Increased for admin dropdowns that need all boats
-  
-  // Text search
-  search: z.string().optional(),
-  
-  // Basic filters
-  category: z.enum(boatCategoryEnum.enumValues).optional(),
-  featured: z.coerce.boolean().optional(),
-  active: z.coerce.boolean().optional(),
-  ownerId: z.string().uuid("Invalid owner ID").optional(),
-  
-  // Price range
-  minPrice: z.coerce.number().min(0).optional(),
-  maxPrice: z.coerce.number().min(0).optional(),
-  
-  // Size/capacity filters
-  minLength: z.coerce.number().min(0).optional(),
-  maxLength: z.coerce.number().min(0).optional(),
-  minCapacity: z.coerce.number().min(0).optional(),
-  maxCapacity: z.coerce.number().min(0).optional(),
-  
-  // Year built
-  minYear: z.coerce.number().min(1900).optional(),
-  maxYear: z.coerce.number().max(new Date().getFullYear()).optional(),
-  
-  // Accommodations
-  minSleeps: z.coerce.number().min(0).optional(),
-  minBathrooms: z.coerce.number().min(0).optional(),
-  
-  // Location
-  locationLabel: z.string().optional(),
-  
-  // Charter options
-  crewRequired: z.coerce.boolean().optional(),
-  instantBook: z.coerce.boolean().optional(),
-  dayCharter: z.coerce.boolean().optional(),
-  termCharter: z.coerce.boolean().optional(),
-});
-
+/** Boat list filters — the admin boat list and the public search. */
+export interface BoatFilterInput {
+  page?: number;
+  limit?: number;
+  search?: string;
+  category?: (typeof boatCategoryEnum.enumValues)[number];
+  featured?: boolean;
+  active?: boolean;
+  ownerId?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  minLength?: number;
+  maxLength?: number;
+  minCapacity?: number;
+  maxCapacity?: number;
+  minYear?: number;
+  maxYear?: number;
+  minSleeps?: number;
+  minBathrooms?: number;
+  locationLabel?: string;
+  crewRequired?: boolean;
+  instantBook?: boolean;
+  dayCharter?: boolean;
+  termCharter?: boolean;
+}
 
 export type CreateBoatInput = z.infer<typeof createBoatSchema>;
 export type UpdateBoatInput = z.infer<typeof updateBoatSchema>;
-export type BoatFilterInput = z.infer<typeof boatFilterSchema>;

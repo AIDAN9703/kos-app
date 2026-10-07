@@ -1,7 +1,7 @@
 import type { BookingStatus } from "@/database/types";
 
 /** Admin-facing words for the stored statuses. Change words here, nowhere else. */
-export const BOOKING_STATUS_LABELS: Record<BookingStatus, string> = {
+const BOOKING_STATUS_LABELS: Record<BookingStatus, string> = {
   INQUIRY: "Inquiry",
   PROPOSED: "Proposal",
   BOOKED: "Booked",

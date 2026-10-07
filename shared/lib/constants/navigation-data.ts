@@ -17,7 +17,7 @@ import {
 // NAVIGATION STRUCTURE
 // ============================================
 
-export interface SimpleNavItem {
+interface SimpleNavItem {
   href: string;
   label: string;
   type: "link" | "dropdown";
@@ -210,7 +210,7 @@ export const navigationData: NavigationData = {
 // ADMIN NAVIGATION
 // ============================================
 
-export interface AdminNavItem {
+interface AdminNavItem {
   label: string;
   href: string;
   iconClassName?: string;
@@ -220,7 +220,7 @@ export interface AdminNavItem {
 }
 
 /** Primary admin sidebar + command palette routes (each row has an icon). */
-export type AdminMainNavItem = AdminNavItem & { icon: LucideIcon };
+type AdminMainNavItem = AdminNavItem & { icon: LucideIcon };
 
 export const ADMIN_QUICK_ACTIONS: AdminNavItem[] = [
   {

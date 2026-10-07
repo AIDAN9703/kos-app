@@ -62,7 +62,7 @@ export function serviceFeeFromSnapshot(pricing: {
 }
 
 /** 399 → "3.99%", 350 → "3.5%". */
-export function formatBps(bps: number): string {
+function formatBps(bps: number): string {
   return `${Number((bps / 100).toFixed(2))}%`;
 }
 
@@ -78,7 +78,7 @@ export function formatServiceFee(fee: ServiceFee): string {
 // BOOKING PRICE (CENTS)
 // ========================================
 
-export interface BookingPriceBreakdownCents {
+interface BookingPriceBreakdownCents {
   basePriceCents: Cents;
   captainFeeCents: Cents;
   cleaningFeeCents: Cents;

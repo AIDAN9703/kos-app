@@ -11,9 +11,6 @@ export const SUPPORTED_LOCATION_COUNTRIES = [
   "gr",
 ] as const;
 
-export type SupportedLocationCountry =
-  (typeof SUPPORTED_LOCATION_COUNTRIES)[number];
-
 // Default US bounds for map initialization
 export const DEFAULT_US_BOUNDS = {
   ne: { lat: 48.07631048724108, lng: -66.41625985304204 },

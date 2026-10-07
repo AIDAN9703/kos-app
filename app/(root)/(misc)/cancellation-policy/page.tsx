@@ -1,4 +1,3 @@
-import React from "react";
 import Link from "next/link";
 
 import { Mail, Phone, Globe, Shield, Calendar, AlertTriangle, CreditCard, FileText } from "lucide-react";

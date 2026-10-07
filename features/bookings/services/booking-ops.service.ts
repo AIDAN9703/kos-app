@@ -17,13 +17,13 @@ import {
 type BookingOpsRow = typeof bookingOps.$inferSelect;
 
 /** Every ops column except the key and timestamps. */
-export type BookingOpsData = Omit<BookingOpsRow, "bookingId" | "createdAt" | "updatedAt">;
+type BookingOpsData = Omit<BookingOpsRow, "bookingId" | "createdAt" | "updatedAt">;
 
 /**
  * Partial ops update. revenue and both balances are always recomputed here,
  * so callers can't set them.
  */
-export type BookingOpsInput = Partial<
+type BookingOpsInput = Partial<
   Omit<BookingOpsData, "revenueCents" | "balanceOwnerCents" | "balanceClientCents">
 >;
 

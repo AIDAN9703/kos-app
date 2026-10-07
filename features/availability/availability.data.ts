@@ -61,7 +61,7 @@ export async function getMonthCalendar(boatId: string, month: string | null): Pr
 // ============================================================================
 
 /** FullCalendar event feed shape — bookings and external blocks share it. */
-export interface CalendarFeedEvent {
+interface CalendarFeedEvent {
   id: string;
   title: string;
   start: string;

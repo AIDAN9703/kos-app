@@ -49,7 +49,7 @@ const userOptionColumns = {
  * User queries. Server-only and not access-checked: pages, routes and
  * actions go through user.data.ts, which checks the admin permission first.
  */
-export class UserService {
+class UserService {
   /**
    * Get paginated and filtered users
    */

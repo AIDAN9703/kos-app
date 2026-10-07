@@ -25,7 +25,7 @@ import {
 const inputClass =
   "h-11 rounded-xl border-border bg-muted/10 focus-visible:ring-2 focus-visible:ring-ring";
 
-export interface InquirySignedInUser {
+interface InquirySignedInUser {
   firstName: string;
   name: string;
   email: string;

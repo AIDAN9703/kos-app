@@ -13,7 +13,7 @@ export const OWNER_VISIBLE_STATUSES = [
   "COMPLETED",
   "CANCELLED",
 ] as const satisfies readonly BookingStatus[];
-export type OwnerCharterStatus = (typeof OWNER_VISIBLE_STATUSES)[number];
+type OwnerCharterStatus = (typeof OWNER_VISIBLE_STATUSES)[number];
 
 /** Who the portal is for — shown in the sidebar. */
 export interface OwnerIdentity {

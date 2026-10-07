@@ -5,7 +5,7 @@ import { assertCan } from "@/shared/lib/utils/auth-utils";
 
 /** The admin command bar's search (needs the user list, the fleet and every deal). */
 
-export type SearchResult = {
+type SearchResult = {
   id: string;
   title: string;
   subtitle?: string;

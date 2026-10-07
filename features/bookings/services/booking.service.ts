@@ -112,7 +112,7 @@ async function assertBoatWindowFree(
   }
 }
 
-export class BookingService {
+class BookingService {
   // ==========================================================================
   // CREATE OPERATIONS
   // ==========================================================================

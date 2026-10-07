@@ -5,7 +5,7 @@ import { emailSchema, phoneRequiredSchema } from "./common";
 /**
  * Shared inquiry validation schemas
  * Single source of truth for all inquiry forms (Request to Book, Term Charter,
- * boat page). Consumed by features/bookings/actions/lead-intake.actions.ts.
+ * boat page). Consumed by features/bookings/booking-request.data.ts.
  */
 
 /** Base contact fields - shared across all inquiry types */
@@ -16,7 +16,7 @@ const baseContactSchema = z.object({
 });
 
 /** Fuzzy time-of-day preference — mirrors the PreferredTimeOfDay pg enum. */
-export const preferredTimeOfDaySchema = z.enum([
+const preferredTimeOfDaySchema = z.enum([
   "MORNING",
   "AFTERNOON",
   "EVENING",

@@ -51,14 +51,13 @@ export const updateUserSchema = userBaseSchema.partial().extend({
   password: passwordSchema.optional(),
 });
 
-// User search/filter schema
-export const userFilterSchema = z.object({
-  page: z.coerce.number().optional(),
-  limit: z.coerce.number().optional(),
-  search: z.string().optional(),
-  isAdmin: z.coerce.boolean().optional(),
-});
+/** User list filters. */
+export interface UserFilterInput {
+  page?: number;
+  limit?: number;
+  search?: string;
+  isAdmin?: boolean;
+}
 
 export type CreateUserInput = z.infer<typeof createUserSchema>;
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;
-export type UserFilterInput = z.infer<typeof userFilterSchema>;

@@ -55,7 +55,7 @@ export const bookingSingleFieldUpdateSchema = z.discriminatedUnion("field", [
 
 export type BookingSingleFieldUpdate = z.infer<typeof bookingSingleFieldUpdateSchema>;
 
-export type BookingSingleEditableField = BookingSingleFieldUpdate["field"];
+type BookingSingleEditableField = BookingSingleFieldUpdate["field"];
 
 /** Drizzle `.set()` payload for `booking` table columns only (no updatedAt). */
 export function bookingRowPatchFromSingleFieldUpdate(

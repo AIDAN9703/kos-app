@@ -24,49 +24,6 @@ export function apiSuccess<T>(data: T, status: number = 200) {
 }
 
 /**
- * Success response with data and metadata (uses SuperJSON)
- * Usage: return apiSuccessWithMeta(users, { pagination: {...} })
- */
-export function apiSuccessWithMeta<T>(
-  data: T,
-  meta: Record<string, unknown>,
-  status: number = 200
-) {
-  return NextResponse.json(
-    superjson.serialize({
-      success: true,
-      data,
-      meta,
-    }),
-    { status }
-  );
-}
-
-/**
- * Paginated response helper (uses SuperJSON)
- * Usage: return apiPaginated(users, { page: 1, limit: 10, totalCount: 100, totalPages: 10 })
- */
-export function apiPaginated<T>(
-  data: T[],
-  pagination: {
-    page: number;
-    limit: number;
-    totalCount: number;
-    totalPages: number;
-  },
-  status: number = 200
-) {
-  return NextResponse.json(
-    superjson.serialize({
-      success: true,
-      data,
-      meta: { pagination },
-    }),
-    { status }
-  );
-}
-
-/**
  * Error response
  * Usage: return apiError("User not found", 404)
  */
@@ -89,19 +46,5 @@ export function apiErrorFrom(error: unknown, fallback: string) {
   if (error instanceof UserFacingError) return apiError(error.message, error.status);
   console.error(fallback, error);
   return apiError(fallback);
-}
-
-/**
- * Success response without data (for DELETE, etc.)
- * Usage: return apiSuccessNoData("User deleted")
- */
-export function apiSuccessNoData(message: string = "Success", status: number = 200) {
-  return NextResponse.json(
-    {
-      success: true,
-      message,
-    },
-    { status }
-  );
 }
 

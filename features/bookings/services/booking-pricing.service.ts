@@ -23,7 +23,7 @@ import { getAppSettings } from '@/features/app-settings/app-settings.service';
 // TYPES
 // ============================================================================
 
-export interface CreateBookingPricingInput {
+interface CreateBookingPricingInput {
   bookingId: string;
   basePriceCents: Cents;
   captainFeeCents?: Cents | null;
@@ -41,7 +41,7 @@ export interface CreateBookingPricingInput {
   remainderDueDate?: Date | null;
 }
 
-export interface UpdateBookingPricingInput {
+interface UpdateBookingPricingInput {
   basePriceCents?: Cents;
   captainFeeCents?: Cents | null;
   cleaningFeeCents?: Cents | null;
@@ -64,7 +64,7 @@ export interface UpdateBookingPricingInput {
  * Service will calculate fees automatically.
  * Subtotal = base + add-ons + cleaning + captain; the service fee (from settings) applies on top.
  */
-export interface SimplePricingInput {
+interface SimplePricingInput {
   basePriceCents: Cents;
   addOnsCents?: Cents;
   captainFeeCents?: Cents;
@@ -82,7 +82,7 @@ export interface SimplePricingInput {
 // SERVICE CLASS
 // ============================================================================
 
-export class BookingPricingService {
+class BookingPricingService {
   /**
    * Create pricing record for a booking
    */

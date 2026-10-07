@@ -10,7 +10,7 @@ import { formatCentsCompact } from "@/shared/lib/utils/money-utils";
  * too, but nothing could ever mark a contract signed, so every trip showed the
  * gap forever — dropped 2026-09-04 until e-signature exists.)
  */
-export interface ReadinessInput {
+interface ReadinessInput {
   needsCaptain: boolean | null;
   captainUserId: string | null;
   totalAmountCents: number | null;
@@ -20,7 +20,7 @@ export interface ReadinessInput {
   startDateTime: Date | string | null;
 }
 
-export type ReadinessGap =
+type ReadinessGap =
   | { kind: "captain"; label: "Captain"; tone: "warning" }
   | { kind: "balance"; label: string; dueCents: number; tone: "destructive" };
 

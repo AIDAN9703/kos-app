@@ -19,7 +19,7 @@ const SIGNED_KEYS = ["scope", "boatId", "captainId", "ownerId"] as const;
 
 export type FeedScope = "bookings";
 
-export interface FeedTokenInput {
+interface FeedTokenInput {
   /** What kind of feed this token authorizes. Today only `bookings` exists. */
   scope: FeedScope;
   boatId?: string;
@@ -48,7 +48,7 @@ function canonicalize(input: FeedTokenInput): string {
   return parts.join("&");
 }
 
-export function signFeedToken(input: FeedTokenInput): string {
+function signFeedToken(input: FeedTokenInput): string {
   const message = canonicalize(input);
   return crypto.createHmac("sha256", getSecret()).update(message).digest("hex");
 }

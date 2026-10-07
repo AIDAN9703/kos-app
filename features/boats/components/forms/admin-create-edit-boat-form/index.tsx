@@ -27,7 +27,7 @@ import { CharterOptionsSection } from "./sections/CharterOptionsSection";
 import { OwnerSection } from "./sections/OwnerSection";
 import type { AddOnListItem } from "@/features/add-ons/add-on.types";
 
-export interface AdminBoatFormProps {
+interface AdminBoatFormProps {
   boat?: CreateBoatInput;
   boatId?: string;
   /** Active catalog add-ons, for the per-boat "Add-ons offered" section. */

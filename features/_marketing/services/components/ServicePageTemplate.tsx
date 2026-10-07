@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Button } from "@/shared/components/ui/button";
 import { ArrowRight, CheckCircle, Phone, Calendar, Users, Headphones } from "lucide-react";
 
-export interface ServiceStat {
+interface ServiceStat {
   value: string;
   label: string;
 }
@@ -17,7 +17,7 @@ export interface ServiceFeature {
   description: string;
 }
 
-export interface ServiceStep {
+interface ServiceStep {
   title: string;
   description: string;
 }
@@ -28,7 +28,7 @@ export interface ServicePageProps {
   description: string;
   heroImage: string;
   features: ServiceFeature[];
-  secondaryImage?: string;
+  secondaryImage: string;
   stats?: ServiceStat[];
   steps?: ServiceStep[];
   faqItems?: Array<{ question: string; answer: string }>;
@@ -40,7 +40,7 @@ const ServicePageTemplate: React.FC<ServicePageProps> = ({
   description,
   heroImage,
   features,
-  secondaryImage = "/images/default-service.jpg",
+  secondaryImage,
   stats = [],
   faqItems = [],
 }) => {

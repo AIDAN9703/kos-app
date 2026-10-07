@@ -10,9 +10,9 @@
  */
 export const SUPPORTED_CURRENCIES = ["USD", "EUR", "GBP"] as const;
 
-export type SupportedCurrency = (typeof SUPPORTED_CURRENCIES)[number];
+type SupportedCurrency = (typeof SUPPORTED_CURRENCIES)[number];
 
-export const DEFAULT_CURRENCY: SupportedCurrency = "USD";
+const DEFAULT_CURRENCY: SupportedCurrency = "USD";
 
 export const CURRENCY_LABELS: Record<SupportedCurrency, string> = {
   USD: "US Dollar (USD)",
@@ -26,7 +26,7 @@ export const CURRENCY_LABELS: Record<SupportedCurrency, string> = {
  * value rendering — those go through Intl.NumberFormat and produce proper
  * locale-aware output (e.g. "€1.234,56" vs "$1,234.56").
  */
-export const CURRENCY_SYMBOLS: Record<SupportedCurrency, string> = {
+const CURRENCY_SYMBOLS: Record<SupportedCurrency, string> = {
   USD: "$",
   EUR: "€",
   GBP: "£",

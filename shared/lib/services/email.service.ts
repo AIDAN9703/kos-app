@@ -464,7 +464,7 @@ export async function sendProposalEmail(params: {
 
 /**
  * Inquiry acknowledgment — the instant "we got it" email for public lead
- * forms (replaces the old GoHighLevel automation email). Logo-first header,
+ * forms. Logo-first header,
  * white background, one photo — quiet and branded.
  */
 
@@ -840,8 +840,7 @@ export interface AdminAlertEmailParams {
 }
 
 /**
- * Plain internal alert to the team (replaces the old GoHighLevel admin
- * notifications). Deliberately unbranded and dense: it's for staff, not
+ * Plain internal alert to the team. Deliberately unbranded and dense: it's for staff, not
  * customers. Never throws — an alert must never break the flow that fired it.
  */
 export async function sendAdminAlertEmail(params: AdminAlertEmailParams): Promise<boolean> {

@@ -5,9 +5,9 @@ export const ADMIN_LIST_PAGE_SIZES = [10, 25, 50, 100] as const;
 export const ADMIN_LIST_DEFAULT_PAGE_SIZE = 25;
 
 /** Upper bound for server queries (matches max selector value). */
-export const ADMIN_LIST_MAX_PAGE_SIZE = ADMIN_LIST_PAGE_SIZES.at(-1)!;
+const ADMIN_LIST_MAX_PAGE_SIZE = ADMIN_LIST_PAGE_SIZES.at(-1)!;
 
-export function clampAdminListLimit(limit?: number | null): number {
+function clampAdminListLimit(limit?: number | null): number {
   const n = limit ?? ADMIN_LIST_DEFAULT_PAGE_SIZE;
   return Math.min(ADMIN_LIST_MAX_PAGE_SIZE, Math.max(1, n));
 }

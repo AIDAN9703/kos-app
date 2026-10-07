@@ -41,7 +41,7 @@ import {
 } from "@/features/bookings/actions/deal.actions";
 import { markDealLost, toggleDealArchived } from "@/features/bookings/actions/deal.actions";
 
-export interface DealAdminOption {
+interface DealAdminOption {
   id: string;
   name: string;
 }

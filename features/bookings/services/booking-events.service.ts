@@ -14,7 +14,7 @@ import {
 import type { BookingStatus } from "@/database/types";
 type ContactMethod = "EMAIL" | "PHONE" | "SMS" | "IN_PERSON" | "OTHER";
 
-export interface LogBookingEventInput {
+interface LogBookingEventInput {
   bookingId: string;
   eventType: string;
   actorType: BookingActorType;
@@ -32,7 +32,7 @@ function formatStatus(s: string) {
   return s.replace(/_/g, " ").toLowerCase();
 }
 
-export class BookingEventsService {
+class BookingEventsService {
   async logEvent(input: LogBookingEventInput): Promise<void> {
     await db.insert(bookingEvents).values({
       bookingId: input.bookingId,

@@ -18,7 +18,7 @@ import {
  * identity, not a semantic state. Lifecycle state uses the semantic
  * success/warning/destructive tokens via deal-status.ts instead.
  */
-export interface DealKindPresentation {
+interface DealKindPresentation {
   /** Canonical short label. */
   label: string;
   /** Icon shown in the type badge. */
@@ -80,7 +80,7 @@ const INQUIRY: DealKindPresentation = {
   group: "INQUIRY",
 };
 
-export const DEAL_KIND_PRESENTATION: Record<string, DealKindPresentation> = {
+const DEAL_KIND_PRESENTATION: Record<string, DealKindPresentation> = {
   BOAT_REQUEST: INQUIRY,
   GENERAL_QUOTE: INQUIRY,
   MANUAL: INQUIRY,
@@ -124,7 +124,7 @@ export const DEAL_KIND_PRESENTATION: Record<string, DealKindPresentation> = {
   },
 };
 
-export function getDealKind(bookingType: string): DealKindPresentation {
+function getDealKind(bookingType: string): DealKindPresentation {
   return DEAL_KIND_PRESENTATION[bookingType] ?? FALLBACK;
 }
 

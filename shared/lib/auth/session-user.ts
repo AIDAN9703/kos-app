@@ -24,7 +24,7 @@ export interface SessionUser {
 }
 
 /** The Better Auth user fields this app reads. */
-export interface AuthUserRow {
+interface AuthUserRow {
   id: string;
   email: string;
   name: string;

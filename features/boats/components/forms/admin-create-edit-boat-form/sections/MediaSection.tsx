@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, Suspense, lazy } from "react";
+import { useState, Suspense, lazy } from "react";
 import { Image as ImageIcon } from "lucide-react";
 import {
   Card,

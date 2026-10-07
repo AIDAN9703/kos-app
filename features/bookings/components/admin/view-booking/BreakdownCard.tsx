@@ -10,7 +10,7 @@ import { BookingAddExpenseButton } from "./BookingAddExpenseButton";
 import { SendToCustomer, type SendToCustomerData } from "./SendToCustomer";
 
 /** The customer's exact line items, as their link shows them. */
-export interface BreakdownLines {
+interface BreakdownLines {
   boatName: string | null;
   basePriceCents: number;
   captainFeeCents: number;

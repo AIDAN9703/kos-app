@@ -20,7 +20,7 @@ import { UserFacingError } from "@/shared/lib/errors";
 // TYPES
 // ============================================================================
 
-export interface StatusTransitionInput {
+interface StatusTransitionInput {
   bookingId: string;
   newStatus: BookingStatus;
   changedByUserId?: string | null;
@@ -61,7 +61,7 @@ function isValidStatusTransition(
 // SERVICE CLASS
 // ============================================================================
 
-export class BookingStatusService {
+class BookingStatusService {
   /**
    * Get current status of a booking
    */

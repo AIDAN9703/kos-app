@@ -270,5 +270,3 @@ export const auth = betterAuth({
     nextCookies(),
   ],
 });
-
-export type AuthSession = NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>;

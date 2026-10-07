@@ -9,7 +9,7 @@ export interface GoogleReview {
   profile_photo_url: string;
 }
 
-export interface TestimonialsData {
+interface TestimonialsData {
   reviews: GoogleReview[];
 }
 

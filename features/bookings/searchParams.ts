@@ -17,7 +17,7 @@ import { ADMIN_LIST_DEFAULT_PAGE_SIZE } from "@/shared/admin/list-pagination";
  * service expands over the inquiry family: "INQUIRY" (still a lead) and
  * "BOOKING" (priced past inquiry). Same rule as getDisplayKind, in SQL.
  */
-export const BOOKING_TYPE_FILTER_VALUES = [
+const BOOKING_TYPE_FILTER_VALUES = [
   ...bookingTypeEnum.enumValues,
   "INQUIRY",
   "BOOKING",

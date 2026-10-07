@@ -15,7 +15,7 @@ import { addUserRole } from "@/features/users/user-access.service";
 /** Profiles in these states cannot be overwritten by admin promote (already crew or restricted). */
 const NON_PROMOTABLE_CREW_STATUSES = new Set<CrewStatus>(["ACTIVE", "ON_LEAVE", "SUSPENDED"]);
 
-export class CrewProfileService {
+class CrewProfileService {
   /** Crew available for booking assignment (active profile + active user). */
   async getCrewForAssignment() {
     return db

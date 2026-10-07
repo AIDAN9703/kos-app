@@ -6,14 +6,13 @@ import { getDealViewer, getInquiryForProposal } from "@/features/bookings/deal.d
 import { buildDatePrefillForBookingForm } from "@/features/bookings/lib/booking-create-date-prefill";
 
 type Props = {
-  /** `dealId` prices an INQUIRY deal into a proposal (upgrades that row).
-   *  `inquiryId` is the legacy spelling — same ids post-migration. */
-  searchParams: Promise<{ dealId?: string; inquiryId?: string; date?: string }>;
+  /** `dealId` prices an INQUIRY deal into a proposal (upgrades that row). */
+  searchParams: Promise<{ dealId?: string; date?: string }>;
 };
 
 export default async function AdminBookingCreatePage({ searchParams }: Props) {
-  const { dealId, inquiryId, date } = await searchParams;
-  const targetDealId = (dealId ?? inquiryId)?.trim();
+  const { dealId, date } = await searchParams;
+  const targetDealId = dealId?.trim();
 
   const [pricingTiers, deal, viewer] = await Promise.all([
     getBoatTiers(),

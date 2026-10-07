@@ -12,7 +12,7 @@ import { serviceFeeFromSnapshot, type ServiceFee } from "@/shared/lib/utils/pric
  * reads these instead of re-deriving totals.
  */
 
-export interface PricingLike {
+interface PricingLike {
   totalAmountCents: number | null | undefined;
   serviceFeeCents?: number | null;
   serviceFeeWaived?: boolean | null;
@@ -29,7 +29,7 @@ export function effectiveTotalCents(p: PricingLike): number {
 }
 
 /** Stored total minus the card fee — what the boats + extras are worth. */
-export function subtotalCents(p: PricingLike): number {
+function subtotalCents(p: PricingLike): number {
   return Math.max(0, (p.totalAmountCents ?? 0) - (p.serviceFeeCents ?? 0));
 }
 

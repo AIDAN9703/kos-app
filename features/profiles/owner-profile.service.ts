@@ -9,7 +9,7 @@ import { users } from "@/database/schema";
 import { and, desc, eq, ilike, or } from "drizzle-orm";
 import { hasRoleSql } from "@/features/users/user-access.service";
 
-export class OwnerProfileService {
+class OwnerProfileService {
   /**
    * People an admin can set as a boat's owner: anyone with the Owner role.
    * (The owner_profile row only holds business details, and may not exist yet.)

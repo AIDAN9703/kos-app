@@ -6,7 +6,7 @@ import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 
-export interface ExperienceLayoutProps {
+interface ExperienceLayoutProps {
   title: string;
   description: string;
   heroImage: string;

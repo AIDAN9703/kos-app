@@ -38,7 +38,7 @@ const services = [
     title: "Sales & Brokerage",
     description:
       "Expert guidance for buying or selling vessels with professional representation.",
-    image: "/images/services/sales.jpg",
+    image: "/images/services/yacht-sales.jpg",
     href: "/services/sales",
     category: "Sales",
   },
@@ -47,7 +47,7 @@ const services = [
     title: "Term Charters",
     description:
       "Extended luxury voyages with premium vessels and professional crews.",
-    image: "/images/services/term-charters.jpg",
+    image: "/images/services/term-charter.png",
     href: "/services/term-charters",
     category: "Charter",
   },
@@ -70,7 +70,7 @@ export default function ServicesPage() {
         {/* Background Image */}
         <div className="absolute inset-0 z-0">
           <Image
-            src="/images/services/services-hero.jpg"
+            src="/images/services/charter-management2.jpg"
             alt="Professional marine services"
             fill
             className="object-cover"

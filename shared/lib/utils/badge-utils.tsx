@@ -12,7 +12,7 @@ import {
 } from "@/shared/lib/utils/payment-display";
 
 // Badge style configurations
-export const BADGE_STYLES = {
+const BADGE_STYLES = {
   green: "bg-emerald-50 text-emerald-700",
   red: "bg-red-50 text-red-700",
   yellow: "bg-yellow-50 text-yellow-700",
@@ -23,10 +23,10 @@ export const BADGE_STYLES = {
   navy: "bg-slate-50 text-slate-700",
 } as const;
 
-export type BadgeColor = keyof typeof BADGE_STYLES;
+type BadgeColor = keyof typeof BADGE_STYLES;
 
 // Status color mappings
-export const STATUS_COLORS = {
+const STATUS_COLORS = {
   // User Status
   ACTIVE: "green",
   INACTIVE: "gray",
@@ -84,19 +84,10 @@ export const STATUS_COLORS = {
   FEATURED: "amber",
 } as const;
 
-// User Role colors
-export const ROLE_COLORS = {
-  USER: "blue",
-  ADMIN: "purple",
-  CAPTAIN: "navy",
-  BROKER: "green",
-  OWNER: "amber",
-} as const;
-
 /**
  * Get badge style classes for a given status
  */
-export function getStatusBadgeClass(status: string | boolean | undefined | null): string {
+function getStatusBadgeClass(status: string | boolean | undefined | null): string {
   if (status === null || status === undefined) return BADGE_STYLES.gray;
 
   // Handle boolean values directly
@@ -110,20 +101,9 @@ export function getStatusBadgeClass(status: string | boolean | undefined | null)
 }
 
 /**
- * Get badge style classes for a given role
- */
-export function getRoleBadgeClass(role: string | undefined | null): string {
-  if (!role) return BADGE_STYLES.gray;
-
-  const roleKey = role.toUpperCase();
-  const color = (ROLE_COLORS as Record<string, BadgeColor>)[roleKey] || "blue";
-  return BADGE_STYLES[color];
-}
-
-/**
  * Format status text for display (replace underscores with spaces, capitalize)
  */
-export function formatStatusText(status: string | boolean | undefined | null): string {
+function formatStatusText(status: string | boolean | undefined | null): string {
   if (status === null || status === undefined) return "Unknown";
   if (typeof status === "boolean") return status ? "Active" : "Inactive";
 
@@ -160,24 +140,3 @@ export function StatusBadge({ title, status, className }: StatusBadgeProps) {
   );
 }
 
-/**
- * Reusable RoleBadge component
- */
-interface RoleBadgeProps {
-  role: string | undefined | null;
-  className?: string;
-}
-
-export function RoleBadge({ role, className }: RoleBadgeProps) {
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
-        getRoleBadgeClass(role),
-        className
-      )}
-    >
-      {formatStatusText(role)}
-    </span>
-  );
-}

@@ -33,7 +33,6 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "image-kit.js",
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [

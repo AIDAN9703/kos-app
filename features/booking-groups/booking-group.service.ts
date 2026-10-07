@@ -10,7 +10,7 @@ import "server-only";
 import { db } from "@/database/db";
 import { bookingGroups } from "@/database/schema";
 
-export interface CreateBookingGroupInput {
+interface CreateBookingGroupInput {
   name?: string | null;
   notes?: string | null;
   createdById?: string | null;

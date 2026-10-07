@@ -7,7 +7,7 @@ import {
   getBoatDayBoundsUTC,
 } from "@/shared/lib/utils/date-helpers";
 
-export interface BoatTimeSlot {
+interface BoatTimeSlot {
   /** "HH:mm" in the boat's local time */
   time: string;
   isAvailable: boolean;

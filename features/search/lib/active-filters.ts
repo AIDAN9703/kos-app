@@ -4,7 +4,7 @@ import {
   parseStringParam,
 } from "@/shared/lib/utils/search-params-utils";
 
-export type ActiveFilterTag = {
+type ActiveFilterTag = {
   id: string;
   label: string;
   /** URL param keys to clear when this tag is removed */

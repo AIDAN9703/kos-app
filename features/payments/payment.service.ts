@@ -25,7 +25,7 @@ import type { Cents } from '@/shared/lib/utils/money-utils';
 // TYPES
 // ============================================================================
 
-export interface CreatePaymentInput {
+interface CreatePaymentInput {
   payableType: PayableType;
   payableId: string;
   paymentType: PaymentType;
@@ -43,7 +43,7 @@ export interface CreatePaymentInput {
   processedAt?: Date | null;
 }
 
-export interface UpdatePaymentInput {
+interface UpdatePaymentInput {
   status?: PaymentStatus;
   paymentMethodType?: PaymentMethodType;
   paymentMethodDetail?: string | null;
@@ -60,7 +60,7 @@ export interface UpdatePaymentInput {
 // SERVICE CLASS
 // ============================================================================
 
-export class PaymentService {
+class PaymentService {
   /**
    * Create a new payment record
    */

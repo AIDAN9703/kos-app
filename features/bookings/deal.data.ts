@@ -46,7 +46,7 @@ import { isUuid } from "@/shared/lib/utils/general-utils";
 // ACCESS
 // ============================================================================
 
-export type DealAction = (typeof statement.booking)[number];
+type DealAction = (typeof statement.booking)[number];
 
 /** The person, when they may do `action` on this deal; AccessDenied otherwise. */
 export async function assertDealAccess(bookingId: string, action: DealAction): Promise<SessionUser> {
@@ -77,7 +77,7 @@ async function assertPartyAccess(bookingId: string, action: DealAction): Promise
 // ============================================================================
 
 /** What the person working deals may see and do (admin vs broker). */
-export interface DealViewer {
+interface DealViewer {
   userId: string;
   /** Where deal links point: "/admin/bookings" or "/brokers/deals". */
   basePath: string;
@@ -128,7 +128,7 @@ function withoutEconomics<T extends BookingListItem>(booking: T): T {
 }
 
 /** Board filters, plus "mine" (deals assigned to the person asking). */
-export type DealListFilters = BookingFilterInput & { mine?: boolean };
+type DealListFilters = BookingFilterInput & { mine?: boolean };
 
 /** Admins see every deal; a broker only the ones assigned to them. */
 function scopeFilters<T extends Partial<DealListFilters>>(user: SessionUser, filters: T): T {

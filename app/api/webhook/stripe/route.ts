@@ -19,11 +19,3 @@ export async function POST(request: NextRequest) {
     return apiErrorFrom(error, "Webhook processing failed");
   }
 }
-
-export async function GET() {
-  return NextResponse.json({
-    message: "Stripe webhook endpoint is active",
-    endpoint: "/api/webhook/stripe",
-    method: "POST",
-  });
-}

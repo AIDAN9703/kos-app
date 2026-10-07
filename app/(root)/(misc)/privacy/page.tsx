@@ -1,4 +1,3 @@
-import React from 'react'
 import Link from 'next/link'
 
 import { Mail, Phone, Globe, Shield, Eye, Lock, Users, MessageCircle } from 'lucide-react'

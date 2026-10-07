@@ -21,7 +21,7 @@ import { pgErrorCode, UserFacingError } from "@/shared/lib/errors";
 // BOOKED is the one status that holds a slot; proposals never block.
 const CALENDAR_BLOCKING_STATUSES = ["BOOKED"] as const;
 
-export interface AvailabilityConflict {
+interface AvailabilityConflict {
   type: "booking" | "blocking" | "external" | "validation";
   id: string;
   startTime: Date;
@@ -29,7 +29,7 @@ export interface AvailabilityConflict {
   reason: string;
 }
 
-export interface AvailabilityResult {
+interface AvailabilityResult {
   isAvailable: boolean;
   conflicts: AvailabilityConflict[];
 }
