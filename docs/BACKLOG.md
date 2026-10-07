@@ -54,19 +54,22 @@ It forwards test events to your own computer instead.
 
 ### Disconnect the old `kostest` Vercel project
 Every commit shows a red ✗ from "Vercel – kostest". It's a second Vercel project
-connected to this repo, in a different Vercel account from production. Production is
-`kos-yachts` in the `kos-team` team. `kostest` is almost certainly in your personal
-(Hobby) account.
+connected to this repo, in a different Vercel account from production:
 
-It fails because `vercel.json` runs the calendar sync every hour (`0 * * * *`), and
-Hobby accounts only allow daily cron jobs. Production is unaffected.
+- **Production:** `kos-yachts` in the `kos-team` team
+  (`vercel.com/kos-team/kos-yachts`).
+- **kostest:** in a Vercel account or team called **`kosyachts`**
+  (`vercel.com/kosyachts/kostest`, found from older commits' status links). It's
+  probably a separate Vercel login, e.g. one made with a kosyachts.com email, so it
+  doesn't show up in the account you normally use.
 
-To remove it, either:
-- **Vercel:** top-left account switcher → your personal account → `kostest` → Settings
-  → Delete Project; or
-- **GitHub:** Settings → Applications → Installed GitHub Apps → Vercel → Configure. If a
-  personal Vercel install has access to `kos-app`, remove the repo from it (or uninstall
-  that one). Keep the install that serves `kos-team`.
+It has failed on every commit since at least June 2026. Today it fails because
+`vercel.json` runs the calendar sync every hour (`0 * * * *`), and Hobby accounts only
+allow daily cron jobs. Production is unaffected.
+
+To remove it, sign in to Vercel as the `kosyachts` account (try each email you might
+have used, or "Continue with GitHub") → `kostest` → Settings → Delete Project. Don't
+uninstall the Vercel GitHub app for the repo: production deploys use it too.
 
 ### Production data
 - **Boat map pins:** re-enter any that the old editor wiped. To find them, run
@@ -180,6 +183,16 @@ variables.
   `SELECT count(*) FROM "user" u JOIN account a ON a.user_id = u.id AND a.provider_id = 'credential' WHERE NOT u.email_verified;`
   Either way, add a prompt for unconfirmed users to confirm.
 - Optional: shorter login sessions for staff, passkeys.
+
+## 4b. Calendar and availability
+- **Turnaround per boat in the boat editor.** Every boat has a turnaround (the gap kept
+  free before and after a trip). It was 60 minutes for all boats until 2026-10-07, which
+  blocked normal back-to-back days, so migration 0069 set every boat to 30. There's no
+  screen to change it per boat yet.
+- **Show staff a conflict before the customer hits it.** A proposal can become unpayable
+  when an imported calendar event, block or other booking lands on its time after it was
+  sent. Today the team finds out from the alert email when the customer tries to pay;
+  a warning on the booking page would catch it sooner.
 
 ## 5. Safety nets
 - **Automated access tests:** every role against every data function, run as a GitHub

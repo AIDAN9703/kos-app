@@ -36,7 +36,8 @@ if (!PROD_DATABASE_URL) {
 
 async function runMigration(databaseUrl: string, label: string) {
   console.log(`\n🔄 Migrating to ${label}...`);
-  console.log(`   URL: ${databaseUrl.substring(0, 50)}...`);
+  // Host only: the URL carries the password, and this output gets shared.
+  console.log(`   Host: ${new URL(databaseUrl).hostname}`);
 
   try {
     const sql = neon(databaseUrl);

@@ -100,20 +100,57 @@ export async function startProposalPayment(token: string, chargeType: "deposit" 
 
   for (const b of rows) {
     if (b.bookingStatus !== "PROPOSED" || !b.boatId || !b.startDateTime || !b.endDateTime) continue;
-    const { isAvailable } = await availabilityService.checkTimeSlotAvailability(
+    const { isAvailable, conflicts } = await availabilityService.checkTimeSlotAvailability(
       b.boatId,
       b.startDateTime,
       b.endDateTime,
       b.id
     );
     if (!isAvailable) {
+      await reportBlockedPayment(b.id, conflicts);
+      // The conflict may be an imported calendar event or a block, not
+      // another guest, so the message doesn't claim someone else booked it.
       throw new UserFacingError(
-        "That date was just booked by someone else. Please contact us and we'll find another option.",
+        "This time is no longer open on the boat's calendar. We've let our team know, and they'll be in touch shortly to sort it out.",
         409
       );
     }
   }
   return getOrCreateCheckoutUrl(lead.id, { chargeType });
+}
+
+type SlotConflicts = Awaited<ReturnType<typeof availabilityService.checkTimeSlotAvailability>>["conflicts"];
+
+const CONFLICT_LABELS: Record<SlotConflicts[number]["type"], string> = {
+  booking: "Booked trip",
+  blocking: "Calendar block",
+  external: "Imported calendar event",
+  validation: "Invalid time",
+};
+
+/**
+ * A guest was stopped at payment: log it and tell the team exactly what is
+ * in the way, so it can be fixed before the guest has to call. Times include
+ * the boat's turnaround padding.
+ */
+async function reportBlockedPayment(bookingId: string, conflicts: SlotConflicts): Promise<void> {
+  console.error("[proposal payment] blocked by calendar conflict", { bookingId, conflicts });
+  const booking = await bookingService.getBookingById(bookingId);
+  const time = new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "America/New_York",
+  });
+  await alertTeam({
+    subject: `Payment blocked — ${booking?.customerName ?? "customer"}`,
+    heading: "A customer tried to pay, but the boat's calendar shows a conflict",
+    booking,
+    extraLines: conflicts.map((c) => ({
+      label: CONFLICT_LABELS[c.type],
+      value: `${c.reason} — ${time.formatRange(c.startTime, c.endTime)}`,
+    })),
+    note: "Move the trip, or clear the conflict (an imported event has to be fixed in the calendar it comes from), then ask the customer to try again.",
+  });
 }
 
 /**

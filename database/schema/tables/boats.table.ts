@@ -70,8 +70,9 @@ export const boats = pgTable("boat",{
      * Turnaround time between charters (cleaning, refuel, crew change) in
      * minutes. Availability treats a trip as occupying [start − turnaround,
      * end + turnaround] — back-to-back bookings must clear this gap.
+     * 30 by team decision (2026-10-07); 60 blocked normal back-to-back days.
      */
-    turnaroundMinutes: integer("turnaround_minutes").default(60).notNull(),
+    turnaroundMinutes: integer("turnaround_minutes").default(30).notNull(),
     
     // Fuel Details
     fuelIncluded: boolean("fuel_included").default(false).notNull(),
