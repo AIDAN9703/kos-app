@@ -26,7 +26,7 @@ export default async function AdminDashboardPage() {
     getRevenueTrend(12),
     getActionQueue(),
     getFleetTimeline(14),
-    getRecentActivity(80),
+    getRecentActivity(60),
   ]);
   const firstName = session?.user?.name?.split(/\s+/)[0] ?? null;
 

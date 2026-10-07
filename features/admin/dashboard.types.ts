@@ -33,14 +33,16 @@ export interface DashboardLead {
   createdAt: Date;
 }
 
+/** Money that moved: a payment, refund, failed charge or card dispute. */
 export interface ActivityItem {
   id: string;
   bookingId: string;
-  customerName: string | null;
-  eventType: string;
-  message: string | null;
-  actorType: string;
-  createdAt: Date;
+  customerName: string;
+  kind: "paid" | "refund" | "failed" | "dispute";
+  amountCents: number | null;
+  /** "deposit · card" for payments; the dispute's own wording for disputes. */
+  detail: string | null;
+  at: Date;
 }
 
 /* ── Desk (the dashboard rebuilt 2026-10-07) ───────────────────────── */

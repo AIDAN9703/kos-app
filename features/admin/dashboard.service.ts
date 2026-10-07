@@ -10,10 +10,11 @@ import {
   bookingOps,
   bookingPricing,
   bookings,
+  payments,
   stripeEvents,
   users,
 } from "@/database/schema";
-import { and, asc, desc, eq, gt, gte, inArray, isNotNull, isNull, lt, lte, notInArray, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, inArray, isNotNull, isNull, lt, lte, ne, notInArray, or, sql } from "drizzle-orm";
 import { cache } from "react";
 import {
   startOfDay,
@@ -192,27 +193,106 @@ export const getFleetLeaders = cache(async (limit = 5): Promise<FleetLeader[]> =
 
 /* ── Activity ──────────────────────────────────────────────────────── */
 
-/** Field-level edits and ownership shuffles: noise on a company-wide feed. */
-const QUIET_EVENTS = [BOOKING_EVENT_TYPES.UPDATED, BOOKING_EVENT_TYPES.ASSIGNED_ADMIN_CHANGED];
+const PAYMENT_TYPE_WORDS: Record<string, string> = {
+  DEPOSIT: "deposit",
+  FULL_PAYMENT: "in full",
+  PARTIAL: "partial payment",
+  ADDITIONAL: "extra charge",
+};
 
-/** The desk's pulse: the latest events that mean something, across every deal. */
-export const getRecentActivity = cache(async (limit = 12): Promise<ActivityItem[]> => {
-  const rows = await db
-    .select({
-      id: bookingEvents.id,
-      bookingId: bookingEvents.bookingId,
-      customerName: bookings.customerName,
-      eventType: bookingEvents.eventType,
-      message: bookingEvents.displayMessage,
-      actorType: bookingEvents.actorType,
-      createdAt: bookingEvents.createdAt,
-    })
-    .from(bookingEvents)
-    .innerJoin(bookings, eq(bookingEvents.bookingId, bookings.id))
-    .where(notInArray(bookingEvents.eventType, QUIET_EVENTS))
-    .orderBy(desc(bookingEvents.createdAt))
-    .limit(limit);
-  return rows.map((r) => ({ ...r, createdAt: new Date(r.createdAt) }));
+/**
+ * The money that moved, company-wide: payments in, refunds out, failed
+ * charges and card disputes. Routine deal edits, sends and status changes
+ * stay on each deal's own timeline. Payments come from the payment table
+ * (that's where Stripe and manual payments land); one Stripe checkout that
+ * covered several boats shows as one line.
+ */
+export const getRecentActivity = cache(async (limit = 40): Promise<ActivityItem[]> => {
+  const at = sql<string>`COALESCE(${payments.processedAt}, ${payments.createdAt})`;
+  const [paymentRows, disputeRows] = await Promise.all([
+    db
+      .select({
+        id: payments.id,
+        bookingId: payments.payableId,
+        customerName: bookings.customerName,
+        type: payments.paymentType,
+        status: payments.status,
+        amountCents: payments.amountCents,
+        method: payments.paymentMethodType,
+        methodDetail: payments.paymentMethodDetail,
+        session: payments.stripeCheckoutSessionId,
+        at,
+      })
+      .from(payments)
+      .innerJoin(bookings, and(eq(payments.payableType, "BOOKING"), eq(payments.payableId, bookings.id)))
+      .where(
+        or(
+          and(ne(payments.paymentType, "REFUND"), inArray(payments.status, ["SUCCEEDED", "REFUNDED", "CHARGEBACK", "FAILED"])),
+          and(eq(payments.paymentType, "REFUND"), eq(payments.status, "SUCCEEDED"))
+        )
+      )
+      .orderBy(desc(at))
+      .limit(limit * 3),
+    db
+      .select({
+        id: bookingEvents.id,
+        bookingId: bookingEvents.bookingId,
+        customerName: bookings.customerName,
+        message: bookingEvents.displayMessage,
+        metadata: bookingEvents.metadata,
+        createdAt: bookingEvents.createdAt,
+      })
+      .from(bookingEvents)
+      .innerJoin(bookings, eq(bookingEvents.bookingId, bookings.id))
+      .where(inArray(bookingEvents.eventType, [BOOKING_EVENT_TYPES.DISPUTE_OPENED, BOOKING_EVENT_TYPES.DISPUTE_CLOSED]))
+      .orderBy(desc(bookingEvents.createdAt))
+      .limit(limit),
+  ]);
+
+  // One line per checkout (a party pays once, with a row per boat).
+  const grouped = new Map<string, ActivityItem>();
+  for (const r of paymentRows) {
+    const kind: ActivityItem["kind"] =
+      r.type === "REFUND" ? "refund" : r.status === "FAILED" ? "failed" : "paid";
+    const key = `${kind}:${r.session ?? r.id}`;
+    const existing = grouped.get(key);
+    if (existing) {
+      existing.amountCents = (existing.amountCents ?? 0) + Number(r.amountCents);
+      continue;
+    }
+    const how =
+      r.method === "MANUAL" ? (r.methodDetail?.trim() || "recorded manually") : "card";
+    grouped.set(key, {
+      id: r.id,
+      bookingId: r.bookingId,
+      customerName: r.customerName,
+      kind,
+      amountCents: Number(r.amountCents),
+      detail: kind === "paid" ? [PAYMENT_TYPE_WORDS[r.type], how].filter(Boolean).join(" · ") : null,
+      at: new Date(r.at),
+    });
+  }
+
+  // A dispute logs one event per boat it touched; show it once.
+  const seenDisputes = new Set<string>();
+  const disputes: ActivityItem[] = [];
+  for (const d of disputeRows) {
+    const meta = (d.metadata ?? {}) as { disputeId?: string; amountCents?: number; status?: string };
+    const key = `${meta.disputeId ?? d.id}:${meta.status ?? ""}`;
+    if (seenDisputes.has(key)) continue;
+    seenDisputes.add(key);
+    disputes.push({
+      id: d.id,
+      bookingId: d.bookingId,
+      customerName: d.customerName,
+      kind: "dispute",
+      amountCents: meta.amountCents ?? null,
+      detail: d.message,
+      at: new Date(d.createdAt),
+    });
+  }
+
+  return [...grouped.values(), ...disputes].sort((a, b) => b.at.getTime() - a.at.getTime()).slice(0, limit);
 });
 
 /* ── Desk ───────────────────────────────────────────────────────────── */
