@@ -53,9 +53,20 @@ stripe listen --forward-to localhost:3000/api/webhook/stripe
 It forwards test events to your own computer instead.
 
 ### Disconnect the old `kostest` Vercel project
-A second Vercel project, `kostest`, is connected to the GitHub repo and fails on every
-push. Production (`kos-yachts`) is unaffected, but every commit shows a red ✗. In Vercel,
-open `kostest` → Settings → Git → Disconnect, or delete the project if nothing uses it.
+Every commit shows a red ✗ from "Vercel – kostest". It's a second Vercel project
+connected to this repo, in a different Vercel account from production. Production is
+`kos-yachts` in the `kos-team` team. `kostest` is almost certainly in your personal
+(Hobby) account.
+
+It fails because `vercel.json` runs the calendar sync every hour (`0 * * * *`), and
+Hobby accounts only allow daily cron jobs. Production is unaffected.
+
+To remove it, either:
+- **Vercel:** top-left account switcher → your personal account → `kostest` → Settings
+  → Delete Project; or
+- **GitHub:** Settings → Applications → Installed GitHub Apps → Vercel → Configure. If a
+  personal Vercel install has access to `kos-app`, remove the repo from it (or uninstall
+  that one). Keep the install that serves `kos-team`.
 
 ### Production data
 - **Boat map pins:** re-enter any that the old editor wiped. To find them, run
@@ -152,7 +163,22 @@ variables.
 - **"Log in as this customer"** for support, with a log of every use.
 - **Audit log:** sign-ins, role changes, bans, impersonations.
 - **Customers can delete their own account** (privacy laws expect it).
-- **Prompt unverified users** to confirm their email.
+- **Decide how email verification should work.** Today it's "soft": an email + password
+  sign-up is logged in at once and sent a confirm link. Unconfirmed accounts can't
+  claim guest bookings, link Google or adopt Stripe billing, but they are live
+  accounts. The alternative is Better Auth's `requireEmailVerification`:
+  - **New sign-ups:** a "check your email" screen instead of a login; the link confirms
+    the email and signs them in, back where they were.
+  - **Duplicate emails:** the "email already exists" message becomes the same generic
+    "check your email" (by design, so nobody can probe who has an account).
+  - **Existing unconfirmed password users:** they must click a fresh link at their next
+    sign-in. Google, texted-code and admin-invited accounts aren't affected.
+  - **Instant Book:** new customers confirm before paying.
+  - **Clean-up:** add removal of never-confirmed accounts after about 7 days.
+
+  Count affected users on production first:
+  `SELECT count(*) FROM "user" u JOIN account a ON a.user_id = u.id AND a.provider_id = 'credential' WHERE NOT u.email_verified;`
+  Either way, add a prompt for unconfirmed users to confirm.
 - Optional: shorter login sessions for staff, passkeys.
 
 ## 5. Safety nets
