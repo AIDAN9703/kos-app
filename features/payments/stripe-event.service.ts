@@ -16,7 +16,7 @@ import { stripeEvents } from "@/database/schema";
 /** A claim older than this belongs to a delivery that crashed or timed out. */
 const STALE_CLAIM = sql`now() - interval '5 minutes'`;
 
-export type StripeEventClaim = "claimed" | "already_processed" | "in_progress";
+type StripeEventClaim = "claimed" | "already_processed" | "in_progress";
 
 export async function claimStripeEvent(event: Stripe.Event): Promise<StripeEventClaim> {
   const [claimed] = await db

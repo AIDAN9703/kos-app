@@ -197,21 +197,3 @@ export function formatPlainDate(dateStr: string | null | undefined): string {
   });
 }
 
-/**
- * Formats a date with time in a human-readable format
- * @param date The date to format
- * @returns A formatted date-time string (e.g. "Jan 15, 2025, 2:30 PM")
- */
-export function formatDateTime(date: Date | string | null | undefined): string {
-  if (!date) return "Not available";
-
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
-
-  return dateObj.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}

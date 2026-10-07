@@ -113,8 +113,6 @@ class PaymentService {
     return payment;
   }
 
-
-
   /**
    * Get all payments for a payable entity (e.g., all payments for a booking)
    */
@@ -210,17 +208,6 @@ class PaymentService {
   }
 
   /**
-   * All payments sharing a payment intent — group rows settled from one
-   * checkout all carry the same intent (used by refund handling).
-   */
-  async getPaymentsByStripeIntentId(stripePaymentIntentId: string): Promise<Payment[]> {
-    return db
-      .select()
-      .from(payments)
-      .where(eq(payments.stripePaymentIntentId, stripePaymentIntentId));
-  }
-
-  /**
    * Mark a payment as succeeded
    */
   async markPaymentSucceeded(id: string, stripePaymentIntentId?: string): Promise<Payment> {
@@ -230,8 +217,6 @@ class PaymentService {
       ...(stripePaymentIntentId && { stripePaymentIntentId }),
     });
   }
-
-
 
   /**
    * Move every row on a checkout session from one of `from` to `to`
@@ -284,14 +269,6 @@ class PaymentService {
         )
       )
       .returning();
-  }
-
-  /** Refund rows recorded against a payment intent. */
-  async getRefundRowsForIntent(stripePaymentIntentId: string): Promise<Payment[]> {
-    return db
-      .select()
-      .from(payments)
-      .where(and(eq(payments.stripePaymentIntentId, stripePaymentIntentId), eq(payments.paymentType, 'REFUND')));
   }
 
   /**
