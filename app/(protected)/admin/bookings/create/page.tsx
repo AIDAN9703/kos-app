@@ -31,7 +31,7 @@ export default async function AdminBookingCreatePage({ searchParams }: Props) {
     !dealPrefill && date?.trim() ? buildDatePrefillForBookingForm(date.trim()) : null;
 
   return (
-    <div className="flex w-full flex-1 flex-col gap-5 pb-8">
+    <div className="mx-auto flex w-full max-w-[max(1600px,90vw)] flex-1 flex-col gap-5 pb-8">
       <header className="pt-1">
         <h1 className="text-2xl font-semibold tracking-tight">
           {dealPrefill ? `New proposal for ${dealPrefill.customerName}` : "New booking"}

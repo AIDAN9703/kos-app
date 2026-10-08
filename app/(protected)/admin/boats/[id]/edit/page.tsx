@@ -162,7 +162,7 @@ async function BoatFormWithData({ boatId }: { boatId: string }) {
 // Skeleton UI for the form loading state
 function FormSkeleton() {
   return (
-    <div className="space-y-6">
+    <div className="mx-auto w-full max-w-[max(1600px,90vw)] space-y-6">
       {[1, 2, 3, 4, 5].map((section) => (
         <div
           key={section}

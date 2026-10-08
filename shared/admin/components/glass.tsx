@@ -38,10 +38,10 @@ function Backdrop({ src }: { src: string }) {
  * The page shell. With a `backdrop` photo, the photo (blurred and veiled) is
  * the page background edge to edge; without one the page sits on the plain
  * admin canvas. It bleeds over the page area's padding (AdminShell: px-4
- * py-4 md:px-6 md:py-6 xl:px-12) and sets its own: roomier, with a max
- * width (80rem, or 72% of a bigger screen), for detail pages; `compact`
- * puts the same padding back at full width (list pages, the dashboard, the
- * boat page).
+ * py-4 md:px-6 md:py-6 xl:px-12) to the screen's edges and sets its own:
+ * roomier, with a max width (80rem, or 72% of a bigger screen), for detail
+ * pages; `compact` puts the same padding back at the top bar's max width
+ * (list pages, the dashboard, the boat page).
  *
  * By default it grows with its content so the page scrolls. `fill` makes it
  * exactly the page area's height instead, for list pages whose table scrolls
@@ -82,7 +82,13 @@ export function GlassPage({
           <div className="absolute inset-0 [background:var(--glass-veil)]" />
         </div>
       ) : null}
-      <div className={cn("w-full", fill && "flex min-h-0 flex-1 flex-col", !compact && "mx-auto max-w-[max(80rem,72vw)]")}>
+      <div
+        className={cn(
+          "mx-auto w-full",
+          compact ? "max-w-[max(1600px,90vw)]" : "max-w-[max(80rem,72vw)]",
+          fill && "flex min-h-0 flex-1 flex-col"
+        )}
+      >
         {children}
       </div>
     </div>

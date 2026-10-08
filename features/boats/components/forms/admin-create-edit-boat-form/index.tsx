@@ -131,7 +131,7 @@ export default function AdminAddUpdateBoatForm({
 
   return (
     <FormProvider {...methods}>
-      <form onSubmit={submit} className="space-y-6">
+      <form onSubmit={submit} className="mx-auto w-full max-w-[max(1600px,90vw)] space-y-6">
         {error && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
