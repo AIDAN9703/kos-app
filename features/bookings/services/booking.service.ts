@@ -30,6 +30,8 @@ import {
   sql,
   gte,
   lte,
+  lt,
+  asc,
   aliasedTable,
   inArray,
 } from "drizzle-orm";
@@ -44,7 +46,7 @@ import {
   auditSnapshotForBookingField,
   bookingRowPatchFromSingleFieldUpdate,
 } from "@/features/bookings/booking-single-field-update";
-import { type PaginatedBookingsResponse, type BookingListItem, type BookingDetails, type BookingAddOn } from "@/features/bookings/booking.types";
+import { type PaginatedBookingsResponse, type BookingListItem, type BookingDetails, type BookingAddOn, type CalendarBooking } from "@/features/bookings/booking.types";
 import { type Booking, type BookingSource, type BookingType, type NewBooking } from "@/database/types";
 import {
   calculateBookingPriceCents,
@@ -719,142 +721,7 @@ class BookingService {
   async getAllBookings(filters?: BookingFilterInput): Promise<PaginatedBookingsResponse> {
     const { page, limit, offset } = resolveAdminListPagination(filters);
 
-    const whereConditions = [];
-
-    if (filters?.search) {
-      whereConditions.push(
-        or(
-          ilike(bookings.customerName || "", `%${filters.search}%`),
-          ilike(bookings.customerEmail || "", `%${filters.search}%`),
-          ilike(bookings.customerPhone || "", `%${filters.search}%`),
-          ilike(boats.name || "", `%${filters.search}%`)
-        )
-      );
-    }
-
-    if (filters?.bookingStatus) {
-      whereConditions.push(eq(bookings.bookingStatus, filters.bookingStatus));
-    }
-    if (filters?.paymentStatus) {
-      const ps = filters.paymentStatus;
-      // Same rules as the status badge (computePaymentDisplayStatus), on net paid.
-      const netPaid = netPaidCentsSql(bookings.id);
-      if (ps === "UNPAID") {
-        whereConditions.push(
-          sql`${netPaid} = 0`,
-          sql`NOT EXISTS (
-            SELECT 1 FROM payment p
-            WHERE p.payable_type = 'BOOKING' AND p.payable_id = ${bookings.id}
-              AND (p.status = 'REFUNDED' OR (p.payment_type = 'REFUND' AND p.status = 'SUCCEEDED'))
-          )`
-        );
-      } else if (ps === "PAID") {
-        whereConditions.push(sql`${netPaid} >= ${bookingPricing.totalAmountCents}`);
-      } else if (ps === "DEPOSIT_PAID") {
-        whereConditions.push(sql`${netPaid} > 0`, sql`${netPaid} < ${bookingPricing.totalAmountCents}`);
-      } else if (ps === "REFUNDED") {
-        whereConditions.push(
-          sql`EXISTS (
-            SELECT 1 FROM payment p
-            WHERE p.payable_type = 'BOOKING' AND p.payable_id = ${bookings.id}
-              AND (p.status = 'REFUNDED' OR (p.payment_type = 'REFUND' AND p.status = 'SUCCEEDED'))
-          )`
-        );
-      } else if (ps === "FAILED") {
-        whereConditions.push(
-          sql`EXISTS (
-            SELECT 1 FROM payment p
-            WHERE p.payable_type = 'BOOKING' AND p.payable_id = ${bookings.id}
-              AND p.status = 'FAILED'
-          )`,
-          sql`NOT EXISTS (
-            SELECT 1 FROM payment p
-            WHERE p.payable_type = 'BOOKING' AND p.payable_id = ${bookings.id}
-              AND p.status = 'SUCCEEDED'
-          )`
-        );
-      } else if (ps === "PROCESSING") {
-        whereConditions.push(
-          sql`EXISTS (
-            SELECT 1 FROM payment p
-            WHERE p.payable_type = 'BOOKING' AND p.payable_id = ${bookings.id}
-              AND p.status = 'PROCESSING'
-          )`
-        );
-      } else if (ps === "CHARGEBACK") {
-        whereConditions.push(
-          sql`EXISTS (
-            SELECT 1 FROM payment p
-            WHERE p.payable_type = 'BOOKING' AND p.payable_id = ${bookings.id}
-              AND p.status = 'CHARGEBACK'
-          )`
-        );
-      }
-    }
-    if (filters?.bookingType) {
-      // "INQUIRY"/"BOOKING" are stage-aware pseudo-types over the inquiry
-      // family — same rule as getDisplayKind, so the filter always matches
-      // what the row labels say. Raw types filter as themselves.
-      if (filters.bookingType === "INQUIRY") {
-        whereConditions.push(
-          and(
-            inArray(bookings.bookingType, [...INQUIRY_GROUP_TYPES]),
-            sql`NOT ${pricedPastInquirySql()}`
-          )
-        );
-      } else if (filters.bookingType === "BOOKING") {
-        whereConditions.push(
-          and(
-            inArray(bookings.bookingType, [...INQUIRY_GROUP_TYPES]),
-            pricedPastInquirySql()
-          )
-        );
-      } else {
-        whereConditions.push(eq(bookings.bookingType, filters.bookingType));
-      }
-    }
-    if (filters?.dateFrom) {
-      whereConditions.push(gte(bookings.startDateTime, new Date(filters.dateFrom)));
-    }
-    if (filters?.dateTo) {
-      whereConditions.push(lte(bookings.startDateTime, new Date(filters.dateTo)));
-    }
-    if (filters?.boatId) {
-      whereConditions.push(eq(bookings.boatId, filters.boatId));
-    }
-    if (filters?.bookingGroupId) {
-      whereConditions.push(eq(bookings.bookingGroupId, filters.bookingGroupId));
-    }
-    if (filters?.customerId) {
-      whereConditions.push(eq(bookings.userId, filters.customerId));
-    }
-    if (filters?.assignedAdminId) {
-      whereConditions.push(eq(bookings.assignedAdminId, filters.assignedAdminId));
-    }
-    if (filters?.unassignedOnly) {
-      whereConditions.push(isNull(bookings.assignedAdminId));
-    }
-    if (filters?.archivedView === true) {
-      const archived = or(isNotNull(bookings.archivedAt), eq(bookings.bookingStatus, "CANCELLED"));
-      if (archived) whereConditions.push(archived);
-    } else if (filters?.archivedView === false) {
-      const live = and(isNull(bookings.archivedAt), ne(bookings.bookingStatus, "CANCELLED"));
-      if (live) whereConditions.push(live);
-    }
-    if (filters?.needsCaptain !== undefined) {
-      whereConditions.push(eq(bookings.needsCaptain, filters.needsCaptain));
-    }
-    // Filter by amount (in cents now)
-    if (filters?.minAmount) {
-      const minCents = filters.minAmount * 100; // Convert dollars to cents for filter
-      whereConditions.push(sql`${bookingPricing.totalAmountCents} >= ${minCents}`);
-    }
-    if (filters?.maxAmount) {
-      const maxCents = filters.maxAmount * 100; // Convert dollars to cents for filter
-      whereConditions.push(sql`${bookingPricing.totalAmountCents} <= ${maxCents}`);
-    }
-
-    const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
+    const whereClause = boardConditions(filters);
 
     const assignedAdmin = aliasedTable(users, "assignedAdmin");
     const captainUser = aliasedTable(users, "captainUser");
@@ -1008,80 +875,35 @@ class BookingService {
   }
 
   /**
-   * Deal counts grouped by bookingType for the command strip. Respects the
-   * same base filters as the list (search / scope / date / archived) but NOT
-   * bookingType itself, so every segment shows its true count while one is
-   * selected (faceted-filter pattern).
+   * The bookings calendar: deals that start in [from, to), with the board's
+   * filters, only the fields a day cell shows. Not paged — the range bounds
+   * it (a month); the cap is a safety net.
    */
-  async getBookingTypeCounts(
-    filters?: Pick<
-      BookingFilterInput,
-      | "search"
-      | "dateFrom"
-      | "dateTo"
-      | "assignedAdminId"
-      | "unassignedOnly"
-      | "archivedView"
-    >
-  ): Promise<{ counts: Record<string, number>; total: number }> {
-    const conditions = [];
-
-    if (filters?.search) {
-      const clause = or(
-        ilike(bookings.customerName, `%${filters.search}%`),
-        ilike(bookings.customerEmail, `%${filters.search}%`),
-        ilike(bookings.customerPhone, `%${filters.search}%`),
-        ilike(boats.name, `%${filters.search}%`)
-      );
-      if (clause) conditions.push(clause);
-    }
-    if (filters?.dateFrom) {
-      conditions.push(gte(bookings.startDateTime, new Date(filters.dateFrom)));
-    }
-    if (filters?.dateTo) {
-      conditions.push(lte(bookings.startDateTime, new Date(filters.dateTo)));
-    }
-    if (filters?.assignedAdminId) {
-      conditions.push(eq(bookings.assignedAdminId, filters.assignedAdminId));
-    }
-    if (filters?.unassignedOnly) {
-      conditions.push(isNull(bookings.assignedAdminId));
-    }
-    if (filters?.archivedView === true) {
-      const archived = or(isNotNull(bookings.archivedAt), eq(bookings.bookingStatus, "CANCELLED"));
-      if (archived) conditions.push(archived);
-    } else if (filters?.archivedView === false) {
-      const live = and(isNull(bookings.archivedAt), ne(bookings.bookingStatus, "CANCELLED"));
-      if (live) conditions.push(live);
-    }
-
-    // Bucket by DISPLAY kind, not entry type — the inquiry family splits into
-    // INQUIRY (still a lead) vs BOOKING (priced past inquiry) with the exact
-    // rule the rows use (getDisplayKind), so strip counts match row labels.
-    const displayKind = sql<string>`CASE
-      WHEN ${inArray(bookings.bookingType, [...INQUIRY_GROUP_TYPES])}
-      THEN CASE WHEN ${pricedPastInquirySql()} THEN 'BOOKING' ELSE 'INQUIRY' END
-      ELSE ${bookings.bookingType}::text
-    END`;
-
-    // GROUP BY 1 (ordinal), NOT the expression again: re-rendering the CASE
-    // gives it fresh $n placeholders, and Postgres then treats the SELECT and
-    // GROUP BY copies as different expressions and rejects the query.
+  async getCalendarBookings(filters: BookingFilterInput, from: Date, to: Date): Promise<CalendarBooking[]> {
     const rows = await db
-      .select({ kind: displayKind, value: count() })
+      .select({
+        id: bookings.id,
+        bookingType: bookings.bookingType,
+        bookingStatus: bookings.bookingStatus,
+        customerName: bookings.customerName,
+        startDateTime: bookings.startDateTime,
+        totalAmountCents: bookingPricing.totalAmountCents,
+        boatName: boats.name,
+        boatTimezone: boats.timezone,
+      })
       .from(bookings)
       .leftJoin(bookingPricing, eq(bookings.id, bookingPricing.bookingId))
       .leftJoin(boats, eq(bookings.boatId, boats.id))
-      .where(conditions.length > 0 ? and(...conditions) : undefined)
-      .groupBy(sql`1`);
-
-    const counts: Record<string, number> = {};
-    let total = 0;
-    for (const r of rows) {
-      counts[r.kind] = Number(r.value);
-      total += Number(r.value);
-    }
-    return { counts, total };
+      .where(
+        and(
+          boardConditions({ ...filters, dateFrom: undefined, dateTo: undefined }),
+          gte(bookings.startDateTime, from),
+          lt(bookings.startDateTime, to)
+        )
+      )
+      .orderBy(asc(bookings.startDateTime))
+      .limit(1000);
+    return rows.flatMap((r) => (r.startDateTime ? [{ ...r, startDateTime: r.startDateTime }] : []));
   }
 
   /**
@@ -1731,4 +1553,149 @@ function resolveBoardOrder(filters?: BookingFilterInput) {
     return sql`COALESCE(${bookingOps.gmvCents}, ${bookingPricing.totalAmountCents} - COALESCE(${bookingPricing.serviceFeeCents}, 0), ${bookings.estimatedValueCents}, ${bookings.budgetCents}) ${dir} NULLS LAST`;
   }
   return desc(bookings.createdAt);
+}
+
+/**
+ * The board's filters as one WHERE clause (search, status, payment, type,
+ * dates, scope, archive, captain, amount). The list and the calendar both
+ * use it, so a filter means the same thing in either view. Expects
+ * booking_pricing and boat to be joined.
+ */
+function boardConditions(filters?: BookingFilterInput) {
+  const whereConditions = [];
+
+  if (filters?.search) {
+    whereConditions.push(
+      or(
+        ilike(bookings.customerName || "", `%${filters.search}%`),
+        ilike(bookings.customerEmail || "", `%${filters.search}%`),
+        ilike(bookings.customerPhone || "", `%${filters.search}%`),
+        ilike(boats.name || "", `%${filters.search}%`)
+      )
+    );
+  }
+
+  if (filters?.bookingStatus) {
+    whereConditions.push(eq(bookings.bookingStatus, filters.bookingStatus));
+  }
+  if (filters?.paymentStatus) {
+    const ps = filters.paymentStatus;
+    // Same rules as the status badge (computePaymentDisplayStatus), on net paid.
+    const netPaid = netPaidCentsSql(bookings.id);
+    if (ps === "UNPAID") {
+      whereConditions.push(
+        sql`${netPaid} = 0`,
+        sql`NOT EXISTS (
+          SELECT 1 FROM payment p
+          WHERE p.payable_type = 'BOOKING' AND p.payable_id = ${bookings.id}
+            AND (p.status = 'REFUNDED' OR (p.payment_type = 'REFUND' AND p.status = 'SUCCEEDED'))
+        )`
+      );
+    } else if (ps === "PAID") {
+      whereConditions.push(sql`${netPaid} >= ${bookingPricing.totalAmountCents}`);
+    } else if (ps === "DEPOSIT_PAID") {
+      whereConditions.push(sql`${netPaid} > 0`, sql`${netPaid} < ${bookingPricing.totalAmountCents}`);
+    } else if (ps === "REFUNDED") {
+      whereConditions.push(
+        sql`EXISTS (
+          SELECT 1 FROM payment p
+          WHERE p.payable_type = 'BOOKING' AND p.payable_id = ${bookings.id}
+            AND (p.status = 'REFUNDED' OR (p.payment_type = 'REFUND' AND p.status = 'SUCCEEDED'))
+        )`
+      );
+    } else if (ps === "FAILED") {
+      whereConditions.push(
+        sql`EXISTS (
+          SELECT 1 FROM payment p
+          WHERE p.payable_type = 'BOOKING' AND p.payable_id = ${bookings.id}
+            AND p.status = 'FAILED'
+        )`,
+        sql`NOT EXISTS (
+          SELECT 1 FROM payment p
+          WHERE p.payable_type = 'BOOKING' AND p.payable_id = ${bookings.id}
+            AND p.status = 'SUCCEEDED'
+        )`
+      );
+    } else if (ps === "PROCESSING") {
+      whereConditions.push(
+        sql`EXISTS (
+          SELECT 1 FROM payment p
+          WHERE p.payable_type = 'BOOKING' AND p.payable_id = ${bookings.id}
+            AND p.status = 'PROCESSING'
+        )`
+      );
+    } else if (ps === "CHARGEBACK") {
+      whereConditions.push(
+        sql`EXISTS (
+          SELECT 1 FROM payment p
+          WHERE p.payable_type = 'BOOKING' AND p.payable_id = ${bookings.id}
+            AND p.status = 'CHARGEBACK'
+        )`
+      );
+    }
+  }
+  if (filters?.bookingType) {
+    // "INQUIRY"/"BOOKING" are stage-aware pseudo-types over the inquiry
+    // family — same rule as getDisplayKind, so the filter always matches
+    // what the row labels say. Raw types filter as themselves.
+    if (filters.bookingType === "INQUIRY") {
+      whereConditions.push(
+        and(
+          inArray(bookings.bookingType, [...INQUIRY_GROUP_TYPES]),
+          sql`NOT ${pricedPastInquirySql()}`
+        )
+      );
+    } else if (filters.bookingType === "BOOKING") {
+      whereConditions.push(
+        and(
+          inArray(bookings.bookingType, [...INQUIRY_GROUP_TYPES]),
+          pricedPastInquirySql()
+        )
+      );
+    } else {
+      whereConditions.push(eq(bookings.bookingType, filters.bookingType));
+    }
+  }
+  if (filters?.dateFrom) {
+    whereConditions.push(gte(bookings.startDateTime, new Date(filters.dateFrom)));
+  }
+  if (filters?.dateTo) {
+    whereConditions.push(lte(bookings.startDateTime, new Date(filters.dateTo)));
+  }
+  if (filters?.boatId) {
+    whereConditions.push(eq(bookings.boatId, filters.boatId));
+  }
+  if (filters?.bookingGroupId) {
+    whereConditions.push(eq(bookings.bookingGroupId, filters.bookingGroupId));
+  }
+  if (filters?.customerId) {
+    whereConditions.push(eq(bookings.userId, filters.customerId));
+  }
+  if (filters?.assignedAdminId) {
+    whereConditions.push(eq(bookings.assignedAdminId, filters.assignedAdminId));
+  }
+  if (filters?.unassignedOnly) {
+    whereConditions.push(isNull(bookings.assignedAdminId));
+  }
+  if (filters?.archivedView === true) {
+    const archived = or(isNotNull(bookings.archivedAt), eq(bookings.bookingStatus, "CANCELLED"));
+    if (archived) whereConditions.push(archived);
+  } else if (filters?.archivedView === false) {
+    const live = and(isNull(bookings.archivedAt), ne(bookings.bookingStatus, "CANCELLED"));
+    if (live) whereConditions.push(live);
+  }
+  if (filters?.needsCaptain !== undefined) {
+    whereConditions.push(eq(bookings.needsCaptain, filters.needsCaptain));
+  }
+  // Filter by amount (in cents now)
+  if (filters?.minAmount) {
+    const minCents = filters.minAmount * 100; // Convert dollars to cents for filter
+    whereConditions.push(sql`${bookingPricing.totalAmountCents} >= ${minCents}`);
+  }
+  if (filters?.maxAmount) {
+    const maxCents = filters.maxAmount * 100; // Convert dollars to cents for filter
+    whereConditions.push(sql`${bookingPricing.totalAmountCents} <= ${maxCents}`);
+  }
+
+  return whereConditions.length > 0 ? and(...whereConditions) : undefined;
 }

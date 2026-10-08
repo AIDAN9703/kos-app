@@ -9,39 +9,27 @@ import {
 } from "lucide-react";
 
 /**
- * Visual identity for each deal KIND (booking.bookingType) — the loud,
- * color-coded "what is this row" signal that leads the bookings board and
- * the type command strip. One source of truth so the row's left rail, its
- * type badge, and the top strip all share a colour.
+ * Visual identity for each deal KIND (booking.bookingType): the color-coded
+ * "what is this row" chip on the bookings board and the booking page header,
+ * and the light wash across the kind's board rows.
  *
- * Colours are categorical (sky/violet/emerald/…) on purpose — kind is an
+ * Colours are categorical (sky/teal/emerald/…) on purpose — kind is an
  * identity, not a semantic state. Lifecycle state uses the semantic
  * success/warning/destructive tokens via deal-status.ts instead.
  */
 interface DealKindPresentation {
   /** Canonical short label. */
   label: string;
-  /** Icon shown in the type badge. */
+  /** Icon shown in the chip. */
   Icon: LucideIcon;
-  /** Left accent rail colour (solid). */
-  rail: string;
-  /** Icon-square background + foreground. */
-  iconWrap: string;
-  /** Pill/badge classes (bg tint + text). */
+  /** Chip classes: tint, text and ring, like the role chips. */
   badge: string;
-  /** Subtle row hover tint matching the kind. */
-  rowHover: string;
-  /** Whole-row background wash — the kind's color across the full row. */
-  rowBg: string;
-  /** Solid dot (used in the command strip). */
-  dot: string;
-  /** True for pre-sale lead kinds (no boat/pricing guaranteed). */
-  isLead: boolean;
+  /** The board row's light wash of the kind's color, and its hover. */
+  row: string;
   /**
-   * Filter/strip grouping — kinds sharing a group render as ONE strip segment
-   * and filter together. "INQUIRY" covers boat + general inquiries (whether a
-   * boat/date exists is visible on the row itself); every other kind is its
-   * own group.
+   * Kinds sharing a group filter together. "INQUIRY" covers boat + general
+   * inquiries (whether a boat/date exists is visible on the row itself);
+   * every other kind is its own group.
    */
   group: string;
 }
@@ -49,13 +37,8 @@ interface DealKindPresentation {
 const FALLBACK: DealKindPresentation = {
   label: "Booking",
   Icon: ClipboardList,
-  rail: "bg-slate-400",
-  iconWrap: "bg-slate-500/10 text-slate-300",
-  badge: "bg-slate-500/10 text-slate-300",
-  rowHover: "hover:bg-slate-400/20",
-  rowBg: "bg-slate-400/14",
-  dot: "bg-slate-400",
-  isLead: false,
+  badge: "bg-slate-400/15 text-slate-300 ring-slate-400/30",
+  row: "bg-slate-400/10 hover:bg-slate-400/16",
   group: "OTHER",
 };
 
@@ -70,13 +53,8 @@ const FALLBACK: DealKindPresentation = {
 const INQUIRY: DealKindPresentation = {
   label: "Inquiry",
   Icon: MessageSquareText,
-  rail: "bg-slate-400",
-  iconWrap: "bg-slate-500/10 text-slate-300",
-  badge: "bg-slate-500/10 text-slate-300",
-  rowHover: "hover:bg-slate-400/20",
-  rowBg: "bg-slate-400/14",
-  dot: "bg-slate-400",
-  isLead: true,
+  badge: "bg-slate-400/15 text-slate-300 ring-slate-400/30",
+  row: "bg-slate-400/10 hover:bg-slate-400/16",
   group: "INQUIRY",
 };
 
@@ -89,37 +67,22 @@ const DEAL_KIND_PRESENTATION: Record<string, DealKindPresentation> = {
   TERM_CHARTER: {
     label: "Term charter",
     Icon: CalendarRange,
-    rail: "bg-sky-500",
-    iconWrap: "bg-sky-500/10 text-sky-300",
-    badge: "bg-sky-500/10 text-sky-300",
-    rowHover: "hover:bg-sky-500/18",
-    rowBg: "bg-sky-500/12",
-    dot: "bg-sky-500",
-    isLead: true,
+    badge: "bg-sky-400/15 text-sky-300 ring-sky-400/30",
+    row: "bg-sky-400/10 hover:bg-sky-400/16",
     group: "TERM_CHARTER",
   },
   MARKETPLACE: {
     label: "Marketplace",
     Icon: Globe,
-    rail: "bg-teal-500",
-    iconWrap: "bg-teal-500/10 text-teal-300",
-    badge: "bg-teal-500/10 text-teal-300",
-    rowHover: "hover:bg-teal-500/18",
-    rowBg: "bg-teal-500/12",
-    dot: "bg-teal-500",
-    isLead: true,
+    badge: "bg-teal-400/15 text-teal-300 ring-teal-400/30",
+    row: "bg-teal-400/10 hover:bg-teal-400/16",
     group: "MARKETPLACE",
   },
   INSTANT_BOOK: {
     label: "Instant book",
     Icon: Zap,
-    rail: "bg-emerald-500",
-    iconWrap: "bg-emerald-500/10 text-emerald-300",
-    badge: "bg-emerald-500/10 text-emerald-300",
-    rowHover: "hover:bg-emerald-500/18",
-    rowBg: "bg-emerald-500/12",
-    dot: "bg-emerald-500",
-    isLead: false,
+    badge: "bg-emerald-400/15 text-emerald-300 ring-emerald-400/30",
+    row: "bg-emerald-400/10 hover:bg-emerald-400/16",
     group: "INSTANT_BOOK",
   },
 };
@@ -139,13 +102,8 @@ export const PRICED_STATUSES = new Set(["PROPOSED", "BOOKED", "COMPLETED"]);
 const BOOKING_STAGE: DealKindPresentation = {
   label: "Booking",
   Icon: CalendarCheck,
-  rail: "bg-primary",
-  iconWrap: "bg-primary-soft text-primary-strong",
-  badge: "bg-primary-soft text-primary-strong",
-  rowHover: "hover:bg-primary/20",
-  rowBg: "bg-primary/14",
-  dot: "bg-primary",
-  isLead: false,
+  badge: "bg-primary/15 text-primary-strong ring-primary/30",
+  row: "bg-primary/10 hover:bg-primary/16",
   group: "INQUIRY",
 };
 
@@ -169,17 +127,23 @@ export function getDisplayKind(booking: {
   return priced ? BOOKING_STAGE : kind;
 }
 
-/**
- * The strip's segments, in display order — DISPLAY kinds, not entry types.
- * The server buckets counts with the exact same stage-aware rule (see
- * getBookingTypeCounts), so each segment's number, its filter, and the row
- * labels always agree: an inquiry that gets priced moves from the Inquiry
- * segment to the Booking segment.
- */
-export const DISPLAY_KINDS: { key: string; presentation: DealKindPresentation }[] = [
-  { key: "INQUIRY", presentation: INQUIRY },
-  { key: "BOOKING", presentation: BOOKING_STAGE },
-  { key: "TERM_CHARTER", presentation: DEAL_KIND_PRESENTATION.TERM_CHARTER },
-  { key: "MARKETPLACE", presentation: DEAL_KIND_PRESENTATION.MARKETPLACE },
-  { key: "INSTANT_BOOK", presentation: DEAL_KIND_PRESENTATION.INSTANT_BOOK },
+/** The deal's kind as a colored chip, like the role chips on the users table. */
+export function DealKindChip({ booking }: { booking: Parameters<typeof getDisplayKind>[0] }) {
+  const kind = getDisplayKind(booking);
+  const Icon = kind.Icon;
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${kind.badge}`}
+    >
+      <Icon className="size-3" aria-hidden />
+      {kind.label}
+    </span>
+  );
+}
+
+/** The kinds a calendar shows most, for its legend. */
+export const KIND_LEGEND: { label: string; badge: string }[] = [
+  { label: BOOKING_STAGE.label, badge: BOOKING_STAGE.badge },
+  { label: INQUIRY.label, badge: INQUIRY.badge },
+  { label: DEAL_KIND_PRESENTATION.INSTANT_BOOK.label, badge: DEAL_KIND_PRESENTATION.INSTANT_BOOK.badge },
 ];

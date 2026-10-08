@@ -72,19 +72,19 @@ export const DEAL_SOURCE_LABELS: Record<string, string> = {
  * channels amber, our own site sky, marketplaces teal, brokers violet.
  */
 export const SOURCE_BADGE_CLASSES: Record<string, string> = {
-  ADMIN: "bg-slate-500/10 text-slate-300",
-  PHONE: "bg-amber-500/10 text-amber-300",
-  INSTAGRAM: "bg-amber-500/10 text-amber-300",
-  WHATSAPP: "bg-amber-500/10 text-amber-300",
-  WEBSITE: "bg-sky-500/10 text-sky-300",
-  HOME_PAGE: "bg-sky-500/10 text-sky-300",
-  BOAT_PAGE: "bg-sky-500/10 text-sky-300",
-  CONTACT_PAGE: "bg-sky-500/10 text-sky-300",
-  TERM_CHARTER_PAGE: "bg-sky-500/10 text-sky-300",
-  BOATSETTER: "bg-teal-500/10 text-teal-300",
-  GETMYBOAT: "bg-teal-500/10 text-teal-300",
-  BROKER: "bg-violet-500/10 text-violet-300",
-  OTHER: "bg-muted text-muted-foreground",
+  ADMIN: "bg-slate-400/15 text-slate-300 ring-slate-400/30",
+  PHONE: "bg-amber-400/15 text-amber-300 ring-amber-400/30",
+  INSTAGRAM: "bg-amber-400/15 text-amber-300 ring-amber-400/30",
+  WHATSAPP: "bg-amber-400/15 text-amber-300 ring-amber-400/30",
+  WEBSITE: "bg-sky-400/15 text-sky-300 ring-sky-400/30",
+  HOME_PAGE: "bg-sky-400/15 text-sky-300 ring-sky-400/30",
+  BOAT_PAGE: "bg-sky-400/15 text-sky-300 ring-sky-400/30",
+  CONTACT_PAGE: "bg-sky-400/15 text-sky-300 ring-sky-400/30",
+  TERM_CHARTER_PAGE: "bg-sky-400/15 text-sky-300 ring-sky-400/30",
+  BOATSETTER: "bg-teal-400/15 text-teal-300 ring-teal-400/30",
+  GETMYBOAT: "bg-teal-400/15 text-teal-300 ring-teal-400/30",
+  BROKER: "bg-violet-400/15 text-violet-300 ring-violet-400/30",
+  OTHER: "bg-muted text-muted-foreground ring-border",
 };
 
 /** Customer's stated time-of-day preference (fuzzy intake). */

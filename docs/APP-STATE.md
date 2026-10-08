@@ -80,6 +80,118 @@ Rules:
 - **Never put `var()` inside the plain `@theme`.** Tailwind resolves it once at `:root`,
   so the admin value never applies. That was the old success/warning bug.
 
+**Admin shell (2026-10-07).** Admin and the broker portal share one frame
+(`shared/admin/components/AdminShell.tsx`). It's a top bar over a scrolling page area.
+The sidebar and header it replaced are gone.
+- **Top bar** (`shared/admin/components/top-nav/`): the logo, the portal name ("Admin"
+  or "Brokers") and today's date on the left. In the middle, each page is a round pill
+  that widens to its name on hover or focus; the current page stays open in gold.
+  - The admin layout passes its controls on the right: search (⌘K), create, the
+    notifications bell and Settings. The broker portal gets only its pill and the
+    account menu.
+  - Below lg, the pills move to their own row, which scrolls sideways.
+- **Bell:** `features/admin/dashboard/NotificationsBell.tsx` shows the dashboard's
+  "Needs action" queue. It loads from `GET /api/admin/notifications` (react-query), and
+  refreshes every 5 minutes, on window focus and when opened.
+- **Geometry:** the top bar, the page area (`AdminShell`) and `GlassPage`'s bleed share
+  one side gutter (`px-4 md:px-6 xl:px-12`) and one max width, written inline in each
+  with a comment pointing at the others. They aren't a constants file, at the user's
+  request.
+  - The max width is `max(1600px, 90vw)`: 1600px on a laptop, filling out on big
+    monitors. Detail pages cap at `max(80rem, 72vw)`.
+  - List tables are as tall as their rows (`AdminListShell`), stopping at the screen's
+    height and scrolling inside.
+  - Browser zoom changes the width the page sees: 67% on a 16" MacBook is about a 27"
+    monitor, so check there as well as at 100% and phone width.
+- **Page lists:** `ADMIN_NAV_ITEMS` and `BROKER_NAV_ITEMS` in
+  `shared/lib/constants/navigation-data.ts` drive the pills and the command bar.
+  - Order: Dashboard, Bookings, Boats, Users, Add-ons, Blog Posts, Marketing,
+    Assistant; Settings is the gear.
+  - The pill's label animates as a grid column (0fr → 1fr, its real width) and opens
+    after a 100ms beat.
+  - The logo is `/icons/logo.png`.
+- **Crew and captains pages removed (2026-10-07):** they were read-only lists that
+  duplicated the users list's Captains/Crew views. Making someone captain or crew is
+  in the person page's ⋯ menu.
+
+**Glass pages (2026-10-07).** The admin's newer look is frosted panels, either on the
+plain admin canvas or over a page's own photo, blurred. Pages using it: the dashboard,
+the boat page (with its photo), the users list and person page, and the bookings list,
+calendar and booking page. The rest of admin follows.
+- **Tokens** (both themes): `--glass`, `--glass-fade`, `--glass-inset`, `--glass-strong`,
+  `--glass-solid`, `--glass-surface`, `--glass-border`, `--glass-highlight`,
+  `--glass-shadow`, `--glass-veil`. The utilities `bg-glass`, `bg-glass-inset`,
+  `bg-glass-strong`, `bg-glass-solid`, `bg-glass-surface` and `border-glass-border` map
+  to them.
+  - `-solid` is opaque, for sticky table headers (browsers don't blur behind table
+    parts).
+  - `-surface` is the exact color of a flat panel on the plain canvas. The booking
+    page's Activity panel is flat (`[--glass-fade:var(--glass)]`) so its sticky day
+    labels and marker rings can use it.
+- **CSS utilities:** `glass-panel` (the card) and `glass-chip` (stats, pill groups).
+- **Button:** `variant="glass"` on the shared button, for secondary actions.
+- **Components** in `shared/admin/components/glass.tsx`:
+  - `GlassPage` is the page shell. It has roomy padding and a max width, and scrolls with
+    its content.
+    - `backdrop` adds a photo behind the page; without it there's no photo.
+    - `compact` keeps the shell's padding at full width, for list pages, the dashboard
+      and the boat page. The roomier default is for detail pages (person, booking).
+    - `fill` locks the page to the viewport for lists whose table scrolls inside.
+  - `GlassHeader` takes leading, eyebrow, title, meta and actions, plus children for a
+    full-width row underneath (the booking page's contact details).
+  - `GlassPanel` and `GlassStat`.
+  - Inside a `GlassPage`, `--border` and `--muted` switch to their glass versions, so
+    existing rows, chips and hovers turn translucent without changes. Menus and dialogs
+    render outside it and stay solid.
+- **List pages:** the shared list pieces are glass on every list page:
+  - `AdminDataTable`, `AdminListPagination`, `AdminListLoading` and `AdminEmptyState`.
+  - `FilterSearch`, `FilterPopover`, `FilterChips`, `FilterToggle`, `SegmentedPills` and
+    `SegmentedNav`. The last two are the one pill group (who to show, dates, views,
+    Campaigns | Contacts), with `size="sm"` for panel headers. Gold stays the page's
+    main button.
+
+  A list page becomes a full glass page by wrapping it in `<GlassPage fill compact>`
+  with a `GlassHeader` (title + the gold Add button) in the toolbar slot. See
+  `admin/users/page.tsx` and `admin/bookings/page.tsx`. `CopyableText` (shared admin)
+  copies an email or phone on click without opening the row.
+- **Bookings board:**
+  - **Type:** each row's type is a colored kind chip (`DealKindChip` in
+    `deal-presentation.tsx`; inquiry slate, booking gold, term charter sky,
+    marketplace teal, instant book emerald), like the role chips.
+  - **Row color:** each row carries a light wash of its kind's color (the kind's
+    `row` classes).
+  - **Columns and controls:**
+    - "New" (the last 48 hours) is a small sky chip after the customer's name.
+    - There's no ⋯ column: a row opens the deal.
+    - The Expense and Admin columns use the same round button: + adds an expense or
+      assigns; the initials reassign.
+    - The count strip is gone; the Filters popover still filters by type.
+  - **Shared filters:** the admin board and the broker portal turn URL params into
+    list filters with `toDealListFilters` (`features/bookings/searchParams.ts`).
+    `boardConditions` in `booking.service.ts` is the one WHERE clause behind the list
+    and the calendar.
+- **Bookings calendar** (`?view=calendar&month=YYYY-MM`, `BookingsCalendar.tsx`): a
+  custom month grid, not FullCalendar. The day cells are `CalendarGrid.tsx`, which the
+  dashboard shares.
+  - **Loading:** the page loads the month on the server with `listCalendarDeals`
+    (board filters, broker-scoped, unpaged and bounded by the month). The helpers live
+    in `lib/calendar-month.ts`.
+  - **Days:** deals are kind-colored chips in boat-local time, "+N more" opens a
+    popover, and a hover + adds a booking on that day. Phones show dots instead of
+    chips.
+  - **Removed:** the FullCalendar version and its `/api/admin/bookings/calendar-events`
+    route. The boat calendar page still uses FullCalendar.
+- **Other list pages:** boats, add-ons, blog posts and marketing are glass pages too.
+  - Each has a title with its round gold Add button, search plus pills (boats: All,
+    Listed, Hidden, Featured; add-ons: All, Active, Inactive), and colored status chips.
+  - No ⋯ columns: a row opens the boat or post page, or the add-on's edit pop-up (Delete
+    is inside it).
+  - Boats are deleted from the boat page's ⋯ menu (`BoatActionsMenu`).
+- **Booking page:** contact details are a "Customer details" panel at the top of the
+  left column (`CustomerDetailsCard`: name, email and phone with copy, assigned
+  admin), and turn into inputs in edit mode.
+- **Role chips** have a color per role (admin gold, broker violet, owner pink, captain
+  cyan, crew green, customer sky); the user found all-gray chips too gray.
 ---
 
 ## Data reality
@@ -144,20 +256,48 @@ Unset boats fall back to America/New_York. Prod's remaining 12: 2 at La Coloma M
   full refund cancels the whole party. Board shows a violet
   "×N party" badge; detail page has a Charter Party card.
 - **Admin** — bookings board (money columns, status emblems, filters, assignment),
-  unified booking detail page, dashboard, calendar, boats/users/captains/crew/add-ons/
+  unified booking detail page, dashboard, calendar, boats/users/add-ons/
   blog/settings CRUD.
 - **Admin dashboard (2026-10-07)** — `app/(protected)/admin/page.tsx`, data in
-  `features/admin/dashboard.service.ts`. A numbers row, then a "Needs action" queue of
-  everything waiting on a person:
-  - proposals the customer can't pay because the boat's calendar now conflicts (the same
-    availability check the payment page runs)
-  - unanswered change requests and failed Stripe events
-  - trips missing a captain or carrying a balance
-  - untouched leads, and proposals that are unpaid or were never sent
-  - failing calendar syncs
-
-  Below it, a fleet timeline (each boat in its own time zone; proposals that can't be
-  paid are outlined red). Activity runs the full height on the right.
+  `features/admin/dashboard.service.ts`. It's a glass page.
+  - **Top block** (`DeskHero`): it sits over a fleet photo
+    (`/images/boats/aerial6.jpg`). It holds the greeting, New booking, this month's
+    booked value with a 12-month sparkline, and five chips: KOS revenue, Outstanding
+    balances (red), Trips next 7 days, Total users, Total boats.
+  - **This week and next** (`DeskCalendar`): a two-week calendar drawn with the bookings
+    calendar's `CalendarGrid`, so it has the same chips and colors. Past days are faded,
+    and proposals that clash with the boat's calendar are outlined red.
+  - **Needs action:** a queue of everything waiting on a person, each item with a chip
+    colored by area (customers, trips, system):
+    - proposals the customer can't pay because the boat's calendar now conflicts (the
+      same availability check the payment page runs)
+    - unanswered change requests and failed Stripe events
+    - trips missing a captain or carrying a balance
+    - untouched leads, and proposals that are unpaid or were never sent
+    - failing calendar syncs
+  - **Activity** (money only; a row opens the deal) runs the full height on the right.
+- **Marketing email (2026-10-07)** — `/admin/marketing`, code in `features/marketing/`,
+  admins only (`marketing:send`).
+  - **Contacts** (`marketing_contact`) are separate from accounts: an email, a name, the
+    list it first came from, and unsubscribed or not. Accounts with "marketing emails" on
+    and customers from booked trips are added automatically (`refreshAutomaticContacts`).
+    Other lists come in by CSV: one list per file, typos fixed, and spam, invalid
+    addresses, repeats and under-18s dropped (`lib/contact-import.ts`).
+  - **Resend** holds the sending copy. Each contact sits in "KOS · Everyone" plus its
+    list's segment. Changed rows (`synced_at` null) are pushed by the Sync button and
+    hourly (`/api/cron/marketing-sync`), at about 8 requests a second.
+  - **Campaigns** (`marketing_campaign`) are written in admin, previewed live, test-sent,
+    then sent or scheduled as a Resend broadcast to a segment. The send is blocked until
+    every change has synced (so nobody who unsubscribed gets it) and the mailing address
+    (in `app_setting`) is set.
+  - **Unsubscribes** go through Resend's own link and preference page. Its webhook
+    (`/api/webhook/resend`: contact.updated, contact.deleted, email.complained, signed with
+    `RESEND_WEBHOOK_SECRET`) marks the contact unsubscribed and turns marketing off on any
+    linked account. Turning it off in account settings does the same in reverse.
+  - **Outside production**, only `…@resend.dev` test addresses are pushed, into "[test]"
+    segments: the dev database holds copies of real people.
+  - **Needs:** Resend's paid marketing plan. The free plan allows 1,000 contacts and 3
+    segments.
 - **Auth (Better Auth, 2026-10)** — one module in `shared/lib/auth/` (config, roles,
   browser client); server code checks access only through `shared/lib/utils/auth-utils.ts`.
   Email/password (bcrypt), Google (links to an existing account only once its email is

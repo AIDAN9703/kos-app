@@ -22,7 +22,7 @@ interface FilterPopoverProps {
 }
 
 /**
- * Shared "Filters" trigger + themed popover for admin list pages.
+ * Shared "Filters" trigger (a frosted pill) + themed popover for admin list pages.
  * Houses a responsive grid of <FilterField> controls with a Clear all / Done footer.
  */
 export function FilterPopover({
@@ -37,19 +37,18 @@ export function FilterPopover({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-10 gap-1.5 rounded-full border-0 bg-muted px-4 text-foreground hover:bg-muted/70 hover:text-foreground"
+        <button
+          type="button"
+          className="glass-chip inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm font-medium text-foreground transition-[filter] hover:brightness-125 data-[state=open]:brightness-125"
         >
           <Filter className="h-3.5 w-3.5 text-muted-foreground" />
-          <span className="text-sm">{triggerLabel}</span>
+          {triggerLabel}
           {activeCount > 0 ? (
             <span className="ml-1 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-foreground px-1 text-[10px] font-semibold leading-none text-background">
               {activeCount}
             </span>
           ) : null}
-        </Button>
+        </button>
       </PopoverTrigger>
       <PopoverContent
         align="end"

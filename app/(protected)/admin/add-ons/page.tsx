@@ -1,18 +1,18 @@
 import { listAddOns } from "@/features/add-ons/add-on.data";
 import { addOnSearchParamsCache } from "@/features/add-ons/searchParams";
-import { AdminAddOnFilter } from "@/features/add-ons/components/AdminAddOnFilter";
+import { AdminAddOnFilter, NewAddOnButton } from "@/features/add-ons/components/AdminAddOnFilter";
 import { AdminAddOnsTable } from "@/features/add-ons/components/AdminAddOnsTable";
 import { AdminAddOnTablePagination } from "@/features/add-ons/components/AdminAddOnTablePagination";
+import type { SearchParams } from "nuqs/server";
 import { AdminListShell } from "@/shared/admin/components/AdminListShell";
-import { SearchParams } from "next/dist/server/request/search-params";
+import { GlassHeader, GlassPage } from "@/shared/admin/components/glass";
 
 export default async function AddOnsPage({
   searchParams,
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-  await addOnSearchParamsCache.parse(searchParams);
-  const params = addOnSearchParamsCache.all();
+  const params = await addOnSearchParamsCache.parse(searchParams);
 
   const result = await listAddOns({
     search: params.search || undefined,
@@ -23,18 +23,25 @@ export default async function AddOnsPage({
   });
 
   return (
-    <AdminListShell
-      toolbar={<AdminAddOnFilter />}
-      pagination={
-        <AdminAddOnTablePagination
-          totalCount={result.totalCount}
-          totalPages={result.totalPages}
-          page={result.page}
-          limit={result.limit}
-        />
-      }
-    >
-      <AdminAddOnsTable addOns={result.addOns} />
-    </AdminListShell>
+    <GlassPage fill compact>
+      <AdminListShell
+        toolbar={
+          <>
+            <GlassHeader title="Add-ons" actions={<NewAddOnButton />} />
+            <AdminAddOnFilter />
+          </>
+        }
+        pagination={
+          <AdminAddOnTablePagination
+            totalCount={result.totalCount}
+            totalPages={result.totalPages}
+            page={result.page}
+            limit={result.limit}
+          />
+        }
+      >
+        <AdminAddOnsTable addOns={result.addOns} />
+      </AdminListShell>
+    </GlassPage>
   );
 }

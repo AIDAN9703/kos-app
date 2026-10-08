@@ -101,11 +101,10 @@ export function DealActionsMenu({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
-            variant="outline"
+            variant="glass"
             size="sm"
             aria-label="More actions"
-            // Toolbar pill: same fill as the other header buttons.
-            className="h-8 w-8 shrink-0 rounded-full border-0 bg-foreground/10 p-0 text-primary-strong hover:bg-foreground/15 hover:text-primary-strong"
+            className="size-9 shrink-0 p-0"
             disabled={isPending}
           >
             {isPending ? (

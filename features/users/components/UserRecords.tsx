@@ -5,6 +5,7 @@ import type { AdminUserProfile, UserBookingRow } from "@/features/users/user.typ
 import type { BookingStatus } from "@/database/types";
 import { formatCentsAsCurrency } from "@/shared/lib/utils/money-utils";
 import { cn, formatDate } from "@/shared/lib/utils/general-utils";
+import { GlassPanel } from "@/shared/admin/components/glass";
 
 const STATUS_TONE: Record<BookingStatus, string> = {
   INQUIRY: "text-muted-foreground",
@@ -16,18 +17,18 @@ const STATUS_TONE: Record<BookingStatus, string> = {
 
 function Section({ title, count, children }: { title: string; count: number; children: React.ReactNode }) {
   return (
-    <section className="rounded-xl border border-border bg-card">
-      <h2 className="flex items-baseline justify-between border-b border-border px-5 py-3 text-sm font-medium text-foreground">
-        {title}
-        <span className="text-xs font-normal text-muted-foreground">{count}</span>
-      </h2>
+    <GlassPanel
+      title={title}
+      aside={<span className="text-[11px] tabular-nums text-muted-foreground">{count}</span>}
+      className="gap-1 overflow-hidden px-0 pb-1 pt-4 [&>div:first-child]:px-5"
+    >
       {children}
-    </section>
+    </GlassPanel>
   );
 }
 
 function BookingList({ rows, empty, showCustomer = false }: { rows: UserBookingRow[]; empty: string; showCustomer?: boolean }) {
-  if (rows.length === 0) return <p className="px-5 py-6 text-sm text-muted-foreground">{empty}</p>;
+  if (rows.length === 0) return <p className="px-5 pb-5 pt-2 text-sm text-muted-foreground">{empty}</p>;
   return (
     <ul>
       {rows.map((b) => (
@@ -60,7 +61,7 @@ export function UserRecords({ user }: { user: AdminUserProfile }) {
   const isOwner = user.roles.includes("owner") || user.boats.length > 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {isStaff ? (
         <Section title="Deals assigned to them" count={user.assignedDeals.length}>
           <BookingList rows={user.assignedDeals} empty="No deals assigned to them yet." showCustomer />

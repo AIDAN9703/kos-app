@@ -27,6 +27,7 @@ export const statement = {
   ],
   boat: ["view", "edit", "delete"],
   blog: ["edit"], // write, publish and delete news posts
+  marketing: ["send"], // marketing contacts and email campaigns
   settings: ["edit"],
 } as const;
 
@@ -38,6 +39,7 @@ export const roles = {
     booking: [...statement.booking],
     boat: [...statement.boat],
     blog: ["edit"],
+    marketing: ["send"],
     settings: ["edit"],
   }),
   // Works deals in the broker portal (/brokers): the deals assigned to them,

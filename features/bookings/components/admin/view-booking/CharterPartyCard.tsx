@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Ship } from "lucide-react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
+import { GlassPanel } from "@/shared/admin/components/glass";
 import { formatCentsAsCurrency } from "@/shared/lib/utils/money-utils";
 import { formatBoatLocal } from "@/shared/lib/utils/date-helpers";
 import type { BookingStatus } from "@/database/types";
@@ -48,19 +48,20 @@ export function CharterPartyCard({
   const partyTotalCents = members.reduce((sum, m) => sum + (m.totalAmountCents ?? 0), 0);
 
   return (
-    <Card className="rounded-2xl border-border/60">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Ship className="h-4.5 w-4.5 text-primary-strong" />
+    <GlassPanel
+      title={
+        <span className="flex items-center gap-2">
+          <Ship className="size-4 text-primary-strong" />
           Charter party
-          <span className="text-sm font-normal text-muted-foreground">
+          <span className="font-normal text-muted-foreground">
             {groupName ? `${groupName} · ` : ""}
             {members.length} boats
           </span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="divide-y divide-border/50">
+        </span>
+      }
+    >
+      <div>
+        <div className="divide-y divide-glass-border">
           {members.map((m) => {
             const isCurrent = m.id === currentBookingId;
             const row = (
@@ -97,7 +98,7 @@ export function CharterPartyCard({
               <Link
                 key={m.id}
                 href={`${basePath}/${m.id}`}
-                className="block transition-colors hover:bg-primary-soft/40"
+                className="-mx-2 block rounded-xl px-2 transition-colors hover:bg-glass-inset"
               >
                 {row}
               </Link>
@@ -105,13 +106,13 @@ export function CharterPartyCard({
           })}
         </div>
 
-        <div className="mt-3 flex items-baseline justify-between border-t border-border/50 pt-3">
+        <div className="mt-3 flex items-baseline justify-between border-t border-glass-border pt-3">
           <span className="text-sm font-semibold text-foreground">Party total</span>
           <span className="text-base font-bold tabular-nums text-primary-strong">
             {formatCentsAsCurrency(partyTotalCents)}
           </span>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </GlassPanel>
   );
 }

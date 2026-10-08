@@ -26,7 +26,7 @@ import {
 import { useToast } from "@/shared/lib/hooks/use-toast";
 import { addOnCategoryEnum } from "@/database/schema";
 import { centsToDollars, dollarsToCents } from "@/shared/lib/utils/money-utils";
-import { createAddOn, updateAddOn } from "@/features/add-ons/add-on.actions";
+import { createAddOn, deleteAddOn, updateAddOn } from "@/features/add-ons/add-on.actions";
 import { ADD_ON_CATEGORY_LABELS } from "@/features/add-ons/add-on.constants";
 import type { AddOnCategory, AddOnListItem } from "@/features/add-ons/add-on.types";
 
@@ -77,6 +77,26 @@ function AddOnForm({ addOn, onClose }: { addOn: AddOnListItem | null; onClose: (
   );
   const [isActive, setIsActive] = useState(addOn?.isActive ?? true);
   const [submitting, setSubmitting] = useState(false);
+  // Delete asks once more in place before it goes.
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+  const handleDelete = async () => {
+    if (!addOn) return;
+    if (!confirmingDelete) {
+      setConfirmingDelete(true);
+      return;
+    }
+    setSubmitting(true);
+    const result = await deleteAddOn(addOn.id);
+    setSubmitting(false);
+    if (result.success) {
+      toast({ title: "Add-on deleted." });
+      onClose();
+      router.refresh();
+    } else {
+      toast({ title: "Error", description: result.error, variant: "destructive" });
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -171,13 +191,28 @@ function AddOnForm({ addOn, onClose }: { addOn: AddOnListItem | null; onClose: (
         <Switch checked={isActive} onCheckedChange={setIsActive} />
       </div>
 
-      <DialogFooter className="gap-2 sm:gap-0">
-        <Button type="button" variant="destructive" onClick={onClose} disabled={submitting}>
-          Cancel
-        </Button>
-        <Button type="submit" disabled={submitting}>
-          {submitting ? "Saving…" : isEdit ? "Save changes" : "Create add-on"}
-        </Button>
+      <DialogFooter className="items-center gap-2 sm:justify-between">
+        {isEdit ? (
+          <Button
+            type="button"
+            variant="ghost"
+            className="rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
+            onClick={handleDelete}
+            disabled={submitting}
+          >
+            {confirmingDelete ? "Delete? Boats offering it lose it" : "Delete"}
+          </Button>
+        ) : (
+          <span />
+        )}
+        <div className="flex gap-2">
+          <Button type="button" variant="ghost" className="rounded-full" onClick={onClose} disabled={submitting}>
+            Cancel
+          </Button>
+          <Button type="submit" className="rounded-full px-5" disabled={submitting}>
+            {submitting ? "Saving…" : isEdit ? "Save changes" : "Create add-on"}
+          </Button>
+        </div>
       </DialogFooter>
     </form>
   );

@@ -3,16 +3,19 @@ import { boatSearchParamsCache } from "@/features/boats/searchParams";
 import { AdminBoatFilter } from "@/features/boats/components/AdminBoatFilter";
 import { AdminBoatTablePagination } from "@/features/boats/components/AdminBoatTablePagination";
 import { AdminBoatsTable } from "@/features/boats/components/AdminBoatsTable";
+import Link from "next/link";
+import { Plus } from "lucide-react";
+import type { SearchParams } from "nuqs/server";
 import { AdminListShell } from "@/shared/admin/components/AdminListShell";
-import { SearchParams } from "next/dist/server/request/search-params";
+import { GlassHeader, GlassPage } from "@/shared/admin/components/glass";
+import { Button } from "@/shared/components/ui/button";
 
 export default async function BoatsPage({
   searchParams,
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-  await boatSearchParamsCache.parse(searchParams);
-  const params = boatSearchParamsCache.all();
+  const params = await boatSearchParamsCache.parse(searchParams);
 
   const result = await listBoats({
     search: params.search || undefined,
@@ -39,18 +42,35 @@ export default async function BoatsPage({
   });
 
   return (
-    <AdminListShell
-      toolbar={<AdminBoatFilter />}
-      pagination={
-        <AdminBoatTablePagination
-          totalCount={result.totalCount}
-          totalPages={result.totalPages}
-          page={result.page}
-          limit={result.limit}
-        />
-      }
-    >
-      <AdminBoatsTable boats={result.boats} />
-    </AdminListShell>
+    <GlassPage fill compact>
+      <AdminListShell
+        toolbar={
+          <>
+            <GlassHeader
+              title="Boats"
+              actions={
+                <Button asChild className="h-9 gap-1.5 rounded-full px-4 font-semibold">
+                  <Link href="/admin/boats/create">
+                    <Plus className="size-3.5" />
+                    New boat
+                  </Link>
+                </Button>
+              }
+            />
+            <AdminBoatFilter />
+          </>
+        }
+        pagination={
+          <AdminBoatTablePagination
+            totalCount={result.totalCount}
+            totalPages={result.totalPages}
+            page={result.page}
+            limit={result.limit}
+          />
+        }
+      >
+        <AdminBoatsTable boats={result.boats} />
+      </AdminListShell>
+    </GlassPage>
   );
 }

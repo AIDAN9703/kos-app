@@ -6,6 +6,7 @@ import { createColumnHelper } from "@tanstack/react-table";
 import { UserCircle2 } from "lucide-react";
 import { Avatar, AvatarImage } from "@/shared/components/ui/avatar";
 import { AdminDataTable } from "@/shared/admin/components/AdminDataTable";
+import { CopyableText } from "@/shared/admin/components/CopyableText";
 import { DefaultUserAvatarFallback } from "@/shared/lib/utils/user-utils";
 import { parseRoles } from "@/shared/lib/auth/permissions";
 import { formatDate, formatPhoneNumberForDisplay } from "@/shared/lib/utils/general-utils";
@@ -31,13 +32,13 @@ export function AdminUsersTable({ users }: { users: UserListItem[] }) {
           const user = row.original;
           return (
             <div className="flex items-center gap-3">
-              <Avatar className="h-9 w-9 shrink-0">
+              <Avatar className="h-9 w-9 shrink-0 ring-1 ring-glass-border">
                 <AvatarImage src={user.profileImage || undefined} alt={listDisplayName(user)} />
                 <DefaultUserAvatarFallback size="sm" />
               </Avatar>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-medium text-foreground">{listDisplayName(user)}</div>
-                <div className="truncate text-xs text-muted-foreground">{user.email}</div>
+                <CopyableText value={user.email} label="email" className="-ml-0.5" />
               </div>
             </div>
           );
@@ -45,9 +46,14 @@ export function AdminUsersTable({ users }: { users: UserListItem[] }) {
       }),
       columnHelper.accessor("phoneNumber", {
         header: "Phone",
-        cell: (info) => (
-          <span className="text-sm text-muted-foreground">{formatPhoneNumberForDisplay(info.getValue()) || "—"}</span>
-        ),
+        cell: (info) => {
+          const phone = formatPhoneNumberForDisplay(info.getValue());
+          return phone ? (
+            <CopyableText value={phone} label="phone" className="-ml-0.5 text-sm" />
+          ) : (
+            <span className="text-sm text-muted-foreground">—</span>
+          );
+        },
       }),
       columnHelper.accessor("role", {
         header: "Access",

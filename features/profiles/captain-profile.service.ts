@@ -6,9 +6,8 @@ import "server-only";
 
 import { db } from "@/database/db";
 import { captainProfiles, users } from "@/database/schema";
-import { and, asc, eq, ilike, or } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import type { CaptainStatus } from "@/database/types";
-import type { CaptainProfileAdminRow } from "@/features/profiles/crew.types";
 import type { PromoteCaptainFormInput } from "@/features/profiles/promote-captain.validation";
 import { addUserRole, notDeactivatedSql } from "@/features/users/user-access.service";
 
@@ -48,68 +47,6 @@ class CaptainProfileService {
       )
       .limit(1);
     return row != null;
-  }
-
-  /** Captain profiles for admin (no pagination — fleet pool is small). */
-  async listForAdmin(filters: {
-    search?: string | null;
-    status?: CaptainStatus | null;
-  }): Promise<CaptainProfileAdminRow[]> {
-    const conditions = [];
-    const q = filters.search?.trim();
-    if (q) {
-      const pattern = `%${q}%`;
-      conditions.push(
-        or(
-          ilike(users.firstName, pattern),
-          ilike(users.lastName, pattern),
-          ilike(users.email, pattern),
-          ilike(users.phoneNumber, pattern)
-        )!
-      );
-    }
-    if (filters.status) {
-      conditions.push(eq(captainProfiles.status, filters.status));
-    }
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
-
-    const dataBase = db
-      .select({
-        userId: captainProfiles.userId,
-        profileStatus: captainProfiles.status,
-        uscgLicensed: captainProfiles.uscgLicensed,
-        licenseType: captainProfiles.licenseType,
-        profileUpdatedAt: captainProfiles.updatedAt,
-        firstName: users.firstName,
-        lastName: users.lastName,
-        email: users.email,
-        phoneNumber: users.phoneNumber,
-        profileImage: users.profileImage,
-        userStatus: users.status,
-      })
-      .from(captainProfiles)
-      .innerJoin(users, eq(captainProfiles.userId, users.id));
-    const dataQuery = whereClause ? dataBase.where(whereClause) : dataBase;
-
-    const rows = await dataQuery.orderBy(
-      asc(users.firstName),
-      asc(users.lastName),
-      asc(users.email)
-    );
-
-    return rows.map((r) => ({
-      userId: r.userId,
-      firstName: r.firstName,
-      lastName: r.lastName,
-      email: r.email,
-      phoneNumber: r.phoneNumber,
-      profileImage: r.profileImage,
-      userStatus: r.userStatus,
-      profileStatus: r.profileStatus,
-      uscgLicensed: r.uscgLicensed,
-      licenseType: r.licenseType,
-      profileUpdatedAt: r.profileUpdatedAt,
-    }));
   }
 
   /**

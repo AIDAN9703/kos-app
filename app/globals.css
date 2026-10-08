@@ -21,7 +21,6 @@
 
   --color-dark-bg: #0e1b27;        /* admin canvas */
   --color-dark-card: #15283a;      /* admin surfaces */
-  --color-dark-main: #0c1722;      /* admin deepest layer (sidebar) */
   --color-light-main: #eef1f5;     /* site secondary fills */
 
   /* Older one-offs that replace Tailwind's default shades of the same name
@@ -109,15 +108,18 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
-  /* Sidebar/header chrome (bg-sidebar, border-sidebar-border, …). */
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
+  /* Glass: frosted panels on a GlassPage (glass-panel, glass-chip, Button
+     variant "glass"). -inset for rows and tiles inside a panel, -strong for
+     chips and buttons, -solid for opaque bars that sit in a panel (sticky
+     table headers: browsers don't blur behind table parts), -surface for an
+     opaque patch the exact color of a flat panel on the plain canvas (sticky
+     labels inside a scrolling panel). */
+  --color-glass: var(--glass);
+  --color-glass-inset: var(--glass-inset);
+  --color-glass-strong: var(--glass-strong);
+  --color-glass-border: var(--glass-border);
+  --color-glass-solid: var(--glass-solid);
+  --color-glass-surface: var(--glass-surface);
 }
 
 /* ── Site theme: light, navy primary. ── */
@@ -160,21 +162,24 @@
   --input: hsl(214.3 31.8% 91.4%);
   --ring: hsl(222.2 84% 4.9%);
 
-  --sidebar: #ffffff;
-  --sidebar-foreground: #1e293b;
-  --sidebar-primary: #27445c;
-  --sidebar-primary-foreground: #f8fafc;
-  --sidebar-accent: var(--color-gold-soft);
-  --sidebar-accent-foreground: var(--color-gold-deep);
-  --sidebar-border: #e4e8ee;
-  --sidebar-ring: var(--color-gold-deep);
+  --glass: rgb(255 255 255 / 0.78);
+  --glass-fade: rgb(255 255 255 / 0.58);
+  --glass-inset: rgb(15 23 42 / 0.04);
+  --glass-strong: rgb(255 255 255 / 0.72);
+  --glass-solid: #f6f8fa;
+  --glass-surface: #fbfcfd;
+  --glass-border: rgb(15 23 42 / 0.08);
+  --glass-highlight: rgb(255 255 255 / 0.9);
+  --glass-shadow: 0 24px 60px -34px rgb(15 23 42 / 0.35);
+  /* The veil over a GlassPage backdrop photo: light at the top, deeper below. */
+  --glass-veil: radial-gradient(ellipse at top, rgb(255 255 255 / 0.2), rgb(255 255 255 / 0.7) 70%, rgb(255 255 255 / 0.85));
 }
 
 /* ── Admin theme: dark only, gold primary. The admin and broker layouts
    mark their shell with data-admin-theme; matching on <html> puts the
    whole page in the admin theme — popups rendered into <body> included —
-   with no per-component code. Layering (lighter = closer): sidebar
-   dark-main → canvas dark-bg → cards dark-card. ── */
+   with no per-component code. Layering (lighter = closer): canvas
+   dark-bg → cards dark-card. ── */
 html:has([data-admin-theme]) {
   color-scheme: dark; /* native scrollbars, inputs and pickers render dark */
   background-color: var(--background); /* overscroll matches the canvas */
@@ -209,15 +214,18 @@ html:has([data-admin-theme]) {
   --input: #213548;
   --ring: var(--color-gold-accent);
 
-  --sidebar: var(--color-dark-main);
-  --sidebar-foreground: #e9eef3;
-  --sidebar-primary: var(--color-gold-accent);
-  --sidebar-primary-foreground: #15110a;
-  /* Active/hover nav items glow brand gold, not gray */
-  --sidebar-accent: var(--color-gold-soft);
-  --sidebar-accent-foreground: var(--color-gold-glow);
-  --sidebar-border: #213548;
-  --sidebar-ring: var(--color-gold-accent);
+  --glass: rgb(255 255 255 / 0.1);
+  --glass-fade: rgb(255 255 255 / 0.035);
+  --glass-inset: rgb(255 255 255 / 0.05);
+  --glass-strong: rgb(255 255 255 / 0.1);
+  /* A panel's tint plus a chip's over the canvas, as one opaque color. */
+  --glass-solid: color-mix(in srgb, var(--color-dark-bg) 81%, white);
+  /* A flat panel (--glass at 10% white) over the canvas, as one opaque color. */
+  --glass-surface: color-mix(in srgb, var(--color-dark-bg) 90%, white);
+  --glass-border: rgb(255 255 255 / 0.1);
+  --glass-highlight: rgb(255 255 255 / 0.1);
+  --glass-shadow: 0 24px 60px -34px rgb(0 0 0 / 0.75);
+  --glass-veil: radial-gradient(ellipse at top, rgb(14 27 39 / 0.15), rgb(14 27 39 / 0.72) 70%, rgb(14 27 39 / 0.88));
 }
 
 @layer base {
@@ -246,6 +254,26 @@ html:has([data-admin-theme]) {
   [type="reset"]:not([disabled]) {
     cursor: pointer;
   }
+}
+
+/* Frosted glass panel: the admin's card on a GlassPage. */
+@utility glass-panel {
+  border: 1px solid var(--glass-border);
+  border-radius: 1.5rem;
+  background-image: linear-gradient(180deg, var(--glass), var(--glass-fade));
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-highlight);
+  -webkit-backdrop-filter: blur(40px);
+  backdrop-filter: blur(40px);
+}
+
+/* Small glass chip: pill groups, filter buttons, stats. No blur of its own:
+   controls sit side by side, and a blur samples a few pixels past its edges,
+   so one control's hover would glow faintly behind its neighbors. Add
+   backdrop-blur where a chip sits over a photo (GlassStat does). */
+@utility glass-chip {
+  border: 1px solid var(--glass-border);
+  border-radius: 1rem;
+  background-color: var(--glass-strong);
 }
 
 @utility line-clamp-1 {
@@ -401,24 +429,9 @@ html:has([data-admin-theme]) {
 
 /* ════════════ Admin-only effects ════════════ */
 
-/* ── KOS Command (admin assistant) ─────────────────────────────────
-   One gradient, one slow drift. A large soft-stop gradient panned
-   across the surface — no blobs, no scale pulsing. */
-@keyframes kos-sheen-drift {
-  0%   { background-position: 0% 0%; }
-  100% { background-position: 100% 100%; }
-}
-.kos-sheen {
-  background-image:
-    radial-gradient(ellipse 80% 60% at 15% 10%, rgb(139 92 246 / 0.22), transparent 60%),
-    radial-gradient(ellipse 70% 55% at 85% 90%, rgb(34 211 238 / 0.16), transparent 60%),
-    radial-gradient(ellipse 50% 40% at 60% 40%, rgb(217 70 239 / 0.10), transparent 60%);
-  background-size: 160% 160%;
-  animation: kos-sheen-drift 40s ease-in-out infinite alternate;
-}
-
-/* ── Featured nav (Assistant): a light sweep every few seconds + a soft
-   breathing glow on the icon. Subtle enough to live in a sidebar. ── */
+/* ── Featured nav (the Assistant's pill in the top bar): a light sweep every
+   few seconds + a soft breathing glow on the icon. The pill must be
+   relative + overflow-hidden for the sweep. ── */
 @keyframes kos-nav-sweep {
   0%, 70% { transform: translateX(-120%); }
   100%    { transform: translateX(220%); }
@@ -438,4 +451,10 @@ html:has([data-admin-theme]) {
 }
 .kos-featured-icon {
   animation: kos-nav-breathe 3.2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .kos-featured-nav::after,
+  .kos-featured-icon {
+    animation: none;
+  }
 }

@@ -23,7 +23,7 @@ interface AdminListPaginationProps {
 }
 
 /**
- * Detached, rounded pagination bar for <AdminListShell>.
+ * Detached, frosted pagination bar for <AdminListShell>.
  * URL updates are handled by the parent via onPageChange / onLimitChange.
  */
 export function AdminListPagination({
@@ -45,7 +45,7 @@ export function AdminListPagination({
 
   return (
     <div className="shrink-0 pt-3">
-      <div className="flex items-center justify-between gap-4 rounded-2xl border border-border/60 bg-card px-4 py-2.5 shadow-sm">
+      <div className="glass-panel flex items-center justify-between gap-4 rounded-2xl py-2 pl-5 pr-2.5">
         <p className="text-sm text-muted-foreground">
           {totalCount === 0 ? (
             `No ${entityLabel}`
@@ -72,7 +72,7 @@ export function AdminListPagination({
               value={String(limit)}
               onValueChange={(v) => onLimitChange(Number(v))}
             >
-              <SelectTrigger className="h-9 w-[72px] rounded-lg" aria-label="Rows per page">
+              <SelectTrigger className="h-9 w-[72px] rounded-full border-glass-border bg-glass-inset" aria-label="Rows per page">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -88,9 +88,9 @@ export function AdminListPagination({
           {showNav ? (
             <div className="flex items-center gap-1.5">
               <Button
-                variant="outline"
+                variant="glass"
                 size="sm"
-                className="h-9 w-9 rounded-lg p-0"
+                className="h-9 w-9 p-0"
                 disabled={page <= 1}
                 onClick={() => goTo(page - 1)}
                 aria-label="Previous page"
@@ -101,9 +101,9 @@ export function AdminListPagination({
                 Page {page} / {totalPages}
               </span>
               <Button
-                variant="outline"
+                variant="glass"
                 size="sm"
-                className="h-9 w-9 rounded-lg p-0"
+                className="h-9 w-9 p-0"
                 disabled={page >= totalPages}
                 onClick={() => goTo(page + 1)}
                 aria-label="Next page"

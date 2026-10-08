@@ -11,7 +11,6 @@ import { actionError } from "@/shared/lib/utils/action-helpers";
 function revalidatePerson(userId: string) {
   revalidatePath("/admin/users");
   revalidatePath(`/admin/users/${userId}`);
-  revalidatePath("/admin/crew");
 }
 
 export async function promoteUserToCaptainAction(userId: string, raw: unknown): Promise<ActionResponse<null>> {

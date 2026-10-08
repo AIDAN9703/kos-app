@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
+import { GlassPanel } from "@/shared/admin/components/glass";
 import { useBookingEditMode } from "@/features/bookings/components/admin/view-booking/BookingEditMode";
 import {
   OpsCaptainAssignment,
@@ -89,11 +89,8 @@ export function BookingTripCard({
   const { editing } = useBookingEditMode();
 
   return (
-    <Card className="rounded-2xl border-border/60">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-lg">Trip details</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-5">
+    <GlassPanel title="Trip details" className="gap-4">
+      <div className="space-y-5">
         {/* Row 1 — the boat and who runs it. Captain/crew are live controls
             in both modes; the boat itself is picked in the form while editing. */}
         <dl className={`grid gap-x-8 gap-y-5 ${editing ? "sm:grid-cols-2" : "sm:grid-cols-3"}`}>
@@ -141,7 +138,7 @@ export function BookingTripCard({
         ) : (
           <>
             {/* Row 2 — when. */}
-            <dl className="grid gap-x-8 gap-y-5 border-t border-border/50 pt-5 sm:grid-cols-2">
+            <dl className="grid gap-x-8 gap-y-5 border-t border-glass-border pt-5 sm:grid-cols-2">
               <Fact label="From">
                 <span className="text-sm font-medium tabular-nums">
                   {formatTripDateTime(trip.startDateTime, trip.boatTimezone)}
@@ -154,7 +151,7 @@ export function BookingTripCard({
               </Fact>
             </dl>
             {/* Row 3 — the rest. */}
-            <dl className="grid grid-cols-2 gap-x-8 gap-y-5 border-t border-border/50 pt-5 sm:grid-cols-4">
+            <dl className="grid grid-cols-2 gap-x-8 gap-y-5 border-t border-glass-border pt-5 sm:grid-cols-4">
               <Fact label="Passengers">
                 <span className="text-sm font-medium tabular-nums">{trip.numberOfPassengers ?? "—"}</span>
               </Fact>
@@ -174,8 +171,8 @@ export function BookingTripCard({
             </dl>
           </>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </GlassPanel>
   );
 }
 

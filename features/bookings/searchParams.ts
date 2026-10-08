@@ -9,6 +9,7 @@ import {
   bookingStatusEnum,
   bookingTypeEnum,
 } from "@/database/schema";
+import type { BookingFilterInput } from "@/features/bookings/booking.validation";
 import { PAYMENT_DISPLAY_STATUSES } from "@/shared/lib/utils/payment-display";
 import { ADMIN_LIST_DEFAULT_PAGE_SIZE } from "@/shared/admin/list-pagination";
 
@@ -49,6 +50,8 @@ export const bookingSearchParams = {
   archived: parseAsBoolean,
   /** Layout for the bookings page — "table" (default) or "calendar". */
   view: parseAsStringEnum(["table", "calendar"] as const).withDefault("table"),
+  /** The calendar's month, "YYYY-MM"; absent = this month. */
+  month: parseAsString,
   /** Opens the new booking modal when true (e.g. from the dashboard CTA). */
   newBooking: parseAsBoolean,
   /** Column sort — null keeps the default newest-first ordering. */
@@ -60,3 +63,38 @@ export const bookingSearchParams = {
 
 export const bookingSearchParamsCache =
   createSearchParamsCache(bookingSearchParams);
+
+type BookingSearchParams = Awaited<ReturnType<typeof bookingSearchParamsCache.parse>>;
+
+/**
+ * The board's URL filters as listDeals filters (the admin board and the
+ * broker portal share them). Upcoming/past are measured from `now`. An
+ * explicit status filter searches every bucket; otherwise the Archived pill
+ * picks the archived deals or the live ones.
+ */
+export function toDealListFilters(
+  params: BookingSearchParams,
+  now: Date
+): BookingFilterInput & { mine?: boolean } {
+  const nowIso = now.toISOString();
+  return {
+    search: params.search || undefined,
+    dateFrom: params.dateFrom ?? (params.time === "upcoming" ? nowIso : undefined),
+    dateTo: params.dateTo ?? (params.time === "past" ? nowIso : undefined),
+    mine: params.scope === "mine" || undefined,
+    assignedAdminId: params.scope === "mine" ? undefined : (params.assignedAdminId ?? undefined),
+    unassignedOnly: params.scope === "unassigned" || undefined,
+    archivedView: params.bookingStatus ? undefined : (params.archived ?? false),
+    bookingStatus: params.bookingStatus ?? undefined,
+    paymentStatus: params.paymentStatus ?? undefined,
+    bookingType: params.bookingType ?? undefined,
+    needsCaptain: params.needsCaptain ?? undefined,
+    minAmount: params.minAmount ?? undefined,
+    maxAmount: params.maxAmount ?? undefined,
+    bookingGroupId: params.bookingGroupId ?? undefined,
+    sortBy: params.sortBy ?? undefined,
+    sortOrder: params.sortOrder ?? undefined,
+    page: params.page,
+    limit: params.limit,
+  };
+}

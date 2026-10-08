@@ -3,21 +3,11 @@ import Image from "next/image";
 import { Button } from "@/shared/components/ui/button";
 import { Calendar, User, ArrowRight, Instagram } from "lucide-react";
 import { getPublishedBlogPosts } from "@/features/blog/blog.data";
+import { BLOG_CATEGORY_LABELS as categoryLabels } from "@/features/blog/blog.constants";
 import { formatDate } from "@/shared/lib/utils/general-utils";
 
 // This page now uses dynamic data from the database
 export const dynamic = "force-dynamic";
-
-// Category display names mapping
-const categoryLabels = {
-  FLEET_NEWS: "Fleet News",
-  CONSERVATION: "Conservation",
-  TIPS_ADVICE: "Tips & Advice",
-  CASE_STUDY: "Case Study",
-  COMPANY_NEWS: "Company News",
-  SAFETY: "Safety",
-  EVENTS: "Events",
-} as const;
 
 export default async function NewsPage() {
   // Fetch published blog posts from database

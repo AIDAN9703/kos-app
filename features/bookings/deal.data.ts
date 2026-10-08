@@ -146,12 +146,13 @@ export async function listDeals(filters: DealListFilters): Promise<PaginatedBook
   return { ...result, bookings: result.bookings.map(withoutEconomics) };
 }
 
-/** Deal counts per type for the board's strip, with the same scoping. */
-export async function getDealTypeCounts(
-  filters: Parameters<typeof bookingService.getBookingTypeCounts>[0] & { mine?: boolean }
-) {
+/**
+ * The bookings calendar: deals starting in [from, to) with the board's
+ * filters, scoped like the board (a broker sees only theirs).
+ */
+export async function listCalendarDeals(filters: DealListFilters, from: Date, to: Date) {
   const user = await assertCan({ booking: ["view"] });
-  return bookingService.getBookingTypeCounts(scopeFilters(user, filters ?? {}));
+  return bookingService.getCalendarBookings(scopeFilters(user, filters), from, to);
 }
 
 /** Who deals can be assigned to (admins and brokers). */

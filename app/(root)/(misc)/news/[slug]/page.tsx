@@ -10,19 +10,9 @@ import {
   recordPostView,
   getPublishedBlogPosts,
 } from "@/features/blog/blog.data";
+import { BLOG_CATEGORY_LABELS as categoryLabels } from "@/features/blog/blog.constants";
 import { formatDate } from "@/shared/lib/utils/general-utils";
 import SocialShare from "@/shared/components/ui/social-share";
-
-// Category display names mapping
-const categoryLabels = {
-  FLEET_NEWS: "Fleet News",
-  CONSERVATION: "Conservation",
-  TIPS_ADVICE: "Tips & Advice",
-  CASE_STUDY: "Case Study",
-  COMPANY_NEWS: "Company News",
-  SAFETY: "Safety",
-  EVENTS: "Events",
-} as const;
 
 interface BlogPostPageProps {
   params: Promise<{ slug: string }>;

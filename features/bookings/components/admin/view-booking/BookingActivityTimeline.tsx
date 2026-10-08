@@ -22,12 +22,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/shared/components/ui/card";
+import { GlassPanel } from "@/shared/admin/components/glass";
 import { cn } from "@/shared/lib/utils/general-utils";
 import type { BookingActivityEventEntry } from "@/features/bookings/booking.types";
 import { BOOKING_EVENT_TYPES } from "@/features/bookings/booking-events.constants";
@@ -423,7 +418,7 @@ export function BookingActivityTimeline({
   actions,
 }: {
   events: BookingActivityEventEntry[];
-  /** e.g. sticky rail on booking detail: lg:sticky lg:top-20 … */
+  /** e.g. the booking page's sticky rail: lg:sticky lg:top-6 … */
   className?: string;
   /** Header controls (Log contact / Add note) — top right of the card. */
   actions?: React.ReactNode;
@@ -442,25 +437,23 @@ export function BookingActivityTimeline({
   }
 
   return (
-    <Card
-      // Same rounded-2xl border-border/60 override as every detail-page card;
-      // gap-2/py-4 keep the rail compact vertically while its px-6 content
-      // edges line up with the rest of the page.
+    <GlassPanel
+      title={
+        <span className="flex items-center gap-2">
+          <History className="size-3.5 text-muted-foreground" />
+          Activity
+        </span>
+      }
+      aside={actions}
+      // Flat, not graded (--glass-fade = --glass), so the sticky day labels
+      // and the markers' rings can match it exactly with bg-glass-surface.
+      // Tall enough to fill the screen under the top bar when it sticks.
       className={cn(
-        "rounded-2xl border-border/60",
-        "flex flex-col gap-2 overflow-hidden py-4 lg:max-h-[calc(100vh-5.5rem)]",
+        "overflow-hidden pb-2 [--glass-fade:var(--glass)] lg:max-h-[calc(100svh-8rem)]",
         className
       )}
     >
-      {/* Base CardHeader is a grid — force a flex row for title + actions. */}
-      <CardHeader className="flex shrink-0 flex-row items-center justify-between space-y-0 px-6">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <History className="h-4 w-4 text-muted-foreground" />
-          Activity
-        </CardTitle>
-        {actions ?? null}
-      </CardHeader>
-      <CardContent className="min-h-0 flex-1 overflow-y-auto px-6 pb-2 [-ms-overflow-style:none] [scrollbar-gutter:stable]">
+      <div className="-mx-5 min-h-0 flex-1 overflow-y-auto px-5 [-ms-overflow-style:none] [scrollbar-gutter:stable]">
         {visibleEvents.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-10 text-center">
             <History className="h-6 w-6 text-muted-foreground/40" />
@@ -474,7 +467,7 @@ export function BookingActivityTimeline({
               <section key={group.key}>
                 {/* Day divider — sticky pill anchor, so scrolling always shows
                     which day you're in and groups read as clear sections */}
-                <div className="sticky top-0 z-20 -mx-1.5 mb-3 flex items-center gap-2 bg-card px-1.5 py-1.5">
+                <div className="sticky top-0 z-20 -mx-1.5 mb-3 flex items-center gap-2 bg-glass-surface px-1.5 py-1.5">
                   <span
                     className={cn(
                       "rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
@@ -504,7 +497,7 @@ export function BookingActivityTimeline({
                           <div className="flex w-8 shrink-0 justify-center">
                             <span
                               className={cn(
-                                "relative z-10 flex shrink-0 items-center justify-center rounded-full bg-card ring-4 ring-card",
+                                "relative z-10 flex shrink-0 items-center justify-center rounded-full bg-glass-surface ring-4 ring-glass-surface",
                                 major ? "h-8 w-8 border-2" : "mt-0.5 h-6 w-6 border",
                                 bubble
                               )}
@@ -617,7 +610,7 @@ export function BookingActivityTimeline({
             ))}
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </GlassPanel>
   );
 }

@@ -18,6 +18,7 @@ import {
   TableRow,
 } from "@/shared/components/ui/table";
 import { cn } from "@/shared/lib/utils/general-utils";
+import { AdminEmptyState } from "./AdminEmptyState";
 
 interface AdminDataTableProps<TData> {
   data: TData[];
@@ -32,8 +33,13 @@ interface AdminDataTableProps<TData> {
   onRowClick?: (row: TData) => void;
 }
 
+/** The sticky header row: opaque, so rows scroll cleanly underneath, and
+ *  above cells that lift their content (CopyableText is z-10). */
+const headerClass = "sticky top-0 z-20 bg-glass-solid";
+/** Each cell carries the header's color with a 1px overlap, so columns that
+ *  land on fractional pixels don't show hairline seams. */
 const headClass =
-  "sticky top-0 z-10 bg-muted/95 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground backdrop-blur supports-[backdrop-filter]:bg-muted/80";
+  "bg-glass-solid text-xs font-medium text-muted-foreground shadow-[1px_0_0_var(--glass-solid)] first:pl-5 last:pr-5";
 
 type ColumnMeta = {
   headerClassName?: string;
@@ -54,7 +60,7 @@ export function AdminDataTable<TData>({
   columnVisibility,
   loading,
   loadingLabel = "Loading…",
-  emptyIcon: EmptyIcon,
+  emptyIcon,
   emptyTitle,
   emptyDescription,
   onRowClick,
@@ -68,7 +74,7 @@ export function AdminDataTable<TData>({
 
   if (loading) {
     return (
-      <div className="flex min-h-0 flex-1 items-center justify-center rounded-2xl border border-border/60 bg-card">
+      <div className="glass-panel flex min-h-0 flex-1 items-center justify-center">
         <div className="text-center">
           <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-border border-t-primary" />
           <p className="text-sm text-muted-foreground">{loadingLabel}</p>
@@ -78,29 +84,21 @@ export function AdminDataTable<TData>({
   }
 
   if (!data || data.length === 0) {
-    return (
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-border/70 bg-card/50 p-8 text-center">
-        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-muted">
-          <EmptyIcon className="h-7 w-7 text-muted-foreground" />
-        </div>
-        <h3 className="mb-1 text-lg font-semibold text-foreground">{emptyTitle}</h3>
-        <p className="max-w-sm text-sm text-muted-foreground">{emptyDescription}</p>
-      </div>
-    );
+    return <AdminEmptyState icon={emptyIcon} title={emptyTitle} description={emptyDescription} />;
   }
 
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
+    <div className="glass-panel flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
       <Table className="table-auto">
-        <TableHeader>
+        <TableHeader className={headerClass}>
           {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id} className="border-border/70 hover:bg-transparent">
+            <TableRow key={headerGroup.id} className="border-glass-border hover:bg-transparent">
               {headerGroup.headers.map((header) => {
                 const meta = getColumnMeta(header.column.columnDef.meta);
                 return (
                   <TableHead
                     key={header.id}
-                    className={cn(headClass, "h-10 p-0 px-1.5", meta.headerClassName)}
+                    className={cn(headClass, "h-11 p-0 px-2", meta.headerClassName)}
                   >
                     {header.isPlaceholder
                       ? null
@@ -115,7 +113,7 @@ export function AdminDataTable<TData>({
           {table.getRowModel().rows.map((row) => (
             <TableRow
               key={row.id}
-              className={cn(onRowClick && "cursor-pointer")}
+              className={cn("border-glass-border hover:bg-glass-inset", onRowClick && "cursor-pointer")}
               onClick={onRowClick ? () => onRowClick(row.original) : undefined}
             >
               {row.getVisibleCells().map((cell) => {
@@ -123,7 +121,7 @@ export function AdminDataTable<TData>({
                 return (
                   <TableCell
                     key={cell.id}
-                    className={cn("p-0 px-1.5 py-2.5", meta.cellClassName)}
+                    className={cn("p-0 px-2 py-3 first:pl-5 last:pr-5", meta.cellClassName)}
                   >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>

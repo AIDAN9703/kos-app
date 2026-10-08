@@ -60,13 +60,3 @@ export function computePaymentDisplayStatus(
 
   return "UNPAID";
 }
-
-export const PAYMENT_DISPLAY_LABELS: Record<PaymentDisplayStatus, string> = {
-  UNPAID: "Unpaid",
-  PROCESSING: "Processing",
-  DEPOSIT_PAID: "Deposit Paid",
-  PAID: "Paid",
-  FAILED: "Failed",
-  REFUNDED: "Refunded",
-  CHARGEBACK: "Chargeback",
-};

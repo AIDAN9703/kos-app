@@ -9,6 +9,8 @@ import { RoleChips } from "@/features/users/components/RoleChips";
 import { UserActionsMenu } from "@/features/users/components/UserActionsMenu";
 import { UserDetailsCard } from "@/features/users/components/UserDetailsCard";
 import { UserRecords } from "@/features/users/components/UserRecords";
+import { UserStats } from "@/features/users/components/UserStats";
+import { GlassHeader, GlassPage } from "@/shared/admin/components/glass";
 
 export default async function UserPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -20,45 +22,47 @@ export default async function UserPage({ params }: { params: Promise<{ id: strin
     : null;
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-6 pt-6 pb-12">
-      <header className="flex flex-wrap items-center gap-4">
-        <Avatar className="size-14 shrink-0">
-          <AvatarImage src={user.profileImage || undefined} alt={user.name} />
-          <DefaultUserAvatarFallback size="lg" />
-        </Avatar>
-        <div className="min-w-0 flex-1">
-          <h1 className="truncate text-xl font-semibold text-foreground">
-            {user.name || user.email}
-          </h1>
-          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+    <GlassPage>
+      <GlassHeader
+        leading={
+          <Avatar className="size-16 shrink-0 ring-2 ring-glass-border">
+            <AvatarImage src={user.profileImage || undefined} alt={user.name} />
+            <DefaultUserAvatarFallback size="lg" />
+          </Avatar>
+        }
+        title={user.name || user.email}
+        meta={
+          <>
             <RoleChips roles={user.roles} deactivated={user.deactivated} />
-            <span className="text-xs text-muted-foreground">
-              Joined {formatDate(user.createdAt)}
-            </span>
-          </div>
-        </div>
-        <UserActionsMenu
-          userId={user.id}
-          name={user.name || user.email}
-          hasPassword={user.signInMethods.includes("credential")}
-          deactivated={user.deactivated}
-          canDelete={user.canDelete}
-          isSelf={session?.user.id === user.id}
-          captainStatus={user.captainStatus}
-          crewStatus={user.crewStatus}
-        />
-      </header>
+            <span>Joined {formatDate(user.createdAt)}</span>
+          </>
+        }
+        actions={
+          <UserActionsMenu
+            userId={user.id}
+            name={user.name || user.email}
+            hasPassword={user.signInMethods.includes("credential")}
+            deactivated={user.deactivated}
+            canDelete={user.canDelete}
+            isSelf={session?.user.id === user.id}
+            captainStatus={user.captainStatus}
+            crewStatus={user.crewStatus}
+          />
+        }
+      />
 
       {user.deactivated ? (
-        <p className="rounded-lg border border-destructive/40 bg-destructive-soft px-4 py-3 text-sm text-destructive">
+        <p className="glass-panel mb-4 px-5 py-3 text-sm text-destructive">
           This account is deactivated: they can&apos;t sign in. Reactivate them from the ⋯ menu.
         </p>
       ) : null}
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
+      <UserStats user={user} />
+
+      <div className="mt-4 grid items-start gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)]">
         <UserDetailsCard user={user} stripeHref={stripeHref} />
         <UserRecords user={user} />
       </div>
-    </div>
+    </GlassPage>
   );
 }

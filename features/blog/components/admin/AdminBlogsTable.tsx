@@ -1,72 +1,21 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
-import { createColumnHelper } from "@tanstack/react-table";
-import { Button } from "@/shared/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/shared/components/ui/dropdown-menu";
-import { FileText, Eye, Edit, Trash2, MoreVertical, Star } from "lucide-react";
-import Link from "next/link";
+import { useMemo } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { createColumnHelper } from "@tanstack/react-table";
+import { FileText, Star } from "lucide-react";
 import type { BlogListItem } from "@/features/blog/blog.types";
-import { StatusBadge } from "@/shared/lib/utils/badge-utils";
+import { BLOG_CATEGORY_LABELS } from "@/features/blog/blog.constants";
 import { formatDate } from "@/shared/lib/utils/general-utils";
-import { useDeleteBlogPost } from "@/features/blog/hooks/useBlogMutations";
-import { useToast } from "@/shared/lib/hooks/use-toast";
 import { AdminDataTable } from "@/shared/admin/components/AdminDataTable";
-
-const categoryLabels: Record<string, string> = {
-  FLEET_NEWS: "Fleet News",
-  CONSERVATION: "Conservation",
-  TIPS_ADVICE: "Tips & Advice",
-  CASE_STUDY: "Case Study",
-  COMPANY_NEWS: "Company News",
-  SAFETY: "Safety",
-  EVENTS: "Events",
-};
-
-interface AdminBlogsTableProps {
-  posts: BlogListItem[];
-  loading?: boolean;
-}
+import { BlogStatusChip } from "./BlogStatusChip";
 
 const columnHelper = createColumnHelper<BlogListItem>();
 
-export function AdminBlogsTable({ posts, loading }: AdminBlogsTableProps) {
-  const { toast } = useToast();
-  const { mutate: deletePost } = useDeleteBlogPost();
-
-  const handleDelete = useCallback(
-    (post: BlogListItem) => {
-      if (!confirm(`Delete "${post.title}"? This cannot be undone.`)) return;
-      deletePost(post.id, {
-        onSuccess: (result) => {
-          if (result.success) {
-            toast({ title: "Post deleted successfully" });
-          } else {
-            toast({
-              title: "Error",
-              description: result.error ?? "Failed to delete post",
-              variant: "destructive",
-            });
-          }
-        },
-        onError: () => {
-          toast({
-            title: "Error",
-            description: "Failed to delete post",
-            variant: "destructive",
-          });
-        },
-      });
-    },
-    [deletePost, toast]
-  );
+/** The posts list. A row opens the post, where every change is made. */
+export function AdminBlogsTable({ posts }: { posts: BlogListItem[] }) {
+  const router = useRouter();
 
   const columns = useMemo(
     () => [
@@ -76,138 +25,70 @@ export function AdminBlogsTable({ posts, loading }: AdminBlogsTableProps) {
         cell: ({ row }) => {
           const post = row.original;
           return (
-            <div className="flex items-center gap-3">
-              <div className="h-9 w-14 rounded overflow-hidden bg-muted shrink-0">
+            <div className="flex max-w-[26rem] items-center gap-3">
+              <div className="h-9 w-14 shrink-0 overflow-hidden rounded-lg bg-glass-inset ring-1 ring-glass-border">
                 {post.featuredImage ? (
                   <Image
                     src={post.featuredImage}
                     alt={post.imageAlt || post.title}
                     width={56}
                     height={36}
-                    className="object-cover w-full h-full"
+                    className="h-full w-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center">
+                  <div className="flex h-full w-full items-center justify-center">
                     <FileText className="h-4 w-4 text-muted-foreground" />
                   </div>
                 )}
               </div>
-              <div className="min-w-0 overflow-hidden">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="font-medium text-foreground text-sm truncate block min-w-0">
-                    {post.title}
-                  </span>
-                  {post.isFeatured && (
-                    <Star className="h-3.5 w-3.5 text-warning fill-current shrink-0" />
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground truncate mt-0.5">{post.excerpt}</p>
-              </div>
+              <span className="min-w-0 truncate text-sm font-medium text-foreground">{post.title}</span>
+              {post.isFeatured && (
+                <Star className="h-3.5 w-3.5 shrink-0 fill-current text-warning" aria-label="Featured" />
+              )}
             </div>
           );
         },
       }),
-
       columnHelper.accessor("status", {
         header: "Status",
-        cell: (info) => <StatusBadge status={info.getValue()} />,
+        cell: (info) => <BlogStatusChip status={info.getValue()} />,
       }),
-
       columnHelper.accessor("category", {
         header: "Category",
         cell: (info) => (
-          <span className="text-sm text-muted-foreground">
-            {categoryLabels[info.getValue()] ?? info.getValue()}
-          </span>
+          <span className="whitespace-nowrap text-sm text-muted-foreground">{BLOG_CATEGORY_LABELS[info.getValue()]}</span>
         ),
       }),
-
       columnHelper.accessor("author", {
         header: "Author",
         cell: (info) => (
-          <span className="text-sm text-muted-foreground">{info.getValue() || "—"}</span>
+          <span className="whitespace-nowrap text-sm text-muted-foreground">{info.getValue() || "—"}</span>
         ),
       }),
-
       columnHelper.accessor("publishedAt", {
         header: "Date",
         cell: ({ row }) => {
           const post = row.original;
-          const date =
-            post.status === "PUBLISHED" && post.publishedAt ? post.publishedAt : post.createdAt;
-          return (
-            <span className="text-sm text-muted-foreground">{date ? formatDate(date) : "—"}</span>
-          );
+          const date = post.status === "PUBLISHED" && post.publishedAt ? post.publishedAt : post.createdAt;
+          return <span className="whitespace-nowrap text-sm text-muted-foreground">{date ? formatDate(date) : "—"}</span>;
         },
       }),
-
       columnHelper.accessor("viewCount", {
         header: "Views",
-        cell: (info) => (
-          <span className="text-sm text-muted-foreground">{info.getValue() ?? 0}</span>
-        ),
-      }),
-
-      columnHelper.display({
-        id: "actions",
-        header: () => <div className="text-right pr-2">Actions</div>,
-        cell: ({ row }) => {
-          const post = row.original;
-          return (
-            <div className="flex items-center justify-end">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem asChild>
-                    <Link href={`/admin/blog/${post.id}/edit`} className="cursor-pointer">
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit
-                    </Link>
-                  </DropdownMenuItem>
-                  {post.status === "PUBLISHED" && (
-                    <DropdownMenuItem asChild>
-                      <a
-                        href={`/news/${post.slug}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="cursor-pointer"
-                      >
-                        <Eye className="h-4 w-4 mr-2" />
-                        View on site
-                      </a>
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onSelect={() => handleDelete(post)}
-                    className="text-destructive cursor-pointer"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          );
-        },
+        cell: (info) => <span className="text-sm tabular-nums text-muted-foreground">{info.getValue() ?? 0}</span>,
       }),
     ],
-    [handleDelete]
+    []
   );
 
   return (
     <AdminDataTable
       data={posts}
       columns={columns}
-      loading={loading}
-      loadingLabel="Loading posts…"
+      onRowClick={(post) => router.push(`/admin/blog/${post.id}/edit`)}
       emptyIcon={FileText}
-      emptyTitle="No posts found"
-      emptyDescription="Try adjusting your search or filters, or create a new post to get started."
+      emptyTitle="No posts match"
+      emptyDescription="Try a different search or view, or write a new post."
     />
   );
 }

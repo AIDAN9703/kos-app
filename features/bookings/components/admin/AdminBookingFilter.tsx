@@ -20,7 +20,10 @@ import {
   FilterPopover,
   FilterSearch,
   FilterSelect,
+  FilterToggle,
+  SegmentedPills,
   type FilterChipItem,
+  type SegmentedOption,
 } from "@/shared/admin/filters";
 import {
   bookingSearchParams,
@@ -30,7 +33,6 @@ import { bookingStatusEnum, bookingTypeEnum } from "@/database/schema";
 import { INQUIRY_GROUP_TYPES } from "@/features/bookings/booking.validation";
 import { PAYMENT_DISPLAY_STATUSES } from "@/shared/lib/utils/payment-display";
 import { Input } from "@/shared/components/ui/input";
-import { cn } from "@/shared/lib/utils/general-utils";
 
 type AdminOption = {
   id: string;
@@ -49,9 +51,26 @@ const ENUM_LABEL_OVERRIDES: Record<string, string> = {
   PROPOSED: "Proposal",
 };
 
+const VIEWS: SegmentedOption<"table" | "calendar">[] = [
+  { value: "table", label: "Table", icon: LayoutList },
+  { value: "calendar", label: "Calendar", icon: CalendarDays },
+];
+
+const SCOPES: SegmentedOption<"mine" | "unassigned" | null>[] = [
+  { value: null, label: "All" },
+  { value: "mine", label: "My bookings" },
+  { value: "unassigned", label: "Unassigned" },
+];
+
+const TIMES: SegmentedOption<"upcoming" | "past" | null>[] = [
+  { value: "upcoming", label: "Upcoming" },
+  { value: "past", label: "Past" },
+  { value: null, label: "All dates" },
+];
+
 /**
  * Type dropdown options — the inquiry family filters by STAGE ("Inquiry" =
- * still a lead, "Booking" = priced), matching the command strip; distinct
+ * still a lead, "Booking" = priced), matching the rows' kind chips; distinct
  * kinds keep their raw values.
  */
 const BOOKING_TYPE_OPTIONS: BookingTypeFilter[] = [
@@ -183,28 +202,17 @@ export function AdminBookingFilter({
     });
 
   return (
-    <div className="space-y-2 pb-3">
+    <div className="space-y-3 pb-4">
       <AdminToolbar
+        className="gap-3"
         trailing={
           showAssignment ? (
-            <div
-              role="tablist"
-              aria-label="Bookings view"
-              className="inline-flex h-10 items-center rounded-full bg-muted p-1"
-            >
-              <ViewToggleButton
-                active={filters.view === "table"}
-                label="Table"
-                icon={LayoutList}
-                onClick={() => updateFilter({ view: "table" })}
-              />
-              <ViewToggleButton
-                active={filters.view === "calendar"}
-                label="Calendar"
-                icon={CalendarDays}
-                onClick={() => updateFilter({ view: "calendar" })}
-              />
-            </div>
+            <SegmentedPills
+              label="Bookings view"
+              options={VIEWS}
+              value={filters.view}
+              onChange={(view) => updateFilter({ view })}
+            />
           ) : undefined
         }
       >
@@ -215,53 +223,30 @@ export function AdminBookingFilter({
         />
 
         {showAssignment ? (
-          <>
-            {/* Ownership scope — same segmented pills as the inquiries page */}
-            <div className="flex h-10 items-center rounded-full bg-muted p-1">
-              {(
-                [
-                  { value: null, label: "All" },
-                  { value: "mine", label: "My bookings" },
-                  { value: "unassigned", label: "Unassigned" },
-                ] as const
-              ).map((tab) => (
-                <SegmentedPill
-                  key={tab.label}
-                  active={filters.scope === tab.value}
-                  label={tab.label}
-                  onClick={() => updateFilter({ scope: tab.value })}
-                />
-              ))}
-            </div>
-          </>
+          <SegmentedPills
+            label="Whose bookings"
+            options={SCOPES}
+            value={filters.scope}
+            onChange={(scope) => updateFilter({ scope })}
+          />
         ) : null}
 
-        {/* Trip-date scope */}
-        <div className="flex h-10 items-center rounded-full bg-muted p-1">
-          {(
-            [
-              { value: "upcoming", label: "Upcoming" },
-              { value: "past", label: "Past" },
-              { value: null, label: "All dates" },
-            ] as const
-          ).map((tab) => (
-            <SegmentedPill
-              key={tab.label}
-              active={filters.time === tab.value}
-              label={tab.label}
-              onClick={() => updateFilter({ time: tab.value })}
-            />
-          ))}
-        </div>
+        {/* The calendar picks its dates by month instead. */}
+        {filters.view !== "calendar" ? (
+          <SegmentedPills
+            label="Trip dates"
+            options={TIMES}
+            value={filters.time}
+            onChange={(time) => updateFilter({ time })}
+          />
+        ) : null}
 
         {/* Archive bucket — cancelled bookings + lost/abandoned leads */}
-        <div className="flex h-10 items-center rounded-full bg-muted p-1">
-          <SegmentedPill
-            active={filters.archived === true}
-            label="Archived"
-            onClick={() => updateFilter({ archived: filters.archived ? null : true })}
-          />
-        </div>
+        <FilterToggle
+          label="Archived"
+          pressed={filters.archived === true}
+          onPressedChange={(on) => updateFilter({ archived: on ? true : null })}
+        />
 
         <FilterPopover activeCount={activeFilterCount} onClearAll={clearAll}>
           <FilterField icon={MessageSquare} label="Booking status">
@@ -380,62 +365,5 @@ export function AdminBookingFilter({
 
       <FilterChips chips={chips} onClearAll={clearAll} />
     </div>
-  );
-}
-
-function SegmentedPill({
-  active,
-  label,
-  onClick,
-}: {
-  active: boolean;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "flex h-8 items-center rounded-full px-3.5 text-sm font-medium transition-all",
-        // Neutral active state — gold is reserved for the page's main CTA.
-        active
-          ? "bg-background text-foreground shadow-sm ring-1 ring-border/60"
-          : "text-muted-foreground hover:text-foreground"
-      )}
-    >
-      {label}
-    </button>
-  );
-}
-
-function ViewToggleButton({
-  active,
-  label,
-  icon: Icon,
-  onClick,
-}: {
-  active: boolean;
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      role="tab"
-      aria-selected={active}
-      onClick={onClick}
-      className={cn(
-        "inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 text-sm font-medium transition-colors",
-        // Neutral active state — gold is reserved for the page's main CTA.
-        active
-          ? "bg-background text-foreground shadow-sm ring-1 ring-border/60"
-          : "text-muted-foreground hover:text-foreground"
-      )}
-    >
-      <Icon className="h-3.5 w-3.5" />
-      {label}
-    </button>
   );
 }

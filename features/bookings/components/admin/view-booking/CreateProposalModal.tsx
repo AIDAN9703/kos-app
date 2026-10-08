@@ -36,7 +36,7 @@ export function CreateProposalModal({
 
   return (
     <>
-      <Button size="sm" className="shrink-0 gap-1.5 rounded-full px-4" onClick={() => setOpen(true)}>
+      <Button size="sm" className="h-9 shrink-0 gap-1.5 rounded-full px-4 font-semibold" onClick={() => setOpen(true)}>
         <CalendarPlus className="h-3.5 w-3.5" />
         Create proposal
       </Button>

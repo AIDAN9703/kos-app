@@ -96,6 +96,19 @@ export interface BookingActivityEventEntry {
  * Note: When passed to client components, dates become ISO strings due to React serialization
  * All monetary values are in CENTS
  */
+/** A deal on the bookings calendar: what a day cell shows, nothing more. */
+export interface CalendarBooking {
+  id: string;
+  bookingType: string;
+  bookingStatus: string;
+  customerName: string | null;
+  startDateTime: Date;
+  /** For the stage-aware kind (an inquiry priced past inquiry reads "Booking"). */
+  totalAmountCents: number | null;
+  boatName: string | null;
+  boatTimezone: string | null;
+}
+
 export interface BookingListItem {
   id: string;
   bookingType: string;

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ExternalLink, Loader2 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { EditableField } from "@/shared/components/EditableField";
+import { GlassPanel } from "@/shared/admin/components/glass";
 import { useToast } from "@/shared/lib/hooks/use-toast";
 import { cn, formatPhoneNumberForDisplay } from "@/shared/lib/utils/general-utils";
 import type { Role } from "@/shared/lib/auth/permissions";
@@ -119,7 +120,7 @@ export function UserDetailsCard({ user, stripeHref }: { user: AdminUserProfile; 
   const save = (values: Record<string, string | null>) => updateUserDetails(user.id, values);
 
   return (
-    <section className="rounded-xl border border-border bg-card px-5">
+    <GlassPanel title="Details" className="gap-0 px-5 pb-1">
       <EditableField
         label="Name"
         fields={[
@@ -167,6 +168,6 @@ export function UserDetailsCard({ user, stripeHref }: { user: AdminUserProfile; 
           </a>
         </ReadOnlyRow>
       ) : null}
-    </section>
+    </GlassPanel>
   );
 }

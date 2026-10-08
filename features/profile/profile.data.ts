@@ -8,6 +8,7 @@ import { notificationPreferenceEnum } from "@/database/schema/enums";
 import { profileUpdateSchema, type ProfileFormValues } from "@/features/_validation/validations";
 import { getOrCreateCheckoutUrl } from "@/features/bookings/services/checkout.service";
 import * as profileService from "@/features/profile/profile.service";
+import { setUserMarketing } from "@/features/marketing/marketing.service";
 import type { AccountUser, CaptainSummary, TripDetail, TripSummary } from "@/features/profile/profile.types";
 import { auth } from "@/shared/lib/auth/auth";
 import { getOrCreateStripeCustomer, getStripe } from "@/shared/lib/services/stripe.service";
@@ -180,6 +181,13 @@ export async function updateMyNotificationPreferences(input: NotificationPrefere
   const parsed = notificationPreferencesSchema.safeParse(input);
   if (!parsed.success) throw new UserFacingError("Invalid notification setting.");
   await profileService.updateAccount(me.id, parsed.data);
+  // Their marketing contact follows; the change reaches Resend on the next sync.
+  // Never fail the person's own setting over it: the hourly sync catches up.
+  if (parsed.data.marketingEmailsEnabled !== undefined) {
+    await setUserMarketing(me.id, parsed.data.marketingEmailsEnabled).catch((error) =>
+      console.error("[marketing] couldn't update the contact for a settings change", error)
+    );
+  }
 }
 
 const changePasswordSchema = z.object({

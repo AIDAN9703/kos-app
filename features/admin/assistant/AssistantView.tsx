@@ -92,22 +92,12 @@ export function AssistantView({
     }
   }
 
+  // Full bleed over the page area's padding (AdminShell), so the transcript
+  // scrolls at the page's edge.
   return (
-    <div className="relative -m-4 flex min-h-0 flex-1 flex-col md:-m-6">
-      {/* One gradient, one slow drift — no blobs, no pulsing. */}
-      <div aria-hidden className="kos-sheen pointer-events-none absolute inset-0 overflow-hidden" />
-
-      {/* Top bar — quiet: a live dot, and New chat once a conversation exists */}
-      <div className="relative z-10 flex items-center justify-between px-5 py-3">
-        <div className="flex items-center gap-2.5">
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-400 opacity-60" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-cyan-400" />
-          </span>
-          <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-            Live
-          </span>
-        </div>
+    <div className="relative -mx-4 -my-4 flex min-h-0 flex-1 flex-col md:-mx-6 md:-my-6 xl:-mx-12">
+      {/* Top bar: New chat once a conversation exists */}
+      <div className="relative z-10 flex min-h-12 items-center justify-end px-5 py-3">
         <div className="flex items-center gap-2">
           {!configured ? (
             <span className="rounded-full bg-warning/15 px-2.5 py-0.5 text-[11px] font-semibold text-warning">

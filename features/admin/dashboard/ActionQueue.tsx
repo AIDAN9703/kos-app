@@ -5,22 +5,9 @@ import Link from "next/link";
 import { ArrowUpRight, Check } from "lucide-react";
 import type { ActionItem, ActionKind } from "@/features/admin/dashboard.types";
 import { cn } from "@/shared/lib/utils/general-utils";
-import { formatBoatLocal } from "@/shared/lib/utils/date-helpers";
-import { Panel, Segmented } from "./Panel";
-import { elapsed } from "./format";
-
-const KIND_LABELS: Record<ActionKind, string> = {
-  conflict: "Calendar conflict",
-  "change-request": "Change request",
-  stripe: "Stripe event failed",
-  captain: "No captain",
-  balance: "Balance due",
-  "past-due": "Past due",
-  lead: "New lead",
-  "proposal-unpaid": "Unpaid proposal",
-  "proposal-unsent": "Unsent proposal",
-  "calendar-sync": "Calendar sync",
-};
+import { KIND_LABELS, Led, when } from "./action-item";
+import { SegmentedPills } from "@/shared/admin/filters";
+import { Panel } from "./Panel";
 
 type Group = "all" | "customers" | "trips" | "system";
 
@@ -30,16 +17,15 @@ const GROUPS: Record<Exclude<Group, "all">, ActionKind[]> = {
   system: ["calendar-sync", "stripe"],
 };
 
-const LED: Record<ActionItem["severity"], string> = {
-  3: "bg-destructive shadow-[0_0_0_3px_color-mix(in_srgb,var(--destructive)_18%,transparent)]",
-  2: "bg-warning",
-  1: "bg-muted-foreground/40",
+/** Each area has its own color, so the queue reads at a glance. */
+const GROUP_CHIP: Record<Exclude<Group, "all">, string> = {
+  customers: "bg-sky-400/15 text-sky-300 ring-sky-400/30",
+  trips: "bg-amber-400/15 text-amber-300 ring-amber-400/30",
+  system: "bg-violet-400/15 text-violet-300 ring-violet-400/30",
 };
 
-function when(item: ActionItem): string {
-  if (item.tripStart) return formatBoatLocal(item.tripStart, item.timezone, "EEE MMM d, h:mm a");
-  if (item.since) return `${elapsed(item.since)} ago`;
-  return "";
+function groupOf(kind: ActionKind): Exclude<Group, "all"> {
+  return (Object.keys(GROUPS) as Exclude<Group, "all">[]).find((g) => GROUPS[g].includes(kind)) ?? "system";
 }
 
 /** Everything that needs a person, most urgent first, filterable by area. */
@@ -56,9 +42,13 @@ export function ActionQueue({ items }: { items: ActionItem[] }) {
       actions={
         <>
           {urgent > 0 && (
-            <span className="text-xs font-medium tabular-nums text-destructive">{urgent} urgent</span>
+            <span className="rounded-full bg-destructive/15 px-2.5 py-1 text-xs font-medium tabular-nums text-destructive ring-1 ring-inset ring-destructive/30">
+              {urgent} urgent
+            </span>
           )}
-          <Segmented<Group>
+          <SegmentedPills<Group>
+            label="Area"
+            size="sm"
             value={group}
             onChange={setGroup}
             options={[
@@ -73,17 +63,26 @@ export function ActionQueue({ items }: { items: ActionItem[] }) {
       bodyClassName="max-h-[560px] overflow-y-auto"
     >
       {shown.length === 0 ? (
-        <div className="flex items-center gap-2.5 px-4 py-10 text-sm text-muted-foreground">
+        <div className="flex items-center gap-2.5 px-5 py-10 text-sm text-muted-foreground">
           <Check className="size-4 text-success" />
           Nothing waiting here.
         </div>
       ) : (
-        <ul className="divide-y divide-border">
+        <ul className="p-2">
           {shown.map((item) => {
             const row = (
               <>
-                <span aria-hidden className={cn("size-2 rounded-full", LED[item.severity])} />
-                <span className="hidden truncate text-xs text-muted-foreground md:block">{KIND_LABELS[item.kind]}</span>
+                <Led severity={item.severity} />
+                <span className="hidden md:block">
+                  <span
+                    className={cn(
+                      "inline-flex max-w-full items-center truncate rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset",
+                      GROUP_CHIP[groupOf(item.kind)]
+                    )}
+                  >
+                    {KIND_LABELS[item.kind]}
+                  </span>
+                </span>
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-medium text-foreground">{item.subject}</span>
                   <span className="block truncate text-xs text-muted-foreground md:hidden">
@@ -101,7 +100,7 @@ export function ActionQueue({ items }: { items: ActionItem[] }) {
               </>
             );
             const className =
-              "grid grid-cols-[8px_minmax(0,1fr)_auto] items-center gap-3 px-4 py-2.5 transition-colors hover:bg-muted/50 md:grid-cols-[8px_128px_minmax(0,190px)_minmax(0,1fr)_auto]";
+              "grid grid-cols-[8px_minmax(0,1fr)_auto] items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-glass-inset md:grid-cols-[8px_140px_minmax(0,190px)_minmax(0,1fr)_auto]";
             return (
               <li key={item.key}>
                 {item.external ? (

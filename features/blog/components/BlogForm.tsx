@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import { Switch } from "@/shared/components/ui/switch";
+import { BLOG_CATEGORY_LABELS } from "@/features/blog/blog.constants";
 import {
   Tabs,
   TabsContent,
@@ -94,15 +95,7 @@ interface BlogFormProps {
   initialData?: BlogDetails;
 }
 
-const categoryOptions = [
-  { value: "FLEET_NEWS", label: "Fleet News" },
-  { value: "CONSERVATION", label: "Conservation" },
-  { value: "TIPS_ADVICE", label: "Tips & Advice" },
-  { value: "CASE_STUDY", label: "Case Study" },
-  { value: "COMPANY_NEWS", label: "Company News" },
-  { value: "SAFETY", label: "Safety" },
-  { value: "EVENTS", label: "Events" },
-];
+const categoryOptions = Object.entries(BLOG_CATEGORY_LABELS).map(([value, label]) => ({ value, label }));
 
 export default function BlogForm({ mode, initialData }: BlogFormProps) {
   const router = useRouter();

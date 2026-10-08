@@ -158,13 +158,6 @@ export function formatPhoneNumberForDisplay(
 }
 
 /**
- * Normalizes a phone value for tel: links (E.164 when possible).
- */
-export function formatPhoneNumberTelHref(phoneNumber: string): string {
-  return formatPhoneNumberE164(phoneNumber);
-}
-
-/**
  * Formats a date in a human-readable format
  * @param date The date to format
  * @returns A formatted date string

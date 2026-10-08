@@ -28,7 +28,7 @@ export function FilterChips({
           key={chip.key}
           type="button"
           onClick={chip.onRemove}
-          className="group inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-xs font-medium text-foreground transition-colors hover:bg-muted/60"
+          className="group inline-flex items-center gap-1.5 rounded-full border border-glass-border bg-glass-inset px-2.5 py-1 text-xs font-medium text-foreground transition-colors hover:bg-glass-strong"
         >
           {chip.label}
           <X className="h-3 w-3 text-muted-foreground transition-colors group-hover:text-foreground" />

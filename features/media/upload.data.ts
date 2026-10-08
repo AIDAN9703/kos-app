@@ -40,6 +40,13 @@ export async function uploadImage(input: {
       tags.push(`boat_${entityId}`);
       break;
     }
+    case "marketing": {
+      await assertCan({ marketing: ["send"] });
+      const now = new Date();
+      folder = `/marketing/${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, "0")}`;
+      tags.push("marketing", `user_${me.id}`);
+      break;
+    }
     case "blog": {
       await assertCan({ blog: ["edit"] });
       const now = new Date();

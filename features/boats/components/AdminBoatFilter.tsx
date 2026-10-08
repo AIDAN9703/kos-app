@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo } from "react";
-import Link from "next/link";
 import { useQueryStates } from "nuqs";
 import {
   Anchor,
@@ -9,11 +8,8 @@ import {
   DollarSign,
   Home,
   MapPin,
-  Plus,
   Ruler,
   Ship,
-  Star,
-  ToggleLeft,
   Users,
   Waves,
 } from "lucide-react";
@@ -24,11 +20,11 @@ import {
   FilterPopover,
   FilterSearch,
   FilterSelect,
+  SegmentedPills,
   type FilterChipItem,
 } from "@/shared/admin/filters";
 import { boatSearchParams } from "../searchParams";
 import { boatCategoryEnum } from "@/database/schema";
-import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 
 const categoryLabel = (v: string) =>
@@ -37,8 +33,15 @@ const categoryLabel = (v: string) =>
     .replace(/_/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());
 
-const triState = (v: boolean | null, yes: string, no: string) =>
-  v === true ? yes : v === false ? no : null;
+/** Which boats to show: every boat, listed or hidden on the site, or featured. */
+type BoatView = "all" | "listed" | "hidden" | "featured";
+
+const VIEWS: { value: BoatView; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "listed", label: "Listed" },
+  { value: "hidden", label: "Hidden" },
+  { value: "featured", label: "Featured" },
+];
 
 const rangeLabel = (
   min: number | null | undefined,
@@ -47,6 +50,7 @@ const rangeLabel = (
 ) =>
   `${prefix}${min ?? 0}${max != null ? ` – ${prefix}${max}` : "+"}`;
 
+/** Boats toolbar: search, which boats to show, and the Filters popover. */
 export function AdminBoatFilter() {
   const [filters, setFilters] = useQueryStates(boatSearchParams, {
     clearOnDefault: true,
@@ -57,12 +61,18 @@ export function AdminBoatFilter() {
     setFilters({ ...updates, page: 1 });
   };
 
+  const view: BoatView =
+    filters.featured === true ? "featured" : filters.active === true ? "listed" : filters.active === false ? "hidden" : "all";
+  const setView = (next: BoatView) =>
+    updateFilter({
+      active: next === "listed" ? true : next === "hidden" ? false : null,
+      featured: next === "featured" ? true : null,
+    });
+
   const activeCount = useMemo(
     () =>
       [
         filters.category,
-        filters.active,
-        filters.featured,
         filters.minPrice ?? filters.maxPrice,
         filters.minLength ?? filters.maxLength,
         filters.minCapacity ?? filters.maxCapacity,
@@ -82,8 +92,6 @@ export function AdminBoatFilter() {
     setFilters({
       search: "",
       category: null,
-      featured: null,
-      active: null,
       minPrice: null,
       maxPrice: null,
       minLength: null,
@@ -109,18 +117,6 @@ export function AdminBoatFilter() {
       key: "category",
       label: `Category: ${categoryLabel(filters.category)}`,
       onRemove: () => updateFilter({ category: null }),
-    });
-  if (filters.active !== null)
-    chips.push({
-      key: "active",
-      label: `Status: ${filters.active ? "Active" : "Inactive"}`,
-      onRemove: () => updateFilter({ active: null }),
-    });
-  if (filters.featured !== null)
-    chips.push({
-      key: "featured",
-      label: filters.featured ? "Featured" : "Not featured",
-      onRemove: () => updateFilter({ featured: null }),
     });
   if (filters.minPrice != null || filters.maxPrice != null)
     chips.push({
@@ -190,22 +186,14 @@ export function AdminBoatFilter() {
     });
 
   return (
-    <div className="space-y-2 pb-3">
-      <AdminToolbar
-        trailing={
-          <Button asChild size="sm" className="h-9 gap-1.5">
-            <Link href="/admin/boats/create">
-              <Plus className="h-3.5 w-3.5" />
-              New boat
-            </Link>
-          </Button>
-        }
-      >
+    <div className="space-y-3 pb-4">
+      <AdminToolbar className="gap-3">
         <FilterSearch
           value={filters.search}
           onChange={(v) => updateFilter({ search: v })}
           placeholder="Search by name, make, model, location, owner..."
         />
+        <SegmentedPills label="Show" options={VIEWS} value={view} onChange={setView} />
         <FilterPopover activeCount={activeCount} onClearAll={clearAll}>
           <FilterField icon={Ship} label="Category">
             <FilterSelect
@@ -216,36 +204,6 @@ export function AdminBoatFilter() {
               allLabel="Any category"
               width="w-full"
               renderLabel={categoryLabel}
-            />
-          </FilterField>
-          <FilterField icon={ToggleLeft} label="Status">
-            <FilterSelect
-              value={triState(filters.active, "active", "inactive")}
-              onChange={(v) =>
-                updateFilter({
-                  active: v === "active" ? true : v === "inactive" ? false : null,
-                })
-              }
-              options={["active", "inactive"]}
-              placeholder="Status"
-              allLabel="Any status"
-              width="w-full"
-              renderLabel={(v) => (v === "active" ? "Active" : "Inactive")}
-            />
-          </FilterField>
-          <FilterField icon={Star} label="Featured">
-            <FilterSelect
-              value={triState(filters.featured, "yes", "no")}
-              onChange={(v) =>
-                updateFilter({
-                  featured: v === "yes" ? true : v === "no" ? false : null,
-                })
-              }
-              options={["yes", "no"]}
-              placeholder="Featured"
-              allLabel="Any"
-              width="w-full"
-              renderLabel={(v) => (v === "yes" ? "Featured" : "Not featured")}
             />
           </FilterField>
           <FilterField icon={MapPin} label="Location">

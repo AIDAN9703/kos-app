@@ -1,6 +1,7 @@
 import "server-only";
 
 import * as dashboard from "@/features/admin/dashboard.service";
+import type { Notifications } from "@/features/admin/dashboard.types";
 import { assertCan } from "@/shared/lib/utils/auth-utils";
 
 /**
@@ -43,12 +44,14 @@ export async function getActionQueue() {
   return dashboard.getActionQueue();
 }
 
+/** The bell in the top bar: how much is waiting, and the most urgent few. */
+export async function getNotifications(limit = 8): Promise<Notifications> {
+  await assertDashboard();
+  const items = await dashboard.getActionQueue();
+  return { total: items.length, urgent: items.filter((i) => i.severity === 3).length, items: items.slice(0, limit) };
+}
+
 export async function getDeskNumbers() {
   await assertDashboard();
   return dashboard.getDeskNumbers();
-}
-
-export async function getFleetTimeline(days?: number) {
-  await assertDashboard();
-  return dashboard.getFleetTimeline(days);
 }

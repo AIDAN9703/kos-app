@@ -1,40 +1,26 @@
 import { ReactNode } from "react";
-import { cookies } from "next/headers";
 
 import { requireBrokerPortal } from "@/shared/lib/utils/auth-utils";
-import AdminSidebar from "@/shared/admin/components/AdminSidebar";
-import AdminHeader from "@/shared/admin/components/AdminHeader";
+import { AdminShell } from "@/shared/admin/components/AdminShell";
 import { DealsBasePathProvider } from "@/features/bookings/components/admin/deal-links";
 import { QueryProvider } from "@/shared/lib/providers/QueryProvider";
-import { SidebarInset, SidebarProvider } from "@/shared/components/ui/sidebar";
 
 /**
  * The broker portal: the admin area's shell and deal screens, limited to the
  * broker's own deals (every read and action re-checks that in
- * features/bookings/deal.data.ts).
+ * features/bookings/deal.data.ts). No search, create or notifications: those
+ * reach company-wide data.
  */
 export default async function BrokerLayout({ children }: { children: ReactNode }) {
-  await requireBrokerPortal();
-  const cookieStore = await cookies();
-  const defaultOpen = cookieStore.get("sidebar_state")?.value === "true";
+  const { user } = await requireBrokerPortal();
 
   return (
-    <SidebarProvider
-      defaultOpen={defaultOpen}
-      data-admin-theme
-      className="bg-background text-foreground font-sans antialiased h-svh overflow-hidden"
-    >
-      <AdminSidebar nav="broker" />
-      <SidebarInset className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <AdminHeader tools={false} />
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 py-4 md:px-6 md:py-6">
-          <QueryProvider>
-            <DealsBasePathProvider basePath="/brokers/deals">
-              <div className="flex h-full min-h-0 w-full flex-col">{children}</div>
-            </DealsBasePathProvider>
-          </QueryProvider>
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+    <QueryProvider>
+      <DealsBasePathProvider basePath="/brokers/deals">
+        <AdminShell portal="broker" user={{ name: user.name, email: user.email, image: user.profileImage }}>
+          {children}
+        </AdminShell>
+      </DealsBasePathProvider>
+    </QueryProvider>
   );
 }

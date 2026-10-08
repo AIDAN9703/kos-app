@@ -1,9 +1,9 @@
 import { formatDistanceToNowStrict } from "date-fns";
-import { DealHeaderCard } from "@/features/bookings/components/admin/view-booking/DealHeaderCard";
+import Image from "next/image";
+import { Ship } from "lucide-react";
 import { DealRequestCard } from "@/features/bookings/components/admin/view-booking/DealRequestCard";
 import { getDisplayKind } from "@/features/bookings/deal-presentation";
-import { adminInitials } from "@/shared/lib/utils/people-display";
-import { cn } from "@/shared/lib/utils/general-utils";
+import { GlassHeader, GlassPage } from "@/shared/admin/components/glass";
 import config from "@/shared/lib/config";
 import { formatCentsAsCurrency } from "@/shared/lib/utils/money-utils";
 import {
@@ -15,7 +15,7 @@ import {
   BookingPageEditButton,
 } from "@/features/bookings/components/admin/view-booking/BookingEditMode";
 import { RevenueCard } from "@/features/bookings/components/admin/view-booking/RevenueCard";
-import { DealContactBand } from "@/features/bookings/components/admin/view-booking/DealContactBand";
+import { CustomerDetailsCard } from "@/features/bookings/components/admin/view-booking/CustomerDetailsCard";
 import { BreakdownCard } from "@/features/bookings/components/admin/view-booking/BreakdownCard";
 import type { SendToCustomerData } from "@/features/bookings/components/admin/view-booking/SendToCustomer";
 import { customerMoney, dealEconomics } from "@/features/bookings/lib/booking-money";
@@ -48,12 +48,13 @@ const PAYMENT_METHOD_LABELS: Record<string, string> = {
 };
 
 /**
- * ONE page for every deal. The same cards in the same places at every stage;
- * a card appears when it has something to show. Inquiry: header, what they
- * asked for, finances (estimate), activity. Booking: header, the trip (with
- * crew), revenue, party (if any), breakdown (read-only, with sending), activity
- * (with completed payments). Edit trip turns the trip card into the whole
- * form — trip, pricing, add-ons, more boats — so all editing is on the left.
+ * ONE page for every deal, a glass page like the person and boat pages: the
+ * customer as the header, then the same panels in the same places at every
+ * stage; a panel appears when it has something to show. Inquiry: what they
+ * asked for, the estimate, activity. Booking: the trip (with crew), revenue,
+ * party (if any), breakdown (read-only, with sending), activity (with
+ * completed payments). Edit trip turns the trip panel into the whole form —
+ * trip, pricing, add-ons, more boats — so all editing is on the left.
  * Nothing is shown twice.
  */
 export async function DealPage({ deal }: { deal: DealPageData }) {
@@ -298,81 +299,81 @@ export async function DealPage({ deal }: { deal: DealPageData }) {
           ? { label: "Balance due", text: fmt(money.balanceCents) }
           : { label: "Paid", text: fmt(money.paidCents) };
 
-  const kind = getDisplayKind(booking);
-  const KindIcon = kind.Icon;
-
   return (
     <BookingEditModeProvider>
-      <div className="flex w-full flex-1 flex-col">
-        {/* Left: who + the trip + who runs it. Right: the money, then the
-            story so far (sticky). Same grid on both faces. */}
-        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
-          <div className="flex min-w-0 flex-col gap-6 lg:col-span-2">
-            <DealHeaderCard
-              eyebrow={`Booking #${booking.id.slice(0, 6).toUpperCase()}`}
-              name={booking.customerName || "Unnamed customer"}
-              avatarInitials={adminInitials(booking.customerName ?? "") || "?"}
-              avatarImage={booking.userProfileImage}
-              avatarClassName="bg-primary-soft text-primary-strong"
-              typeChip={
-                <span
-                  className={cn(
-                    "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold",
-                    kind.badge
-                  )}
-                >
-                  <KindIcon className="h-3 w-3" />
-                  {kind.label}
-                </span>
-              }
-              meta={
-                // Just when. The source sits on the board; the trip is below.
-                <>
-                  Created{" "}
-                  <span className="tabular-nums">
-                    {formatDistanceToNowStrict(new Date(booking.createdAt))} ago
-                  </span>
-                </>
-              }
-              contact={
-                <DealContactBand
-                  bookingId={id}
-                  name={booking.customerName}
-                  email={booking.customerEmail}
-                  phone={booking.customerPhone}
-                  ownerName={ownerName}
-                />
-              }
-              value={headline}
-              actions={
-                // Same anatomy for both stages: one primary verb + Edit + the
-                // quiet ⋯ overflow. Inquiry's winning path is the proposal;
-                // its Edit covers contact details only.
-                <div className="flex shrink-0 items-center gap-2">
-                  {isInquiry ? (
-                    <>
-                      <CreateProposalModal
-                        pricingTiers={pricingTiers}
-                        dealPrefill={buildDealPrefillForBookingForm(booking)}
-                      />
-                      <BookingPageEditButton label="Edit contact" />
-                    </>
-                  ) : (
-                    <BookingPageEditButton />
-                  )}
-                  <DealActionsMenu
-                    bookingId={id}
-                    bookingStatus={booking.bookingStatus}
-                    isArchived={booking.archivedAt != null}
-                    assignedAdminId={booking.assignedAdminId}
-                    admins={adminOptions}
-                    canAssign={viewer.canAssign}
-                    currentUserId={viewer.userId}
-                  />
+      <GlassPage>
+        {/* The boat's photo, what the deal is ("Inquiry #…", "Booking #…"),
+            the customer and when it came in. Contact details, the trip and
+            the money are panels below. */}
+        <GlassHeader
+          leading={
+            <span className="relative flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-glass-strong ring-2 ring-glass-border">
+              {booking.boatMainImage ? (
+                <Image src={booking.boatMainImage} alt="" fill sizes="64px" className="object-cover" />
+              ) : (
+                <Ship className="size-6 text-muted-foreground" />
+              )}
+            </span>
+          }
+          eyebrow={`${getDisplayKind(booking).label} #${booking.id.slice(0, 6).toUpperCase()}`}
+          title={booking.customerName || "Unnamed customer"}
+          meta={
+            // Just when. The source sits on the board; the trip is below.
+            <span>
+              Created{" "}
+              <span className="tabular-nums">
+                {formatDistanceToNowStrict(new Date(booking.createdAt))} ago
+              </span>
+            </span>
+          }
+          actions={
+            // The stage's one number, then the same verbs on both stages: one
+            // primary verb + Edit + the quiet ⋯ overflow. Inquiry's winning
+            // path is the proposal; its Edit covers contact details only.
+            <>
+              {headline ? (
+                <div className="mr-3 text-right">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                    {headline.label}
+                  </p>
+                  <p className="text-2xl font-semibold tabular-nums text-foreground">{headline.text}</p>
                 </div>
-              }
-            />
+              ) : null}
+              {isInquiry ? (
+                <>
+                  <CreateProposalModal
+                    pricingTiers={pricingTiers}
+                    dealPrefill={buildDealPrefillForBookingForm(booking)}
+                  />
+                  <BookingPageEditButton label="Edit contact" />
+                </>
+              ) : (
+                <BookingPageEditButton />
+              )}
+              <DealActionsMenu
+                bookingId={id}
+                bookingStatus={booking.bookingStatus}
+                isArchived={booking.archivedAt != null}
+                assignedAdminId={booking.assignedAdminId}
+                admins={adminOptions}
+                canAssign={viewer.canAssign}
+                currentUserId={viewer.userId}
+              />
+            </>
+          }
+        />
 
+        {/* Left: the customer, the trip and who runs it. Right: the money,
+            then the story so far (sticky). Same grid on both faces. */}
+        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-3">
+          <div className="flex min-w-0 flex-col gap-4 lg:col-span-2">
+            <CustomerDetailsCard
+              bookingId={id}
+              name={booking.customerName}
+              email={booking.customerEmail}
+              phone={booking.customerPhone}
+              ownerName={ownerName}
+            />
             {isInquiry ? (
               <DealRequestCard deal={booking} />
             ) : (
@@ -424,7 +425,7 @@ export async function DealPage({ deal }: { deal: DealPageData }) {
             )}
           </div>
 
-          <div className="flex min-w-0 flex-col gap-6">
+          <div className="flex min-w-0 flex-col gap-4">
             <BreakdownCard
               bookingId={id}
               isInquiry={isInquiry}
@@ -441,16 +442,15 @@ export async function DealPage({ deal }: { deal: DealPageData }) {
               canEditExpenses={viewer.canSeeEconomics}
               canRecordPayments={viewer.canRecordPayments}
             />
-            {/* lg:top-0 — sticky enforces its top value even at rest; any
-                positive offset misaligns the rail. Zero never can. */}
+            {/* Sticks a little below the top bar while the left side scrolls. */}
             <BookingActivityTimeline
               events={timeline}
-              className="lg:sticky lg:top-0"
+              className="lg:sticky lg:top-6"
               actions={!isSettled ? <ActivityComposer bookingId={id} /> : undefined}
             />
           </div>
         </div>
-      </div>
+      </GlassPage>
     </BookingEditModeProvider>
   );
 }

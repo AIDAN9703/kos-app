@@ -6,9 +6,8 @@ import "server-only";
 
 import { db } from "@/database/db";
 import { crewProfiles, users } from "@/database/schema";
-import { and, asc, eq, ilike, or } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import type { CrewStatus } from "@/database/types";
-import type { CrewProfileAdminRow } from "@/features/profiles/crew.types";
 import type { PromoteCrewFormInput } from "@/features/profiles/promote-crew.validation";
 import { addUserRole, notDeactivatedSql } from "@/features/users/user-access.service";
 
@@ -43,67 +42,6 @@ class CrewProfileService {
       )
       .limit(1);
     return row != null;
-  }
-
-  /** Crew profiles for admin (no pagination — crew pool is small). */
-  async listForAdmin(filters: {
-    search?: string | null;
-    status?: CrewStatus | null;
-  }): Promise<CrewProfileAdminRow[]> {
-    const conditions = [];
-    const q = filters.search?.trim();
-    if (q) {
-      const pattern = `%${q}%`;
-      conditions.push(
-        or(
-          ilike(users.firstName, pattern),
-          ilike(users.lastName, pattern),
-          ilike(users.email, pattern),
-          ilike(users.phoneNumber, pattern),
-          ilike(crewProfiles.adminNotes, pattern)
-        )!
-      );
-    }
-    if (filters.status) {
-      conditions.push(eq(crewProfiles.status, filters.status));
-    }
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
-
-    const dataBase = db
-      .select({
-        userId: crewProfiles.userId,
-        profileStatus: crewProfiles.status,
-        adminNotes: crewProfiles.adminNotes,
-        profileUpdatedAt: crewProfiles.updatedAt,
-        firstName: users.firstName,
-        lastName: users.lastName,
-        email: users.email,
-        phoneNumber: users.phoneNumber,
-        profileImage: users.profileImage,
-        userStatus: users.status,
-      })
-      .from(crewProfiles)
-      .innerJoin(users, eq(crewProfiles.userId, users.id));
-    const dataQuery = whereClause ? dataBase.where(whereClause) : dataBase;
-
-    const rows = await dataQuery.orderBy(
-      asc(users.firstName),
-      asc(users.lastName),
-      asc(users.email)
-    );
-
-    return rows.map((r) => ({
-      userId: r.userId,
-      firstName: r.firstName,
-      lastName: r.lastName,
-      email: r.email,
-      phoneNumber: r.phoneNumber,
-      profileImage: r.profileImage,
-      userStatus: r.userStatus,
-      profileStatus: r.profileStatus,
-      adminNotes: r.adminNotes,
-      profileUpdatedAt: r.profileUpdatedAt,
-    }));
   }
 
   /**

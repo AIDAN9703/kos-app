@@ -7,9 +7,9 @@ import { NewBookingModal } from "@/features/bookings/components/admin/new-bookin
 import type { PricingTierOption } from "@/features/bookings/components/admin/booking-forms/types";
 
 /**
- * "Add booking" CTA for the page header — same slot as the inquiries page's
- * New lead button. Honors the ?newBooking=true deep link (dashboard/quick
- * actions) and clears it when the modal closes.
+ * The page header's Add booking button (like Add user). Honors the
+ * ?newBooking=true deep link (the top bar's + menu) and clears it when the
+ * modal closes.
  */
 export function BookingsHeaderCta({
   pricingTiers,
@@ -28,7 +28,7 @@ export function BookingsHeaderCta({
       pricingTiers={pricingTiers}
       canLinkAccounts={canLinkAccounts}
       triggerLabel="Add booking"
-      triggerClassName="gap-1.5 rounded-full px-5 shadow-sm"
+      triggerClassName="h-9 gap-1.5 rounded-full px-4 font-semibold"
       defaultOpen={filters.newBooking === true}
       onCloseComplete={() => {
         if (filters.newBooking) {

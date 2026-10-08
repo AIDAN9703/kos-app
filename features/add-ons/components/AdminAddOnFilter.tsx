@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useQueryStates } from "nuqs";
-import { Plus, Tag, ToggleLeft } from "lucide-react";
+import { Plus, Tag } from "lucide-react";
 
 import { addOnCategoryEnum } from "@/database/schema";
 import { addOnSearchParams } from "@/features/add-ons/searchParams";
@@ -13,6 +13,7 @@ import {
   FilterPopover,
   FilterSearch,
   FilterSelect,
+  SegmentedPills,
   type FilterChipItem,
 } from "@/shared/admin/filters";
 import { Button } from "@/shared/components/ui/button";
@@ -20,22 +21,40 @@ import { addOnCategoryLabel } from "@/features/add-ons/add-on.constants";
 import { AddOnFormModal } from "@/features/add-ons/components/AddOnFormModal";
 import type { AddOnCategory } from "@/features/add-ons/add-on.types";
 
+type StatusView = "all" | "active" | "inactive";
+
+const VIEWS: { value: StatusView; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "active", label: "Active" },
+  { value: "inactive", label: "Inactive" },
+];
+
+/** The header's New add-on button: opens the add-on form. */
+export function NewAddOnButton() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Button className="h-9 gap-1.5 rounded-full px-4 font-semibold" onClick={() => setOpen(true)}>
+        <Plus className="size-3.5" />
+        New add-on
+      </Button>
+      <AddOnFormModal open={open} onOpenChange={setOpen} />
+    </>
+  );
+}
+
+/** Add-ons toolbar: search, which add-ons to show, and the category filter. */
 export function AdminAddOnFilter() {
-  const [createOpen, setCreateOpen] = useState(false);
   const [filters, setFilters] = useQueryStates(addOnSearchParams, {
     clearOnDefault: true,
     shallow: false,
   });
 
   const update = (updates: Partial<typeof filters>) => setFilters({ ...updates, page: 1 });
+  const view: StatusView = filters.active === true ? "active" : filters.active === false ? "inactive" : "all";
 
-  const activeCount = useMemo(
-    () => (filters.category ? 1 : 0) + (filters.active !== null ? 1 : 0),
-    [filters.category, filters.active]
-  );
-
-  const clearAll = () =>
-    setFilters({ search: "", category: null, active: null, page: 1 });
+  const activeCount = useMemo(() => (filters.category ? 1 : 0), [filters.category]);
+  const clearAll = () => setFilters({ search: "", category: null, page: 1 });
 
   const chips: FilterChipItem[] = [];
   if (filters.category) {
@@ -45,70 +64,33 @@ export function AdminAddOnFilter() {
       onRemove: () => update({ category: null }),
     });
   }
-  if (filters.active !== null) {
-    chips.push({
-      key: "active",
-      label: `Status: ${filters.active ? "Active" : "Inactive"}`,
-      onRemove: () => update({ active: null }),
-    });
-  }
 
   return (
-    <>
-      <div className="space-y-2 pb-3">
-        <AdminToolbar
-          trailing={
-            <Button size="sm" className="h-9 gap-1.5" onClick={() => setCreateOpen(true)}>
-              <Plus className="h-3.5 w-3.5" />
-              New add-on
-            </Button>
-          }
-        >
-          <FilterSearch
-            value={filters.search}
-            onChange={(v) => update({ search: v })}
-            placeholder="Search add-ons..."
-          />
-          <FilterPopover activeCount={activeCount} onClearAll={clearAll}>
-            <FilterField icon={Tag} label="Category">
-              <FilterSelect<AddOnCategory>
-                value={(filters.category as AddOnCategory) ?? null}
-                onChange={(v) => update({ category: v })}
-                options={addOnCategoryEnum.enumValues as readonly AddOnCategory[]}
-                placeholder="Category"
-                allLabel="Any category"
-                width="w-full"
-                renderLabel={addOnCategoryLabel}
-              />
-            </FilterField>
-            <FilterField icon={ToggleLeft} label="Status">
-              <FilterSelect
-                value={
-                  filters.active === true
-                    ? "active"
-                    : filters.active === false
-                      ? "inactive"
-                      : null
-                }
-                onChange={(v) =>
-                  update({
-                    active: v === "active" ? true : v === "inactive" ? false : null,
-                  })
-                }
-                options={["active", "inactive"]}
-                placeholder="Status"
-                allLabel="Any status"
-                width="w-full"
-                renderLabel={(v) => (v === "active" ? "Active" : "Inactive")}
-              />
-            </FilterField>
-          </FilterPopover>
-        </AdminToolbar>
+    <div className="space-y-3 pb-4">
+      <AdminToolbar className="gap-3">
+        <FilterSearch value={filters.search} onChange={(v) => update({ search: v })} placeholder="Search add-ons..." />
+        <SegmentedPills
+          label="Show"
+          options={VIEWS}
+          value={view}
+          onChange={(next) => update({ active: next === "active" ? true : next === "inactive" ? false : null })}
+        />
+        <FilterPopover activeCount={activeCount} onClearAll={clearAll}>
+          <FilterField icon={Tag} label="Category">
+            <FilterSelect<AddOnCategory>
+              value={(filters.category as AddOnCategory) ?? null}
+              onChange={(v) => update({ category: v })}
+              options={addOnCategoryEnum.enumValues as readonly AddOnCategory[]}
+              placeholder="Category"
+              allLabel="Any category"
+              width="w-full"
+              renderLabel={addOnCategoryLabel}
+            />
+          </FilterField>
+        </FilterPopover>
+      </AdminToolbar>
 
-        <FilterChips chips={chips} onClearAll={clearAll} />
-      </div>
-
-      <AddOnFormModal open={createOpen} onOpenChange={setCreateOpen} />
-    </>
+      <FilterChips chips={chips} onClearAll={clearAll} />
+    </div>
   );
 }

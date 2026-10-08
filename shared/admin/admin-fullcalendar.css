@@ -1,6 +1,8 @@
 /**
  * Admin FullCalendar theme — wrap any FullCalendar instance in `.admin-fc`.
  * FullCalendar v6 ships without default CSS; these rules provide structure + admin styling.
+ * Cells are transparent so the calendar takes its container's surface (a
+ * glass panel, or a card); tints come from the glass tokens.
  */
 
 .admin-fc {
@@ -36,7 +38,7 @@
   border: 1px solid var(--border);
   border-radius: 0.875rem;
   overflow: hidden;
-  background: var(--card);
+  background: transparent;
 }
 
 .admin-fc .fc-scrollgrid-section > td {
@@ -44,7 +46,7 @@
 }
 
 .admin-fc .fc-col-header-cell {
-  background: color-mix(in oklch, var(--muted) 55%, var(--card));
+  background: var(--glass-inset);
   border-color: var(--border);
 }
 
@@ -65,7 +67,7 @@
 
 .admin-fc .fc-daygrid-day-frame {
   min-height: 6.25rem;
-  background: var(--card);
+  background: transparent;
 }
 
 .admin-fc .fc-daygrid-day-top {
@@ -90,7 +92,7 @@
 }
 
 .admin-fc .fc-day-other .fc-daygrid-day-frame {
-  background: color-mix(in oklch, var(--muted) 35%, var(--card));
+  background: color-mix(in srgb, var(--background) 40%, transparent);
 }
 
 .admin-fc .fc-day-other .fc-daygrid-day-number {
@@ -167,7 +169,7 @@
 }
 
 .admin-fc .fc-list-day-cushion {
-  background: color-mix(in oklch, var(--muted) 55%, var(--card));
+  background: var(--glass-solid); /* opaque: the day headers stick while events scroll */
   color: var(--muted-foreground);
   font-size: 0.75rem;
   font-weight: 600;

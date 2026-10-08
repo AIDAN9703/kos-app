@@ -2,8 +2,6 @@ import "server-only";
 
 import { db } from "@/database/db";
 import {
-  boatBlocking,
-  boatExternalCalendarEvents,
   boatExternalCalendars,
   boats,
   bookingEvents,
@@ -44,8 +42,6 @@ import type {
   DeskTrip,
   FleetLeader,
   RevenueMonth,
-  TimelineBoat,
-  TimelineKind,
 } from "@/features/admin/dashboard.types";
 
 /** Live INQUIRY deals with no admin assigned yet — newest first. */
@@ -697,100 +693,21 @@ export const getActionQueue = cache(async (): Promise<ActionItem[]> => {
   return items.sort((a, b) => b.severity - a.severity || sortAt(a) - sortAt(b));
 });
 
-/** The numbers row: open proposals, money owed, accounts and fleet size. */
+/** The headline chips: trips this coming week, outstanding balances, accounts and fleet size. */
 export const getDeskNumbers = cache(async (): Promise<DeskNumbers> => {
-  const [proposals, trips, [userCount], [boatCount]] = await Promise.all([
-    loadOpenProposals(),
+  const [trips, [userCount], [boatCount]] = await Promise.all([
     loadDeskTrips(),
     db.select({ count: sql<number>`count(*)::int` }).from(users),
     db.select({ count: sql<number>`count(*)::int` }).from(boats),
   ]);
   const owed = trips.filter((t) => t.dueCents > 0);
+  const now = Date.now();
   return {
-    openProposals: {
-      count: proposals.length,
-      valueCents: proposals.reduce((sum, p) => sum + p.totalCents, 0),
-    },
+    // Booked trips that start in the coming week (loadDeskTrips reaches 14 days ahead).
+    tripsNextWeek: trips.filter((t) => t.start.getTime() >= now && t.start.getTime() < now + 7 * DAY).length,
     owed: { trips: owed.length, dueCents: owed.reduce((sum, t) => sum + t.dueCents, 0) },
     totalUsers: Number(userCount?.count ?? 0),
     totalBoats: Number(boatCount?.count ?? 0),
   };
 });
 
-/**
- * Every active boat's calendar for the coming days: booked trips, open
- * proposals, manual blocks and imported (iCal) events.
- */
-export const getFleetTimeline = cache(async (days = 14): Promise<TimelineBoat[]> => {
-  const now = Date.now();
-  // A little before now so today's earlier trips still show.
-  const from = new Date(now - DAY);
-  const to = new Date(now + days * DAY);
-
-  const [boatRows, trips, blocks, events] = await Promise.all([
-    db
-      .select({ id: boats.id, name: boats.name, timezone: boats.timezone })
-      .from(boats)
-      .where(eq(boats.active, true))
-      .orderBy(asc(boats.name)),
-    db
-      .select({
-        id: bookings.id,
-        boatId: bookings.boatId,
-        customerName: bookings.customerName,
-        status: bookings.bookingStatus,
-        start: bookings.startDateTime,
-        end: bookings.endDateTime,
-      })
-      .from(bookings)
-      .where(
-        and(
-          inArray(bookings.bookingStatus, ["BOOKED", "PROPOSED"]),
-          isNull(bookings.archivedAt),
-          isNotNull(bookings.boatId),
-          lt(bookings.startDateTime, to),
-          gt(bookings.endDateTime, from)
-        )
-      ),
-    db
-      .select({
-        id: boatBlocking.id,
-        boatId: boatBlocking.boatId,
-        reason: boatBlocking.reason,
-        type: boatBlocking.blockingType,
-        start: boatBlocking.startTime,
-        end: boatBlocking.endTime,
-      })
-      .from(boatBlocking)
-      .where(and(lt(boatBlocking.startTime, to), gt(boatBlocking.endTime, from))),
-    db
-      .select({
-        id: boatExternalCalendarEvents.id,
-        boatId: boatExternalCalendarEvents.boatId,
-        summary: boatExternalCalendarEvents.summary,
-        start: boatExternalCalendarEvents.startTime,
-        end: boatExternalCalendarEvents.endTime,
-      })
-      .from(boatExternalCalendarEvents)
-      .where(and(lt(boatExternalCalendarEvents.startTime, to), gt(boatExternalCalendarEvents.endTime, from))),
-  ]);
-
-  const byBoat = new Map<string, TimelineBoat>(
-    boatRows.map((b) => [b.id, { id: b.id, name: b.name, timezone: b.timezone, segments: [] }])
-  );
-  const add = (boatId: string | null, seg: TimelineBoat["segments"][number]) => {
-    if (boatId) byBoat.get(boatId)?.segments.push(seg);
-  };
-  for (const t of trips) {
-    if (!t.start || !t.end) continue;
-    const kind: TimelineKind = t.status === "BOOKED" ? "booked" : "proposed";
-    add(t.boatId, { id: t.id, kind, label: t.customerName, start: t.start, end: t.end, href: `/admin/bookings/${t.id}` });
-  }
-  for (const b of blocks) {
-    add(b.boatId, { id: b.id, kind: "block", label: b.reason || String(b.type), start: b.start, end: b.end, href: null });
-  }
-  for (const e of events) {
-    add(e.boatId, { id: e.id, kind: "external", label: e.summary || "Imported event", start: e.start, end: e.end, href: null });
-  }
-  return [...byBoat.values()];
-});

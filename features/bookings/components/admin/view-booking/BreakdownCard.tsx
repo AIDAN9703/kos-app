@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
+import { GlassPanel } from "@/shared/admin/components/glass";
 import { cn } from "@/shared/lib/utils/general-utils";
 import { formatCentsAsCurrency } from "@/shared/lib/utils/money-utils";
 import { formatServiceFee } from "@/shared/lib/utils/pricing-utils";
@@ -63,11 +63,8 @@ export function BreakdownCard({
 
   if (isInquiry) {
     return (
-      <Card className="rounded-2xl border-border/60">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg">Breakdown</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
+      <GlassPanel title="Breakdown" className="gap-4">
+        <div className="space-y-3">
           <dl className="space-y-1.5 text-sm">
             <Row
               label="Est. charter value"
@@ -82,8 +79,8 @@ export function BreakdownCard({
           <p className="text-xs text-muted-foreground">
             Price the trip with Create proposal and the full breakdown appears here.
           </p>
-        </CardContent>
-      </Card>
+        </div>
+      </GlassPanel>
     );
   }
 
@@ -92,29 +89,28 @@ export function BreakdownCard({
     : `Card fee (${formatServiceFee(money.serviceFee)})`;
 
   return (
-    <Card className="rounded-2xl border-border/60">
-      <CardHeader className="pb-3">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <CardTitle className="text-lg">Breakdown</CardTitle>
-          <div className="flex flex-wrap items-center gap-2">
-            {canEditExpenses ? (
-              <BookingAddExpenseButton
-                bookingId={bookingId}
-                totalAmountCents={totalAmountCents}
-                serviceFeeCents={serviceFeeCents}
-                opsGmvCents={opsGmvCents}
-                currency={currency}
-                initialLines={expenseLines}
-              />
-            ) : null}
-            {canRecordPayments ? (
-              <AdminBookingMakePaymentButton bookingId={bookingId} money={money} />
-            ) : null}
-          </div>
+    <GlassPanel
+      title="Breakdown"
+      className="gap-4"
+      aside={
+        <div className="flex flex-wrap items-center gap-2">
+          {canEditExpenses ? (
+            <BookingAddExpenseButton
+              bookingId={bookingId}
+              totalAmountCents={totalAmountCents}
+              serviceFeeCents={serviceFeeCents}
+              opsGmvCents={opsGmvCents}
+              currency={currency}
+              initialLines={expenseLines}
+            />
+          ) : null}
+          {canRecordPayments ? (
+            <AdminBookingMakePaymentButton bookingId={bookingId} money={money} />
+          ) : null}
         </div>
-      </CardHeader>
-
-      <CardContent className="space-y-5 text-sm">
+      }
+    >
+      <div className="space-y-5 text-sm">
         <Group label="Charter">
           <Row label={lines.boatName ?? "Boat"} value={fmt(lines.basePriceCents)} />
           {lines.captainFeeCents > 0 ? (
@@ -169,15 +165,15 @@ export function BreakdownCard({
         </p>
 
         {send ? <SendToCustomer data={send} /> : null}
-      </CardContent>
-    </Card>
+      </div>
+    </GlassPanel>
   );
 }
 
 /** A labelled block of rows, separated from the next by a hairline. */
 function Group({ label, children }: { label?: string; children: React.ReactNode }) {
   return (
-    <section className="border-t border-border/50 pt-4 first:border-t-0 first:pt-0">
+    <section className="border-t border-glass-border pt-4 first:border-t-0 first:pt-0">
       {label ? (
         <h3 className="mb-2 text-[10px] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
           {label}

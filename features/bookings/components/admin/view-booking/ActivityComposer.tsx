@@ -59,17 +59,16 @@ export function ActivityComposer({ bookingId }: { bookingId: string }) {
     });
   }
 
-  const triggerClass =
-    "h-7 gap-1.5 rounded-full px-2.5 text-xs font-medium text-muted-foreground hover:bg-foreground/10 hover:text-foreground";
+  const triggerClass = "h-8 gap-1.5 px-3 text-xs";
 
   return (
     <>
-      <div className="flex shrink-0 items-center gap-1">
-        <Button variant="ghost" size="sm" className={triggerClass} onClick={() => setOpenDialog("contact")}>
+      <div className="flex shrink-0 items-center gap-1.5">
+        <Button variant="glass" size="sm" className={triggerClass} onClick={() => setOpenDialog("contact")}>
           <Phone className="h-3.5 w-3.5" />
           Log contact
         </Button>
-        <Button variant="ghost" size="sm" className={triggerClass} onClick={() => setOpenDialog("note")}>
+        <Button variant="glass" size="sm" className={triggerClass} onClick={() => setOpenDialog("note")}>
           <FileText className="h-3.5 w-3.5" />
           Note
         </Button>

@@ -500,7 +500,7 @@ export function TripEditor({
             <AddOnsFields lineItems={addOns} onChange={setAddOns} />
           </FormSection>
 
-          <dl className="space-y-1.5 rounded-xl bg-secondary/40 p-4 text-sm">
+          <dl className="space-y-1.5 rounded-xl bg-glass-inset p-4 text-sm">
             <SummaryRow label="Subtotal" value={draftValid ? fmt(draftSubtotal) : "—"} />
             <SummaryRow
               label={
@@ -523,7 +523,7 @@ export function TripEditor({
           </dl>
         </>
       ) : pricing ? (
-        <p className="rounded-xl bg-secondary/40 p-4 text-sm text-muted-foreground">
+        <p className="rounded-xl bg-glass-inset p-4 text-sm text-muted-foreground">
           Pricing is locked once a trip is completed or cancelled.
         </p>
       ) : null}
@@ -587,7 +587,7 @@ export function TripEditor({
                             "flex items-baseline justify-between rounded-xl px-3 py-2 text-left text-sm transition-colors",
                             row.tierId === t.id
                               ? "bg-primary-soft text-primary-strong ring-1 ring-primary/50"
-                              : "bg-secondary/40 hover:bg-secondary/70"
+                              : "bg-glass-inset hover:bg-glass-strong"
                           )}
                         >
                           <span className="font-medium">{t.name || `${t.hours} hours`}</span>

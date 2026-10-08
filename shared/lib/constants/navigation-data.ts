@@ -1,11 +1,12 @@
 import {
   Calendar,
+  PenLine,
   User,
   LayoutDashboard,
   Users,
-  UsersRound,
   Ship,
   Newspaper,
+  Megaphone,
   PackagePlus,
   Settings,
   Sparkles,
@@ -213,103 +214,32 @@ export const navigationData: NavigationData = {
 interface AdminNavItem {
   label: string;
   href: string;
-  iconClassName?: string;
-  icon?: LucideIcon;
-  /** Rendered in its own spotlight group above the main nav (sidebar only). */
+  icon: LucideIcon;
+  /** The spotlight treatment in the top bar (the Assistant). */
   featured?: boolean;
 }
 
-/** Primary admin sidebar + command palette routes (each row has an icon). */
-type AdminMainNavItem = AdminNavItem & { icon: LucideIcon };
-
+/** The + menu in the admin top bar. */
 export const ADMIN_QUICK_ACTIONS: AdminNavItem[] = [
-  {
-    label: "Create Boat",
-    href: "/admin/boats/create",
-    iconClassName: "h-4 w-4 text-blue-400",
-  },
-  {
-    label: "Create Booking",
-    // nuqs parseAsBoolean only accepts true/false — "=1" silently no-ops.
-    href: "/admin/bookings?newBooking=true",
-    iconClassName: "h-4 w-4 text-blue-400",
-  },
-  {
-    label: "Create User",
-    href: "/admin/users?newUser=true",
-    iconClassName: "h-4 w-4 text-purple-400",
-  },
-  {
-    label: "Create Blog Post",
-    href: "/admin/blog/create",
-    iconClassName: "h-4 w-4 text-light-200",
-  },
+  { label: "Create Boat", href: "/admin/boats/create", icon: Ship },
+  // nuqs parseAsBoolean only accepts true/false — "=1" silently no-ops.
+  { label: "Create Booking", href: "/admin/bookings?newBooking=true", icon: Calendar },
+  { label: "Create User", href: "/admin/users?newUser=true", icon: User },
+  { label: "Create Blog Post", href: "/admin/blog/create", icon: PenLine },
 ];
 
-export const ADMIN_NAV_ITEMS: AdminMainNavItem[] = [
-  {
-    label: "Dashboard",
-    href: "/admin",
-    icon: LayoutDashboard,
-    iconClassName: "h-5 w-5",
-  },
-  {
-    label: "Bookings",
-    href: "/admin/bookings",
-    icon: Calendar,
-    iconClassName: "h-5 w-5",
-  },
-  {
-    label: "Users",
-    href: "/admin/users",
-    icon: Users,
-    iconClassName: "h-5 w-5",
-  },
-  {
-    label: "Crew",
-    href: "/admin/crew",
-    icon: UsersRound,
-    iconClassName: "h-5 w-5",
-  },
-  {
-    label: "Boats",
-    href: "/admin/boats",
-    icon: Ship,
-    iconClassName: "h-5 w-5",
-  },
-  {
-    label: "Add-ons",
-    href: "/admin/add-ons",
-    icon: PackagePlus,
-    iconClassName: "h-5 w-5",
-  },
-  {
-    label: "Blog Posts",
-    href: "/admin/blog",
-    icon: Newspaper,
-    iconClassName: "h-5 w-5",
-  },
-  {
-    label: "Assistant",
-    href: "/admin/assistant",
-    icon: Sparkles,
-    iconClassName: "h-5 w-5",
-    featured: true,
-  },
-  {
-    label: "Settings",
-    href: "/admin/settings",
-    icon: Settings,
-    iconClassName: "h-5 w-5",
-  },
+/** Admin pages: the top bar's pills (Settings is its gear) and the command bar. */
+export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
+  { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
+  { label: "Bookings", href: "/admin/bookings", icon: Calendar },
+  { label: "Boats", href: "/admin/boats", icon: Ship },
+  { label: "Users", href: "/admin/users", icon: Users },
+  { label: "Add-ons", href: "/admin/add-ons", icon: PackagePlus },
+  { label: "Blog Posts", href: "/admin/blog", icon: Newspaper },
+  { label: "Marketing", href: "/admin/marketing", icon: Megaphone },
+  { label: "Assistant", href: "/admin/assistant", icon: Sparkles, featured: true },
+  { label: "Settings", href: "/admin/settings", icon: Settings },
 ];
 
 /** The broker portal (/brokers): their deals, and nothing of the company's. */
-export const BROKER_NAV_ITEMS: AdminMainNavItem[] = [
-  {
-    label: "My deals",
-    href: "/brokers",
-    icon: Handshake,
-    iconClassName: "h-5 w-5",
-  },
-];
+export const BROKER_NAV_ITEMS: AdminNavItem[] = [{ label: "My deals", href: "/brokers", icon: Handshake }];

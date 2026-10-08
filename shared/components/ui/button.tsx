@@ -19,6 +19,9 @@ const buttonVariants = cva(
           "bg-linear-to-b from-secondary to-secondary/90 text-secondary-foreground shadow-lg shadow-secondary/20 hover:shadow-xl hover:shadow-secondary/30 hover:brightness-105",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary-strong underline-offset-4 hover:underline",
+        /** Frosted, for glass pages: secondary actions over a photo backdrop. */
+        glass:
+          "rounded-full border border-glass-border bg-glass-strong text-foreground hover:bg-glass-inset hover:brightness-125",
       },
       size: {
         default: "h-10 px-4 py-2",

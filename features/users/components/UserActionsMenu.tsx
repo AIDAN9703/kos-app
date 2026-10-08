@@ -75,7 +75,7 @@ export function UserActionsMenu({
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="secondary" size="icon" className="size-9" aria-label="Account actions">
+          <Button variant="glass" size="icon" className="size-9" aria-label="Account actions">
             <MoreHorizontal className="size-4" />
           </Button>
         </DropdownMenuTrigger>

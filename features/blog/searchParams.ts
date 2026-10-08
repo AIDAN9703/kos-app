@@ -5,7 +5,7 @@ import {
   parseAsString,
   parseAsStringEnum,
 } from "nuqs/server";
-import { postCategoryEnum, postStatusEnum } from "@/database/schema";
+import { postStatusEnum } from "@/database/schema";
 import { ADMIN_LIST_DEFAULT_PAGE_SIZE } from "@/shared/admin/list-pagination";
 
 /**
@@ -16,7 +16,6 @@ import { ADMIN_LIST_DEFAULT_PAGE_SIZE } from "@/shared/admin/list-pagination";
 export const blogSearchParams = {
   search: parseAsString.withDefault(""),
   status: parseAsStringEnum(postStatusEnum.enumValues),
-  category: parseAsStringEnum(postCategoryEnum.enumValues),
   featured: parseAsBoolean,
   page: parseAsInteger.withDefault(1),
   limit: parseAsInteger.withDefault(ADMIN_LIST_DEFAULT_PAGE_SIZE),

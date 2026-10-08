@@ -8,6 +8,7 @@ export * from "./user.enums";
 export * from "./availability.enums";
 export * from "./externalCalendar.enums";
 export * from "./addOn.enums";
+export * from "./marketing.enums";
 
 
 

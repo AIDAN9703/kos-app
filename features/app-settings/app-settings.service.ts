@@ -37,8 +37,13 @@ function toAppSettings(row: {
  */
 export const getAppSettings = cache(async (): Promise<AppSettings> => {
   try {
+    // Only the columns pricing needs, so a newer column can't break it mid-deploy.
     const [row] = await db
-      .select()
+      .select({
+        serviceFeeBps: appSettings.serviceFeeBps,
+        serviceFeeFixedCents: appSettings.serviceFeeFixedCents,
+        updatedAt: appSettings.updatedAt,
+      })
       .from(appSettings)
       .where(eq(appSettings.id, SETTINGS_ROW_ID))
       .limit(1);
@@ -78,7 +83,33 @@ export async function saveAppSettings(
         updatedAt: new Date(),
       },
     })
-    .returning();
+    .returning({
+      serviceFeeBps: appSettings.serviceFeeBps,
+      serviceFeeFixedCents: appSettings.serviceFeeFixedCents,
+      updatedAt: appSettings.updatedAt,
+    });
 
   return toAppSettings(row);
+}
+
+/** The postal address marketing emails carry in their footer, or null until set. */
+export async function getMailingAddress(): Promise<string | null> {
+  const [row] = await db
+    .select({ mailingAddress: appSettings.mailingAddress })
+    .from(appSettings)
+    .where(eq(appSettings.id, SETTINGS_ROW_ID))
+    .limit(1);
+  return row?.mailingAddress?.trim() || null;
+}
+
+/** Save the marketing mailing address; creates the settings row with its defaults if needed. */
+export async function saveMailingAddress(address: string | null, updatedByUserId: string): Promise<void> {
+  const now = new Date();
+  await db
+    .insert(appSettings)
+    .values({ id: SETTINGS_ROW_ID, mailingAddress: address, updatedBy: updatedByUserId, updatedAt: now })
+    .onConflictDoUpdate({
+      target: appSettings.id,
+      set: { mailingAddress: address, updatedBy: updatedByUserId, updatedAt: now },
+    });
 }

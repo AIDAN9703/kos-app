@@ -1,6 +1,7 @@
 import {
   pgTable,
   integer,
+  text,
   uuid,
   timestamp,
   check,
@@ -28,6 +29,8 @@ export const appSettings = pgTable(
     serviceFeeBps: integer("service_fee_bps").default(399).notNull(),
     /** …plus a fixed amount per booking, collected with its first payment (99 = $0.99). */
     serviceFeeFixedCents: integer("service_fee_fixed_cents").default(99).notNull(),
+    /** The company's postal address, printed in every marketing email (US law requires one). */
+    mailingAddress: text("mailing_address"),
     updatedBy: uuid("updated_by").references(() => users.id, {
       onDelete: "set null",
     }),

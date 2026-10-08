@@ -10,30 +10,23 @@ import {
   ArrowUp,
   ArrowUpDown,
   CalendarCheck,
-  Check,
   CheckCircle2,
   Clock,
-  Copy,
   DollarSign,
-  Eye,
-  MoreVertical,
   Plus,
   RotateCcw,
   Ship,
-  UserCheck,
   type LucideIcon,
 } from "lucide-react";
 
-import { Button } from "@/shared/components/ui/button";
+import { AdminEmptyState } from "@/shared/admin/components/AdminEmptyState";
+import { CopyableText } from "@/shared/admin/components/CopyableText";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/shared/components/ui/dropdown-menu";
 import {
@@ -56,7 +49,7 @@ import {
   PRETRIP_URGENT_HOURS,
   SOURCE_BADGE_CLASSES,
 } from "@/features/bookings/deal-status";
-import { getDisplayKind, PRICED_STATUSES } from "@/features/bookings/deal-presentation";
+import { DealKindChip, getDisplayKind, PRICED_STATUSES } from "@/features/bookings/deal-presentation";
 import { BookingExpensesModal } from "@/features/bookings/components/admin/BookingExpensesModal";
 import { cn, formatTime12Hour } from "@/shared/lib/utils/general-utils";
 import { formatCentsAsCurrency } from "@/shared/lib/utils/money-utils";
@@ -99,29 +92,31 @@ interface AdminBookingsBoardProps {
  * not into padding around badges.
  */
 const BROKER_COLUMNS: { key: string; width: string }[] = [
-  { key: "type", width: "12%" },
-  { key: "customer", width: "24%" },
-  { key: "boat", width: "20%" },
+  { key: "type", width: "13%" },
+  { key: "customer", width: "27%" },
+  { key: "boat", width: "22%" },
   { key: "datetime", width: "16%" },
   { key: "gmv", width: "10%" },
   { key: "source", width: "12%" },
-  { key: "actions", width: "6%" },
 ];
 
 const COLUMNS: { key: string; width: string }[] = [
   { key: "type", width: "12%" },
-  { key: "customer", width: "18%" },
-  { key: "boat", width: "15%" },
+  { key: "customer", width: "21%" },
+  { key: "boat", width: "17%" },
   { key: "datetime", width: "13%" },
   { key: "gmv", width: "8%" },
   { key: "expense", width: "7%" },
   { key: "revenue", width: "7%" },
   { key: "admin", width: "6%" },
   { key: "source", width: "9%" },
-  { key: "actions", width: "5%" },
 ];
 
-const HEAD_CLASS = "text-[11px] font-semibold uppercase tracking-wider";
+/** Header cells, as on every admin table (AdminDataTable). Each cell carries
+ *  the header's color with a 1px overlap: fixed column widths land on
+ *  fractional pixels, which would otherwise show hairline seams. */
+const HEAD_CLASS =
+  "h-11 bg-glass-solid text-xs font-medium text-muted-foreground shadow-[1px_0_0_var(--glass-solid)]";
 
 
 /** Click-to-sort header: desc → asc → back to default (newest first). */
@@ -206,21 +201,17 @@ export function AdminBookingsBoard({
 
   if (bookings.length === 0) {
     return (
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-border/70 bg-card/50 p-10 text-center">
-        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-muted">
-          <CalendarCheck className="h-7 w-7 text-muted-foreground" />
-        </div>
-        <h3 className="mb-1 text-lg font-semibold text-foreground">No deals found</h3>
-        <p className="max-w-sm text-sm text-muted-foreground">
-          Try a different type, scope, or clear the filters.
-        </p>
-      </div>
+      <AdminEmptyState
+        icon={CalendarCheck}
+        title="No deals found"
+        description="Try a different scope or dates, or clear the filters."
+      />
     );
   }
 
   return (
     <TooltipProvider delayDuration={150}>
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border/60 bg-card shadow-sm">
+      <div className="glass-panel flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <div className="min-h-0 flex-1 overflow-auto">
           <table
             className={cn(
@@ -233,9 +224,10 @@ export function AdminBookingsBoard({
                 <col key={c.key} style={{ width: c.width }} />
               ))}
             </colgroup>
-            <TableHeader className="sticky top-0 z-10 bg-card">
-              <TableRow className="border-border/60 hover:bg-transparent">
-                <TableHead className={cn(HEAD_CLASS, "pl-4")}>Type</TableHead>
+            {/* Opaque and above the rows' copy buttons (CopyableText is z-10). */}
+            <TableHeader className="sticky top-0 z-20 bg-glass-solid">
+              <TableRow className="border-glass-border hover:bg-transparent">
+                <TableHead className={cn(HEAD_CLASS, "pl-5")}>Type</TableHead>
                 <TableHead className={HEAD_CLASS}>Customer</TableHead>
                 <TableHead className={HEAD_CLASS}>Boat</TableHead>
                 <SortableHead label="Date &amp; time" column="date" />
@@ -247,8 +239,7 @@ export function AdminBookingsBoard({
                     <TableHead className={cn(HEAD_CLASS, "px-2 text-center")}>Admin</TableHead>
                   </>
                 ) : null}
-                <TableHead className={cn(HEAD_CLASS, "pl-4")}>Source</TableHead>
-                <TableHead className="pr-3" aria-label="Actions" />
+                <TableHead className={cn(HEAD_CLASS, "pl-4 pr-5")}>Source</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -262,7 +253,8 @@ export function AdminBookingsBoard({
                   onAssign={(id, adminId) =>
                     runAction(() => assignAdminToBooking(id, adminId), "Admin assigned", id)
                   }
-                  onOpen={(id) => router.push(`${dealsBasePath}/${id}`)}
+                  href={`${dealsBasePath}/${b.id}`}
+                  onOpen={(href) => router.push(href)}
                 />
               ))}
             </TableBody>
@@ -386,9 +378,27 @@ function MoneyCell({
 }
 
 /**
+ * A round button in a row cell (add an expense, assign or reassign an
+ * admin): the same 28px circle wherever a row offers one click. Takes the
+ * props a Radix trigger passes, so it can open a menu.
+ */
+function RowCircleButton({ className, ...props }: React.ComponentProps<"button">) {
+  return (
+    <button
+      type="button"
+      {...props}
+      className={cn(
+        "inline-flex size-7 items-center justify-center rounded-full bg-foreground/10 text-[10px] font-semibold text-muted-foreground transition-colors hover:bg-foreground/20 hover:text-foreground disabled:opacity-50",
+        className
+      )}
+    />
+  );
+}
+
+/**
  * Expense column cell: shows the total once expenses exist; before that, real
- * bookings get an inline "+ Add" that opens the expense tracker right from
- * the row (inquiries just show the dash — nothing to expense yet).
+ * bookings get a round + that opens the expense tracker right from the row
+ * (inquiries just show the dash — nothing to expense yet).
  */
 function ExpenseCell({ booking, currency }: { booking: BookingListItem; currency: string }) {
   const [open, setOpen] = useState(false);
@@ -407,17 +417,16 @@ function ExpenseCell({ booking, currency }: { booking: BookingListItem; currency
     >
       {canTrack ? (
         <>
-          <button
-            type="button"
+          <RowCircleButton
+            title="Add expense"
+            aria-label="Add expense"
             onClick={() => {
               setMounted(true);
               setOpen(true);
             }}
-            className="inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
           >
-            <Plus className="h-3 w-3" />
-            Add
-          </button>
+            <Plus className="size-3.5" />
+          </RowCircleButton>
           {mounted ? (
             <BookingExpensesModal
               open={open}
@@ -437,10 +446,7 @@ function ExpenseCell({ booking, currency }: { booking: BookingListItem; currency
   );
 }
 
-/**
- * The admin list, shared by every place a row can assign: the ⋯ menu's
- * submenu and the unassigned "+" pill. One list, one behavior.
- */
+/** The admins to pick from in the Admin column's menu (assign or reassign). */
 function AssignAdminMenuItems({
   admins,
   assignedAdminId,
@@ -479,6 +485,7 @@ function AssignAdminMenuItems({
 
 function BookingRow({
   booking,
+  href,
   admins,
   companyView,
   actionLoading,
@@ -486,14 +493,15 @@ function BookingRow({
   onOpen,
 }: {
   booking: BookingListItem;
+  /** The deal's page (admin or broker portal). */
+  href: string;
   admins: Admin[];
   /** Admin board: show expense, revenue and the assigned admin, and allow assigning. */
   companyView: boolean;
   actionLoading: string | null;
   onAssign: (id: string, adminId: string) => void;
-  onOpen: (id: string) => void;
+  onOpen: (href: string) => void;
 }) {
-  const kind = getDisplayKind(booking);
   const isInquiry = booking.bookingStatus === "INQUIRY";
   const isLoading = actionLoading === booking.id;
   const isLive = !booking.archivedAt && !SETTLED_STATUSES.has(booking.bookingStatus);
@@ -550,29 +558,18 @@ function BookingRow({
 
   return (
     <TableRow
-      onClick={() => onOpen(booking.id)}
-      className={cn("group cursor-pointer border-border/50", kind.rowBg, kind.rowHover)}
+      onClick={() => onOpen(href)}
+      className={cn("group cursor-pointer border-glass-border", getDisplayKind(booking).row)}
     >
-      {/* Deal — type + hoverable status emblems, one glance for the row's state */}
-      <TableCell className="relative py-3 pl-4 align-top">
-        <span className={cn("absolute inset-y-0 left-0 w-1", kind.rail)} aria-hidden />
-        {/* No icon bubble — the colored rail on the cell edge carries the
-            type code; the freed width goes to customer/boat columns. */}
+      {/* Deal — kind chip + hoverable status emblems, one glance for the row's state */}
+      <TableCell className="py-3 pl-5 align-top">
         <div className="min-w-0">
-          {/* Row 1: type label with the New/party BADGES inline to its right. */}
+          {/* Row 1: the kind chip (a real link, so it opens in a new tab)
+              with the party badge beside it. */}
           <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-            <Link
-              href={`/admin/bookings/${booking.id}`}
-              onClick={(e) => e.stopPropagation()}
-              className="truncate text-sm font-semibold text-foreground"
-            >
-              {kind.label}
+            <Link href={href} onClick={(e) => e.stopPropagation()} className="rounded-full">
+              <DealKindChip booking={booking} />
             </Link>
-            {isNew ? (
-              <span className="rounded-full bg-primary-soft px-1.5 py-px text-[9px] font-bold uppercase tracking-wide text-primary-strong">
-                New
-              </span>
-            ) : null}
             {isParty ? (
               <span
                 className="inline-flex items-center gap-1 rounded-full bg-violet-500/15 px-1.5 py-px text-[9px] font-bold uppercase tracking-wide text-violet-300"
@@ -601,7 +598,15 @@ function BookingRow({
 
       {/* Customer — name + copyable email and phone */}
       <TableCell className="py-3 align-top">
-        <div className="truncate text-sm font-medium text-foreground">{customerName}</div>
+        <div className="flex min-w-0 items-center gap-1.5">
+          <span className="truncate text-sm font-medium text-foreground">{customerName}</span>
+          {/* Came in during the last 48 hours. */}
+          {isNew ? (
+            <span className="shrink-0 rounded-full bg-sky-400/15 px-1.5 py-px text-[10px] font-semibold text-sky-300 ring-1 ring-inset ring-sky-400/30">
+              New
+            </span>
+          ) : null}
+        </div>
         {/* Each contact line in its own block so phone always stacks under email. */}
         {booking.customerEmail ? (
           <div className="mt-0.5">
@@ -658,39 +663,36 @@ function BookingRow({
 
       {/* Assigned admin */}
       {companyView ? (
-        <TableCell className="px-2 py-3 text-center align-top">
-          {adminName ? (
-            <span
-              title={adminName}
-              className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary/15 text-[10px] font-semibold text-foreground"
-            >
-              {adminInitials(adminName) || "?"}
-            </span>
-          ) : unassigned ? (
-            <span onClick={(e) => e.stopPropagation()}>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    type="button"
-                    title="Assign an admin"
+        <TableCell className="px-2 py-3 text-center align-top" onClick={(e) => e.stopPropagation()}>
+          {/* One click to assign (+) or reassign (the initials). */}
+          {adminName || unassigned ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                {adminName ? (
+                  <RowCircleButton
+                    title={`${adminName} · reassign`}
                     disabled={isLoading}
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-foreground/10 text-sm font-semibold text-muted-foreground transition-colors hover:bg-foreground/20 hover:text-foreground"
+                    className="bg-primary/15 text-foreground hover:bg-primary/25"
                   >
-                    +
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-44">
-                  <DropdownMenuLabel>Assign admin</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <AssignAdminMenuItems
-                    admins={admins}
-                    assignedAdminId={booking.assignedAdminId}
-                    disabled={isLoading}
-                    onAssign={(adminId) => onAssign(booking.id, adminId)}
-                  />
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </span>
+                    {adminInitials(adminName) || "?"}
+                  </RowCircleButton>
+                ) : (
+                  <RowCircleButton title="Assign an admin" aria-label="Assign an admin" disabled={isLoading}>
+                    <Plus className="size-3.5" />
+                  </RowCircleButton>
+                )}
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuLabel>{adminName ? "Reassign" : "Assign admin"}</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <AssignAdminMenuItems
+                  admins={admins}
+                  assignedAdminId={booking.assignedAdminId}
+                  disabled={isLoading}
+                  onAssign={(adminId) => onAssign(booking.id, adminId)}
+                />
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
             <span className="text-xs text-muted-foreground/40">—</span>
           )}
@@ -698,11 +700,11 @@ function BookingRow({
       ) : null}
 
       {/* Source */}
-      <TableCell className="py-3 pl-4 align-top">
+      <TableCell className="py-3 pl-4 pr-5 align-top">
         {booking.source ? (
           <span
             className={cn(
-              "inline-block max-w-full truncate rounded-md px-1.5 py-0.5 text-[10px] font-semibold",
+              "inline-block max-w-full truncate rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset",
               SOURCE_BADGE_CLASSES[booking.source] ?? SOURCE_BADGE_CLASSES.OTHER
             )}
           >
@@ -713,79 +715,6 @@ function BookingRow({
         )}
       </TableCell>
 
-      {/* Actions */}
-      <TableCell
-        className="py-3 pr-3 text-right align-top"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" disabled={isLoading}>
-              <MoreVertical className="h-4 w-4" />
-              <span className="sr-only">Actions</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => onOpen(booking.id)} className="cursor-pointer">
-              <Eye className="mr-2 h-4 w-4" />
-              Open deal
-            </DropdownMenuItem>
-            {companyView ? (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger disabled={isLoading}>
-                    <UserCheck className="mr-2 h-4 w-4" />
-                    Assign admin
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent>
-                    <AssignAdminMenuItems
-                      admins={admins}
-                      assignedAdminId={booking.assignedAdminId}
-                      disabled={isLoading}
-                      onAssign={(adminId) => onAssign(booking.id, adminId)}
-                    />
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-              </>
-            ) : null}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </TableCell>
     </TableRow>
-  );
-}
-
-function CopyableText({ value, label, className }: { value: string; label?: string; className?: string }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <button
-      type="button"
-      onClick={async (e) => {
-        e.stopPropagation();
-        e.preventDefault();
-        try {
-          await navigator.clipboard.writeText(value);
-          setCopied(true);
-          setTimeout(() => setCopied(false), 1500);
-        } catch {
-          /* clipboard blocked */
-        }
-      }}
-      title={copied ? "Copied!" : `Copy ${label ?? value}`}
-      className={cn(
-        "group/copy relative z-10 inline-flex max-w-full items-center gap-1 rounded-md px-0.5 text-left text-xs text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground",
-        className
-      )}
-    >
-      <span className="truncate">{value}</span>
-      {copied ? (
-        <Check className="h-3 w-3 shrink-0 text-success" />
-      ) : (
-        <Copy className="h-3 w-3 shrink-0 opacity-0 transition-opacity group-hover/copy:opacity-100" />
-      )}
-    </button>
   );
 }

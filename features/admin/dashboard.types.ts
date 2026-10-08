@@ -80,6 +80,13 @@ export interface ActionItem {
   bookingId?: string;
 }
 
+/** The top bar's bell: the action queue's size and its most urgent items. */
+export interface Notifications {
+  total: number;
+  urgent: number;
+  items: ActionItem[];
+}
+
 /** A booked trip near today, with what it still lacks. */
 export interface DeskTrip {
   id: string;
@@ -92,27 +99,9 @@ export interface DeskTrip {
 }
 
 export interface DeskNumbers {
-  openProposals: { count: number; valueCents: number };
+  /** Booked trips starting in the next 7 days. */
+  tripsNextWeek: number;
   owed: { trips: number; dueCents: number };
   totalUsers: number;
   totalBoats: number;
-}
-
-export type TimelineKind = "booked" | "proposed" | "block" | "external";
-
-export interface TimelineSegment {
-  id: string;
-  kind: TimelineKind;
-  label: string;
-  start: Date;
-  end: Date;
-  href: string | null;
-}
-
-export interface TimelineBoat {
-  id: string;
-  name: string;
-  /** The boat's IANA zone: its row is drawn in boat-local time. */
-  timezone: string | null;
-  segments: TimelineSegment[];
 }

@@ -194,6 +194,20 @@ variables.
   sent. Today the team finds out from the alert email when the customer tries to pay;
   a warning on the booking page would catch it sooner.
 
+## 4c. Marketing email
+- **Ask at sign-up.** New accounts get marketing emails switched on without being asked.
+  That's legal in the US, but a "Send me offers and news" checkbox is the better practice.
+- **Results in admin.** Opens and clicks live in Resend today ("Results in Resend" on a
+  sent campaign). Resend's API can list a broadcast's recipients and clicked links if we
+  want them on the campaign page.
+- **A contact in several lists.** A contact belongs to the list it first came from. Someone
+  who is both a customer and a waiver signer is only in the first list's segment (everyone
+  is always in "Everyone").
+- **Clean up the "[dev]" segments in Resend.** An early sync from local dev, before the
+  test-only rule, put 192 dev-database users (copies of real accounts) into "[dev] KOS ·
+  Everyone" and "[dev] KOS · Accounts". No email went to them. Delete both segments, and
+  those contacts if production hasn't synced them by then.
+
 ## 5. Safety nets
 - **Automated access tests:** every role against every data function, run as a GitHub
   Action on each push.
