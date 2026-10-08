@@ -11,7 +11,7 @@ import type { TopNavUser } from "./top-nav/AccountMenu";
  * The page area's padding (px-4 py-4 md:px-6 md:py-6 xl:px-12) matches the
  * top bar's; GlassPage undoes it so its background runs edge to edge. The
  * area itself is full width: pages cap their own content (GlassPage does),
- * at the top bar's max width, max(1600px, 90vw), so the logo lines up.
+ * at the top bar's max width, 1680px, so the logo lines up.
  */
 export function AdminShell({
   portal,

@@ -50,7 +50,7 @@ export function AdminTopNav({
   // Same side padding and max width as the page area (AdminShell).
   return (
     <header className="shrink-0 px-4 md:px-6 xl:px-12">
-      <div className="mx-auto flex w-full max-w-[max(1600px,90vw)] flex-wrap items-center gap-3 py-3 lg:grid lg:h-20 lg:grid-cols-[1fr_auto_1fr] lg:gap-4 lg:py-0">
+      <div className="mx-auto flex w-full max-w-[1680px] flex-wrap items-center gap-3 py-3 lg:grid lg:h-20 lg:grid-cols-[1fr_auto_1fr] lg:gap-4 lg:py-0">
         <Link
           href={home}
           className="flex min-w-0 items-center gap-3 justify-self-start rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring"

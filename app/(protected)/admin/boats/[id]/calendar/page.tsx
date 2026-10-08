@@ -35,7 +35,7 @@ export default async function BoatCalendarPage({ params }: BoatCalendarPageProps
   const externalCalendars = await listExternalCalendars(boatId);
 
   return (
-    <div className="mx-auto flex min-h-0 w-full max-w-[max(1600px,90vw)] flex-1 flex-col">
+    <div className="mx-auto flex min-h-0 w-full max-w-[1680px] flex-1 flex-col">
       <div className="mb-5 flex items-center gap-3">
         <Link
           href={`/admin/boats/${boatId}`}

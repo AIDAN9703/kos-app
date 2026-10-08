@@ -39,9 +39,10 @@ function Backdrop({ src }: { src: string }) {
  * the page background edge to edge; without one the page sits on the plain
  * admin canvas. It bleeds over the page area's padding (AdminShell: px-4
  * py-4 md:px-6 md:py-6 xl:px-12) to the screen's edges and sets its own:
- * roomier, with a max width (80rem, or 72% of a bigger screen), for detail
- * pages; `compact` puts the same padding back at the top bar's max width
- * (list pages, the dashboard, the boat page).
+ * roomier, with a max width of 84rem, for detail pages; `compact` puts the
+ * same padding back at the top bar's max width, 1680px (list pages, the
+ * dashboard, the boat page). Fixed caps: a big monitor or a zoomed-out
+ * browser gets margins, not stretched-out content.
  *
  * By default it grows with its content so the page scrolls. `fill` makes it
  * exactly the page area's height instead, for list pages whose table scrolls
@@ -85,7 +86,7 @@ export function GlassPage({
       <div
         className={cn(
           "mx-auto w-full",
-          compact ? "max-w-[max(1600px,90vw)]" : "max-w-[max(80rem,72vw)]",
+          compact ? "max-w-[1680px]" : "max-w-[84rem]",
           fill && "flex min-h-0 flex-1 flex-col"
         )}
       >
