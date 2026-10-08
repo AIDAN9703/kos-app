@@ -99,8 +99,6 @@ export interface DeskTrip {
 }
 
 export interface DeskNumbers {
-  /** Booked trips starting in the next 7 days. */
-  tripsNextWeek: number;
   owed: { trips: number; dueCents: number };
   totalUsers: number;
   totalBoats: number;

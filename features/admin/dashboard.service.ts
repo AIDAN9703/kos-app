@@ -693,7 +693,7 @@ export const getActionQueue = cache(async (): Promise<ActionItem[]> => {
   return items.sort((a, b) => b.severity - a.severity || sortAt(a) - sortAt(b));
 });
 
-/** The headline chips: trips this coming week, outstanding balances, accounts and fleet size. */
+/** The headline chips: outstanding balances, accounts and fleet size. */
 export const getDeskNumbers = cache(async (): Promise<DeskNumbers> => {
   const [trips, [userCount], [boatCount]] = await Promise.all([
     loadDeskTrips(),
@@ -701,10 +701,7 @@ export const getDeskNumbers = cache(async (): Promise<DeskNumbers> => {
     db.select({ count: sql<number>`count(*)::int` }).from(boats),
   ]);
   const owed = trips.filter((t) => t.dueCents > 0);
-  const now = Date.now();
   return {
-    // Booked trips that start in the coming week (loadDeskTrips reaches 14 days ahead).
-    tripsNextWeek: trips.filter((t) => t.start.getTime() >= now && t.start.getTime() < now + 7 * DAY).length,
     owed: { trips: owed.length, dueCents: owed.reduce((sum, t) => sum + t.dueCents, 0) },
     totalUsers: Number(userCount?.count ?? 0),
     totalBoats: Number(boatCount?.count ?? 0),

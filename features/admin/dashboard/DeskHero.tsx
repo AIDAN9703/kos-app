@@ -89,18 +89,23 @@ export function DeskHero({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-5">
+        {/* Fixed-width chips from the left; the photo keeps the right. */}
+        <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-[repeat(4,minmax(0,200px))]">
           <GlassStat size="lg" label={`KOS revenue, ${monthName}`} value={formatCentsCompact(month?.revenueCents ?? 0)} />
           <GlassStat
             size="lg"
-            label={`Outstanding balances (${plural(numbers.owed.trips, "trip")})`}
+            label="Outstanding balances"
             value={
-              <span className={numbers.owed.dueCents > 0 ? "text-destructive" : undefined}>
-                {formatCentsCompact(numbers.owed.dueCents)}
-              </span>
+              <>
+                <span className={numbers.owed.dueCents > 0 ? "text-destructive" : undefined}>
+                  {formatCentsCompact(numbers.owed.dueCents)}
+                </span>
+                <span className="ml-1.5 text-xs font-medium text-muted-foreground">
+                  {plural(numbers.owed.trips, "trip")}
+                </span>
+              </>
             }
           />
-          <GlassStat size="lg" label="Trips, next 7 days" value={numbers.tripsNextWeek.toLocaleString()} />
           <GlassStat size="lg" label="Total users" value={numbers.totalUsers.toLocaleString()} />
           <GlassStat size="lg" label="Total boats" value={numbers.totalBoats.toLocaleString()} />
         </div>
