@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Image from "next/image";
 import { Image as IKImage } from "@imagekit/next";
+import { BackButton } from "@/shared/admin/components/BackButton";
 import { getImageKitProps } from "@/shared/lib/utils/imagekit";
 import { cn } from "@/shared/lib/utils/general-utils";
 
@@ -96,14 +97,21 @@ export function GlassPage({
   );
 }
 
-/** Title row: optional leading visual (an avatar or photo), an eyebrow above the title, a meta line under it, actions on the right. */
+/**
+ * Title row: a back arrow on pages you click into, an optional leading
+ * visual (an avatar or photo), an eyebrow above the title, a meta line
+ * under it, actions on the right.
+ */
 export function GlassHeader({
+  back,
   leading,
   eyebrow,
   title,
   meta,
   actions,
 }: {
+  /** The page above (e.g. "/admin/bookings"); see BackButton. */
+  back?: string;
   leading?: ReactNode;
   eyebrow?: ReactNode;
   title: ReactNode;
@@ -112,6 +120,7 @@ export function GlassHeader({
 }) {
   return (
     <header className="mb-4 flex flex-wrap items-center gap-4">
+      {back ? <BackButton href={back} /> : null}
       {leading}
       <div className="min-w-0 flex-1">
         {eyebrow ? (

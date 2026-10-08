@@ -125,6 +125,7 @@ export function BoatShowcase({
   return (
     <GlassPage backdrop={photos[0]} compact>
       <GlassHeader
+        back="/admin/boats"
         title={title}
         meta={
           <>

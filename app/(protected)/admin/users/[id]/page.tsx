@@ -24,6 +24,7 @@ export default async function UserPage({ params }: { params: Promise<{ id: strin
   return (
     <GlassPage>
       <GlassHeader
+        back="/admin/users"
         leading={
           <Avatar className="size-16 shrink-0 ring-2 ring-glass-border">
             <AvatarImage src={user.profileImage || undefined} alt={user.name} />

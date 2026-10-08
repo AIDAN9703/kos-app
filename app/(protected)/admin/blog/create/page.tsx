@@ -4,7 +4,7 @@ import { GlassHeader, GlassPage, GlassPanel } from "@/shared/admin/components/gl
 export default function CreateBlogPage() {
   return (
     <GlassPage>
-      <GlassHeader title="New post" />
+      <GlassHeader back="/admin/blog" title="New post" />
       <GlassPanel className="p-6">
         <BlogForm mode="create" />
       </GlassPanel>

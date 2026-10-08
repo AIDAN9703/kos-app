@@ -81,6 +81,8 @@ interface DealViewer {
   userId: string;
   /** Where deal links point: "/admin/bookings" or "/brokers/deals". */
   basePath: string;
+  /** The deals list a deal's back arrow returns to: "/admin/bookings" or "/brokers". */
+  listPath: string;
   /** Choose who a deal is assigned to. */
   canAssign: boolean;
   /** The company's costs and margin: Revenue card, expenses, Stripe links. */
@@ -92,9 +94,11 @@ interface DealViewer {
 }
 
 function viewerFor(user: SessionUser): DealViewer {
+  const admin = can(user, { booking: ["view-all"] });
   return {
     userId: user.id,
-    basePath: can(user, { booking: ["view-all"] }) ? "/admin/bookings" : "/brokers/deals",
+    basePath: admin ? "/admin/bookings" : "/brokers/deals",
+    listPath: admin ? "/admin/bookings" : "/brokers",
     canAssign: can(user, { booking: ["assign"] }),
     canSeeEconomics: can(user, { booking: ["view-economics"] }),
     canRecordPayments: can(user, { booking: ["record-payment"] }),

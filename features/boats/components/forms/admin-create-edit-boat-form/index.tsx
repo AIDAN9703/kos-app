@@ -106,7 +106,7 @@ export default function AdminAddUpdateBoatForm({
           return;
         }
         toast({ title: "Success", description: "Boat created successfully." });
-        router.push("/admin/boats");
+        router.replace("/admin/boats");
       } else {
         const result = await updateBoat(boatId!, data);
         if (!result.success) {
@@ -116,7 +116,7 @@ export default function AdminAddUpdateBoatForm({
           return;
         }
         toast({ title: "Success", description: "Boat updated successfully." });
-        router.push(`/admin/boats/${boatId}`);
+        router.replace(`/admin/boats/${boatId}`);
       }
 
       router.refresh();
@@ -131,7 +131,7 @@ export default function AdminAddUpdateBoatForm({
 
   return (
     <FormProvider {...methods}>
-      <form onSubmit={submit} className="mx-auto w-full max-w-[1680px] space-y-6">
+      <form onSubmit={submit} className="space-y-6">
         {error && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
@@ -163,8 +163,8 @@ export default function AdminAddUpdateBoatForm({
             type="button"
             onClick={() =>
               boatId
-                ? router.push(`/admin/boats/${boatId}`)
-                : router.push("/admin/boats")
+                ? router.replace(`/admin/boats/${boatId}`)
+                : router.replace("/admin/boats")
             }
           >
             Cancel

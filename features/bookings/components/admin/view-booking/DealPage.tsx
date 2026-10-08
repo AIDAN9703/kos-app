@@ -306,6 +306,7 @@ export async function DealPage({ deal }: { deal: DealPageData }) {
             the customer and when it came in. Contact details, the trip and
             the money are panels below. */}
         <GlassHeader
+          back={viewer.listPath}
           leading={
             <span className="relative flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-glass-strong ring-2 ring-glass-border">
               {booking.boatMainImage ? (

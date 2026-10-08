@@ -377,7 +377,7 @@ export function BookingComposer({
           });
         }
         if (onSuccess) onSuccess(bookingId);
-        else router.push(`${dealsBasePath}/${bookingId}`);
+        else router.replace(`${dealsBasePath}/${bookingId}`);
       } else {
         setSubmitError(result.error);
         toast({

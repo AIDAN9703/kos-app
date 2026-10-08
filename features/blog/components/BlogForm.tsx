@@ -202,7 +202,7 @@ export default function BlogForm({ mode, initialData }: BlogFormProps) {
           title: "Success",
           description: `Blog post ${mode === "create" ? "created" : "updated"} successfully`,
         });
-        router.push("/admin/blog");
+        router.replace("/admin/blog");
       } else {
         throw new Error(result.error);
       }
@@ -591,7 +591,7 @@ export default function BlogForm({ mode, initialData }: BlogFormProps) {
             <Button
               type="button"
               variant="destructive"
-              onClick={() => router.push("/admin/blog")}
+              onClick={() => router.replace("/admin/blog")}
             >
               Cancel
             </Button>

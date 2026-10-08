@@ -136,7 +136,7 @@ export function UserActionsMenu({
               disabled={busy}
               onClick={() =>
                 confirming === "delete"
-                  ? void run(() => deleteUser(userId), () => router.push("/admin/users"))
+                  ? void run(() => deleteUser(userId), () => router.replace("/admin/users"))
                   : void run(() => setUserDeactivated(userId, true))
               }
             >

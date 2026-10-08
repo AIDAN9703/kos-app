@@ -38,6 +38,7 @@ import {
   sendCampaignTest,
 } from "@/features/marketing/marketing.actions";
 import { CampaignStatusBadge, effectiveStatus } from "./campaign-status";
+import { BackButton } from "@/shared/admin/components/BackButton";
 
 interface Audience {
   value: string;
@@ -205,6 +206,7 @@ export function CampaignEditor({
     <div className="space-y-4">
       {/* Header */}
       <header className="flex flex-wrap items-center gap-3">
+        <BackButton href="/admin/marketing" />
         <div className="min-w-0 flex-1">
           {editable ? (
             <input
@@ -257,7 +259,7 @@ export function CampaignEditor({
                   onSelect={async () => {
                     if (!window.confirm(`Delete "${fields.name}"?`)) return;
                     const result = await deleteCampaignDraft(campaign.id);
-                    if (result.success) router.push("/admin/marketing");
+                    if (result.success) router.replace("/admin/marketing");
                     else toast({ title: "That didn't work", description: result.error, variant: "destructive" });
                   }}
                 >

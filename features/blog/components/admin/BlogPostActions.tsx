@@ -44,7 +44,7 @@ export function BlogPostActions({
     setBusy(false);
     if (result.success) {
       toast({ title: "Post deleted" });
-      router.push("/admin/blog");
+      router.replace("/admin/blog");
     } else {
       setConfirming(false);
       toast({ title: "That didn't work", description: result.error, variant: "destructive" });

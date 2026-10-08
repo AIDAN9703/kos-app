@@ -4,6 +4,7 @@ import { BookingComposer } from "@/features/bookings/components/admin/booking-fo
 import { getBoatTiers } from "@/features/boats/boat.data";
 import { getDealViewer, getInquiryForProposal } from "@/features/bookings/deal.data";
 import { buildDatePrefillForBookingForm } from "@/features/bookings/lib/booking-create-date-prefill";
+import { BackButton } from "@/shared/admin/components/BackButton";
 
 type Props = {
   /** `dealId` prices an INQUIRY deal into a proposal (upgrades that row). */
@@ -32,15 +33,18 @@ export default async function AdminBookingCreatePage({ searchParams }: Props) {
 
   return (
     <div className="mx-auto flex w-full max-w-[1680px] flex-1 flex-col gap-5 pb-8">
-      <header className="pt-1">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {dealPrefill ? `New proposal for ${dealPrefill.customerName}` : "New booking"}
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {dealPrefill
-            ? "Price the trip and send it — the customer accepts and pays from their link."
-            : "Build the trip and send the proposal, or save it and send later."}
-        </p>
+      <header className="flex items-center gap-4 pt-1">
+        <BackButton href="/admin/bookings" />
+        <div className="min-w-0">
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {dealPrefill ? `New proposal for ${dealPrefill.customerName}` : "New booking"}
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {dealPrefill
+              ? "Price the trip and send it — the customer accepts and pays from their link."
+              : "Build the trip and send the proposal, or save it and send later."}
+          </p>
+        </div>
       </header>
       {/* One composer for every mode — deal upgrade, calendar-date scratch,
           plain scratch. Add a second boat to create a charter party. */}

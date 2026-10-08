@@ -14,6 +14,7 @@ export default async function EditBlogPage({ params }: { params: Promise<{ id: s
   return (
     <GlassPage>
       <GlassHeader
+        back="/admin/blog"
         title={post.title}
         meta={
           <>

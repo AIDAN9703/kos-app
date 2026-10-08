@@ -9,6 +9,7 @@ import {
 import AdminAddUpdateBoatForm from "@/features/boats/components/forms/admin-create-edit-boat-form";
 import { Suspense } from "react";
 import { Skeleton } from "@/shared/components/ui/skeleton";
+import { BackButton } from "@/shared/admin/components/BackButton";
 import { normalizeCurrency } from "@/shared/lib/constants/currencies";
 
 interface AdminBoatEditPageProps {
@@ -22,7 +23,11 @@ export default async function AdminBoatEditPage({
   const boatId = resolvedParams.id;
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto w-full max-w-[1680px] space-y-6">
+      <header className="flex items-center gap-4">
+        <BackButton href={`/admin/boats/${boatId}`} />
+        <h1 className="text-2xl font-semibold tracking-tight">Edit boat</h1>
+      </header>
       {/* Boat Edit Form with Suspense for progressive loading */}
       <Suspense fallback={<FormSkeleton />}>
         <BoatFormWithData boatId={boatId} />
@@ -162,7 +167,7 @@ async function BoatFormWithData({ boatId }: { boatId: string }) {
 // Skeleton UI for the form loading state
 function FormSkeleton() {
   return (
-    <div className="mx-auto w-full max-w-[1680px] space-y-6">
+    <div className="space-y-6">
       {[1, 2, 3, 4, 5].map((section) => (
         <div
           key={section}

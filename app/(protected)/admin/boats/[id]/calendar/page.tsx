@@ -1,11 +1,10 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 import { getBoatDetail } from "@/features/boats/boat.data";
 import { BoatCalendarView } from "@/features/boats/components/admin/BoatCalendarView";
 import { listExternalCalendars } from "@/features/availability/availability.data";
 import { buildFeedUrl } from "@/shared/lib/calendar/feed-tokens";
 import { getBaseUrl } from "@/shared/lib/utils/base-url";
+import { BackButton } from "@/shared/admin/components/BackButton";
 
 interface BoatCalendarPageProps {
   params: Promise<{ id: string }>;
@@ -36,13 +35,8 @@ export default async function BoatCalendarPage({ params }: BoatCalendarPageProps
 
   return (
     <div className="mx-auto flex min-h-0 w-full max-w-[1680px] flex-1 flex-col">
-      <div className="mb-5 flex items-center gap-3">
-        <Link
-          href={`/admin/boats/${boatId}`}
-          className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Link>
+      <div className="mb-5 flex items-center gap-4">
+        <BackButton href={`/admin/boats/${boatId}`} />
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">{boat.name}</h1>
           <p className="text-sm text-muted-foreground">Booking calendar</p>
