@@ -484,6 +484,13 @@
       "when": 1791906079200,
       "tag": "0072_boat-make-and-model",
       "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1791906085869,
+      "tag": "0073_drop-boat-make-model-text",
+      "breakpoints": true
     }
   ]
 }
