@@ -16,7 +16,6 @@ const Navigation = () => {
   const { data: session } = useSession();
   const pathname = usePathname();
   const user = session?.user;
-  const isAdmin = user?.isAdmin === true;
   const isHome = pathname === "/";
   const showNavSearch = !isHome;
 
@@ -60,7 +59,7 @@ const Navigation = () => {
           </div>
 
           <div className="hidden shrink-0 items-center gap-7 lg:flex">
-            <DesktopNavigation navigationData={navigationData} isAdmin={isAdmin} />
+            <DesktopNavigation navigationData={navigationData} />
             <UserMenu user={user} navigationData={navigationData} />
           </div>
 

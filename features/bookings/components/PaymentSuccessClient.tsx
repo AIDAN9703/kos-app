@@ -321,9 +321,9 @@ export default function PaymentSuccessClient() {
         </Button>
         <Button
           asChild
-          variant="outline"
+          variant="soft"
           size="lg"
-          className="h-11 rounded-full border-0 bg-foreground/10 px-7 text-primary hover:bg-foreground/15 hover:text-primary"
+          className="h-11 rounded-full px-7"
         >
           <Link href="/boats/search">Browse the fleet</Link>
         </Button>

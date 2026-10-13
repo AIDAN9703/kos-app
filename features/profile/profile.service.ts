@@ -9,6 +9,7 @@ import {
   bookings,
   captainProfiles,
   payments,
+  sessions,
   users,
 } from "@/database/schema";
 import { effectiveTotalCents } from "@/features/bookings/lib/booking-money";
@@ -55,6 +56,15 @@ const accountColumns = {
 export async function getAccount(userId: string): Promise<AccountUser | null> {
   const [row] = await db.select(accountColumns).from(users).where(eq(users.id, userId)).limit(1);
   return row ?? null;
+}
+
+/** Devices the person is signed in on: sessions that haven't expired. */
+export async function countActiveSessions(userId: string): Promise<number> {
+  const [row] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(sessions)
+    .where(and(eq(sessions.userId, userId), gte(sessions.expiresAt, new Date())));
+  return row?.n ?? 0;
 }
 
 /** Write the person's own editable columns (the data layer decides which). */

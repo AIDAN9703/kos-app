@@ -1,6 +1,8 @@
 import {
   Anchor,
   CalendarDays,
+  Crown,
+  Handshake,
   LayoutDashboard,
   Settings,
   Ship,
@@ -26,10 +28,24 @@ export const PROFILE_NAV_ITEMS: ProfileNavItem[] = [
   { href: "/profile/settings", label: "Account settings", icon: Settings },
 ];
 
-/** Extra pages that only exist for owners and captains. */
-export function roleNavItems(roles: { isOwner: boolean; isCaptain: boolean }): ProfileNavItem[] {
+/** For everyone who isn't an owner yet: the way into "List your boat". */
+export const LIST_YOUR_BOAT_ITEM: ProfileNavItem = {
+  href: "/list-your-boat",
+  label: "List your boat",
+  icon: Ship,
+};
+
+/** The places a person's roles open up, in the same order as the site's user menu. */
+export function roleNavItems(roles: {
+  isAdmin: boolean;
+  isBroker: boolean;
+  isOwner: boolean;
+  isCaptain: boolean;
+}): ProfileNavItem[] {
   const items: ProfileNavItem[] = [];
+  if (roles.isAdmin) items.push({ href: "/admin", label: "Admin", icon: Crown });
   if (roles.isOwner) items.push({ href: "/owner", label: "Owner portal", icon: Ship });
+  if (roles.isBroker) items.push({ href: "/brokers", label: "Broker portal", icon: Handshake });
   if (roles.isCaptain)
     items.push({ href: "/profile/captain", label: "Captain dashboard", icon: Anchor });
   return items;

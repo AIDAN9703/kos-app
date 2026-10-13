@@ -5,6 +5,7 @@ import type { AccountUser } from "../profile.types";
 
 export interface ProfileRoles {
   isAdmin: boolean;
+  isBroker: boolean;
   isOwner: boolean;
   isCaptain: boolean;
 }
@@ -22,6 +23,7 @@ export function ProfileIdentity({ account, roles }: ProfileIdentityProps) {
   const name = [account.firstName, account.lastName].filter(Boolean).join(" ") || account.username;
   const roleChips = [
     roles.isOwner && "Owner",
+    roles.isBroker && "Broker",
     roles.isCaptain && "Captain",
     roles.isAdmin && "Admin",
   ].filter((chip): chip is string => Boolean(chip));

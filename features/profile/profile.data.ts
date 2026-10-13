@@ -58,16 +58,16 @@ export async function getMySignIn(): Promise<{
   googleAccountId: string | null;
   deviceCount: number;
 }> {
-  await assertSignedIn();
-  const requestHeaders = await headers();
-  const [methods, devices] = await Promise.all([
-    auth.api.listUserAccounts({ headers: requestHeaders }),
-    auth.api.listSessions({ headers: requestHeaders }),
+  const me = await assertSignedIn();
+  // Counted directly: Better Auth's listSessions refuses sessions older than a day.
+  const [methods, deviceCount] = await Promise.all([
+    auth.api.listUserAccounts({ headers: await headers() }),
+    profileService.countActiveSessions(me.id),
   ]);
   return {
     hasPassword: methods.some((method) => method.providerId === "credential"),
     googleAccountId: methods.find((method) => method.providerId === "google")?.id ?? null,
-    deviceCount: devices.length,
+    deviceCount,
   };
 }
 

@@ -28,7 +28,7 @@ export function BillingPortalButton() {
   };
 
   return (
-    <Button type="button" variant="outline" size="sm" onClick={open} disabled={loading}>
+    <Button type="button" variant="soft" size="sm" onClick={open} disabled={loading}>
       {loading ? <Loader2 className="animate-spin" /> : <Receipt />}
       Receipts &amp; invoices
     </Button>

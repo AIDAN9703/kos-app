@@ -7,11 +7,13 @@ import {
   PROFILE_NAV_ITEMS,
   isProfileNavItemActive,
   roleNavItems,
+  LIST_YOUR_BOAT_ITEM,
   type ProfileNavItem,
 } from "../profile.nav";
+import type { ProfileRoles } from "./ProfileIdentity";
 
 interface ProfileNavProps {
-  roles: { isOwner: boolean; isCaptain: boolean };
+  roles: ProfileRoles;
 }
 
 /**
@@ -23,6 +25,7 @@ interface ProfileNavProps {
 export function ProfileNav({ roles }: ProfileNavProps) {
   const pathname = usePathname();
   const roleItems = roleNavItems(roles);
+  const invite = roles.isOwner ? null : LIST_YOUR_BOAT_ITEM;
 
   return (
     <>
@@ -49,6 +52,14 @@ export function ProfileNav({ roles }: ProfileNavProps) {
             </ul>
           </>
         ) : null}
+        {invite ? (
+          <>
+            <p className="mt-6 mb-2 px-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+              Own a boat?
+            </p>
+            <RailLink item={invite} active={false} />
+          </>
+        ) : null}
       </nav>
 
       {/* Phone / tablet — tab strip */}
@@ -57,7 +68,7 @@ export function ProfileNav({ roles }: ProfileNavProps) {
         className="-mx-4 border-b border-gray-200 px-4 sm:-mx-8 sm:px-8 lg:hidden"
       >
         <ul className="hide-scrollbar flex gap-6 overflow-x-auto">
-          {[...PROFILE_NAV_ITEMS, ...roleItems].map((item) => {
+          {[...PROFILE_NAV_ITEMS, ...roleItems, ...(invite ? [invite] : [])].map((item) => {
             const active = isProfileNavItemActive(item, pathname);
             return (
               <li key={item.href} className="shrink-0">

@@ -180,22 +180,11 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({ navigationData, use
 
           {/* Footer */}
           <div className="space-y-2 border-t border-gray-200 p-4">
-            {user?.isBroker ? (
-              <SheetClose asChild>
-                <Button
-                  asChild
-                  variant="outline"
-                  className="w-full h-12 text-base font-semibold text-primary hover:text-primary"
-                >
-                  <Link href="/brokers">Broker portal</Link>
-                </Button>
-              </SheetClose>
-            ) : null}
             {user ? (
               <Button
                 onClick={() => signOutAndGoHome()}
-                variant="outline"
-                className="w-full h-12 text-base font-semibold text-primary hover:text-primary"
+                variant="soft"
+                className="w-full h-12 text-base font-semibold"
               >
                 Sign out
               </Button>

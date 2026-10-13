@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { Button } from "@/shared/components/ui/button";
 import { requireAuth } from "@/shared/lib/utils/auth-utils";
 import { PageHeader } from "@/features/profile/components/PageHeader";
-import { ConciergeSection } from "@/features/profile/components/overview/ConciergeSection";
 import { LoyaltyCard } from "@/features/profile/components/overview/LoyaltyCard";
 import { MemberStats } from "@/features/profile/components/overview/MemberStats";
 import { ProfileCompletion } from "@/features/profile/components/overview/ProfileCompletion";
@@ -54,8 +53,6 @@ export default async function ProfileOverviewPage() {
         moreUpcoming={overview.moreUpcoming}
         hasPastTrips={hasPastTrips}
       />
-
-      <ConciergeSection />
     </div>
   );
 }

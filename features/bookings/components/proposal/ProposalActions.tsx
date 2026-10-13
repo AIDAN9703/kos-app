@@ -139,9 +139,9 @@ export function ProposalActions({ publicToken, payment, totalPaidCents }: Propos
 
       {!isPaidInFull ? (
         <Button
-          variant="outline"
+          variant="soft"
           size="lg"
-          className="h-11 w-full gap-2 rounded-full border-0 bg-foreground/10 text-primary hover:bg-foreground/15 hover:text-primary"
+          className="h-11 w-full gap-2 rounded-full"
           disabled={requestPending}
           onClick={() => setRequestModalOpen(true)}
         >

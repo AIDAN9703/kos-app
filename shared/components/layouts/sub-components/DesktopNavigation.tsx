@@ -4,7 +4,6 @@ import React from "react";
 import Link from "next/link";
 import * as NavigationMenuPrimitive from "@radix-ui/react-navigation-menu";
 import { cn } from "@/shared/lib/utils/general-utils";
-import { Crown } from "lucide-react";
 import { NavigationData } from "@/shared/lib/constants/navigation-data";
 import { useActiveRoute } from "@/shared/lib/hooks/useActiveRoute";
 import {
@@ -17,27 +16,13 @@ import {
 
 interface DesktopNavigationProps {
   navigationData: Pick<NavigationData, "main">;
-  isAdmin?: boolean;
 }
 
-const DesktopNavigation: React.FC<DesktopNavigationProps> = ({
-  navigationData,
-  isAdmin = false,
-}) => {
+const DesktopNavigation: React.FC<DesktopNavigationProps> = ({ navigationData }) => {
   const { isActive } = useActiveRoute();
 
   return (
     <div className="hidden lg:flex items-center gap-5">
-      {isAdmin && (
-        <Link
-          href="/admin"
-          className="p-1.5 rounded-full hover:bg-primary/5 transition-colors"
-          title="Admin Dashboard"
-        >
-          <Crown className="w-5 h-5 text-primary transition-transform" />
-        </Link>
-      )}
-
       <NavigationMenuPrimitive.Root className="relative z-10 flex max-w-max flex-1 items-center justify-center">
         <NavigationMenuList className="gap-2">
           {navigationData.main.map((item) => (
@@ -101,10 +86,8 @@ const DesktopNavigation: React.FC<DesktopNavigationProps> = ({
               ) : (
                 <NavigationMenuLink
                   href={item.href}
-                  className={cn(
-                    "text-base font-semibold text-primary transition-colors hover:text-primary py-2",
-                    isActive(item.href, true) && "underline underline-offset-4"
-                  )}
+                  aria-current={isActive(item.href, true) ? "page" : undefined}
+                  className="text-base font-semibold text-primary transition-colors hover:text-primary py-2"
                 >
                   {item.label}
                 </NavigationMenuLink>

@@ -24,6 +24,7 @@ export default async function ProfileLayout({ children }: { children: ReactNode 
         account={account}
         roles={{
           isAdmin: session.user.isAdmin,
+          isBroker: session.user.isBroker,
           isOwner: session.user.isOwner,
           isCaptain: session.user.isCaptain,
         }}

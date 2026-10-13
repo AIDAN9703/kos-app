@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Button } from "@/shared/components/ui/button";
+import { Button, type ButtonProps } from "@/shared/components/ui/button";
 import { Camera, Loader2 } from "lucide-react";
 import { useToast } from "@/shared/lib/hooks/use-toast";
 
@@ -12,13 +12,7 @@ interface ImageUploadProps {
   entityName?: string;
   buttonText?: string;
   className?: string;
-  variant?:
-    | "default"
-    | "secondary"
-    | "outline"
-    | "ghost"
-    | "link"
-    | "destructive";
+  variant?: ButtonProps["variant"];
   size?: "default" | "sm" | "lg" | "icon";
   icon?: boolean;
   multiple?: boolean;

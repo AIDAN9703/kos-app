@@ -112,7 +112,7 @@ export function TripDetailView({ trip }: { trip: TripDetail }) {
 
           <div className="mt-6 flex flex-wrap gap-3">
             {trip.boatId ? (
-              <Button asChild variant="outline" size="sm">
+              <Button asChild variant="soft" size="sm">
                 <Link href={`/boats/${trip.boatId}`}>
                   <Anchor />
                   View boat

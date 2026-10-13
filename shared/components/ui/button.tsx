@@ -18,6 +18,8 @@ const buttonVariants = cva(
         secondary:
           "bg-linear-to-b from-secondary to-secondary/90 text-secondary-foreground shadow-lg shadow-secondary/20 hover:shadow-xl hover:shadow-secondary/30 hover:brightness-105",
         ghost: "hover:bg-accent hover:text-accent-foreground",
+        /** The site's secondary action: a quiet fill, no border. */
+        soft: "bg-foreground/10 text-primary hover:bg-foreground/15",
         link: "text-primary-strong underline-offset-4 hover:underline",
         /** Frosted, for glass pages: secondary actions over a photo backdrop. */
         glass:

@@ -38,7 +38,8 @@ export function ProfilePhotoField({ imageUrl }: { imageUrl: string | null }) {
       <div className="flex flex-wrap items-center gap-2">
         <ImageUpload
           type="profile"
-          variant="outline"
+          variant="soft"
+          size="sm"
           buttonText={imageUrl ? "Change photo" : "Upload photo"}
           onUploadComplete={(url) => void setImage(url)}
         />

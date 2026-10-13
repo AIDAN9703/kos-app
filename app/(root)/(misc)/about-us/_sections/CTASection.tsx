@@ -33,12 +33,7 @@ export default function CTASection() {
               <Link href="/boats/search">Explore the fleet</Link>
             </Button>
             {/* Borderless pill — soft grey fill, the site's quiet-button style. */}
-            <Button
-              asChild
-              variant="outline"
-              size="lg"
-              className="h-11 rounded-full border-0 bg-foreground/10 px-7 text-primary hover:bg-foreground/15 hover:text-primary"
-            >
+            <Button asChild variant="soft" size="lg" className="h-11 rounded-full px-7">
               <Link href="/contact">Contact our team</Link>
             </Button>
           </div>

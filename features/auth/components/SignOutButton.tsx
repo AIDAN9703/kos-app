@@ -14,13 +14,13 @@ export function SignOutButton() {
   return (
     <Button
       type="button"
-      variant="outline"
+      variant="soft"
       disabled={busy}
       onClick={() => {
         setBusy(true);
         void signOutAndGoHome();
       }}
-      className="border-destructive text-destructive hover:bg-destructive/5"
+      className="bg-destructive/10 text-destructive hover:bg-destructive/15"
     >
       {busy ? <Loader2 className="animate-spin" /> : <LogOut />}
       Sign out
