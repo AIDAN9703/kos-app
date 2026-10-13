@@ -25,6 +25,8 @@ export * from "./stripeEvents.table";
 export * from "./reviews.table";
 export * from "./notifications.table";
 export * from "./blogPosts.table";
+export * from "./boatMakes.table";
+export * from "./boatModels.table";
 export * from "./boatPricingTiers.table";
 export * from "./boatBlocking.table";
 export * from "./boatExternalCalendar.table";
@@ -34,4 +36,3 @@ export * from "./boatAddOns.table";
 export * from "./appSettings.table";
 export * from "./inboundEmails.table";
 export * from "./marketing.table";
-

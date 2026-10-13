@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getBoatDetail } from "@/features/boats/boat.data";
 import { listActiveAddOns } from "@/features/add-ons/add-on.data";
+import { getBoatCatalog } from "@/features/boat-catalog/boat-catalog.data";
 import {
   type CreateBoatInput,
   type PricingTierInput,
@@ -38,9 +39,10 @@ export default async function AdminBoatEditPage({
 
 // Separate component for data fetching to enable Suspense
 async function BoatFormWithData({ boatId }: { boatId: string }) {
-  const [boatData, availableAddOns] = await Promise.all([
+  const [boatData, availableAddOns, catalog] = await Promise.all([
     getBoatDetail(boatId),
     listActiveAddOns(),
+    getBoatCatalog(),
   ]);
 
   if (!boatData) {
@@ -160,7 +162,7 @@ async function BoatFormWithData({ boatId }: { boatId: string }) {
   };
 
   return (
-    <AdminAddUpdateBoatForm boat={boat} boatId={boatId} availableAddOns={availableAddOns} />
+    <AdminAddUpdateBoatForm boat={boat} boatId={boatId} availableAddOns={availableAddOns} catalog={catalog} />
   );
 }
 

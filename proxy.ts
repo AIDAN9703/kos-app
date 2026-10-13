@@ -65,10 +65,14 @@ export default async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // Signed-in areas (role checks happen in each layout): profile, owner and broker portals
-  const signedInArea = ["/profile", "/owner", "/brokers"].some(
-    (area) => pathname === area || pathname.startsWith(`${area}/`)
-  );
+  // Signed-in areas (role checks happen in each layout): profile, owner and broker portals,
+  // and an owner's listing in progress (/list-your-boat/<id>/…; the landing page and
+  // the first step, /list-your-boat/start, are public)
+  const signedInArea =
+    ["/profile", "/owner", "/brokers"].some(
+      (area) => pathname === area || pathname.startsWith(`${area}/`)
+    ) ||
+    (pathname.startsWith("/list-your-boat/") && !pathname.startsWith("/list-your-boat/start"));
   if (signedInArea) {
     if (!hasSessionCookie) return redirectToSignIn(req);
   }

@@ -24,6 +24,7 @@ export * from "./payments.relations";
 // Other relations
 export * from "./reviews.relations";
 export * from "./notifications.relations";
+export * from "./boatCatalog.relations";
 export * from "./boatPricingTiers.relations";
 export * from "./boatBlocking.relations";
 export * from "./boatExternalCalendar.relations";

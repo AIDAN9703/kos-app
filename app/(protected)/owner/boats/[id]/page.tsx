@@ -1,20 +1,24 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Button } from "@/shared/components/ui/button";
-import { cn } from "@/shared/lib/utils/general-utils";
+import { ExternalLink, Pencil } from "lucide-react";
 import { requireOwner } from "@/shared/lib/utils/auth-utils";
 import { formatCentsAsWholeDollars } from "@/shared/lib/utils/money-utils";
-import { ArrowLink } from "@/features/profile/components/ArrowLink";
-import { Section } from "@/features/profile/components/Section";
-import { surface } from "@/features/profile/components/surface";
+import { GlassHeader, GlassPage, GlassPanel, GlassStat } from "@/shared/admin/components/glass";
 import { TRIP_FALLBACK_IMAGE } from "@/features/profile/trip-presentation";
 import { BookedCalendar } from "@/features/owner-dashboard/components/BookedCalendar";
 import { CharterList } from "@/features/owner-dashboard/components/CharterList";
+import { StatusChip } from "@/features/owner-dashboard/components/FleetGrid";
+import { NeedsAttention } from "@/features/owner-dashboard/components/NeedsAttention";
 import { PricingTiersTable } from "@/features/owner-dashboard/components/PricingTiersTable";
 import { buildOwnerAnalytics, splitCharters } from "@/features/owner-dashboard/owner-analytics";
-import { categoryLabel } from "@/features/owner-dashboard/owner-presentation";
+import { attentionItems } from "@/features/owner-dashboard/owner-insights";
+import { categoryLabel, isListingInProgress } from "@/features/owner-dashboard/owner-presentation";
 import { getMyBoat, getMyCharters } from "@/features/owner-dashboard/owner.data";
+import { ListingVisibilityButton } from "@/features/owner-listing/components/ListingVisibilityButton";
+
+const pill =
+  "flex h-10 items-center gap-1.5 rounded-full px-5 text-sm font-semibold transition-[filter] hover:brightness-110";
 
 export default async function OwnerBoatPage({ params }: { params: Promise<{ id: string }> }) {
   const [, { id }] = await Promise.all([requireOwner(), params]);
@@ -25,116 +29,131 @@ export default async function OwnerBoatPage({ params }: { params: Promise<{ id: 
   const now = new Date();
   const [performance] = buildOwnerAnalytics(charters, [boat], now).byBoat;
   const { upcoming, past } = splitCharters(charters, now);
+  const selfListed = boat.managedBy === "OWNER";
+  const flags = attentionItems([boat], now);
   const specs = [
-    { label: "Type", value: categoryLabel(boat.category) },
-    { label: "Length", value: `${boat.lengthFt} ft` },
-    { label: "Guests", value: `Up to ${boat.capacity}` },
-    {
-      label: "Built",
-      value: [boat.yearBuilt, boat.make, boat.model].filter(Boolean).join(" ") || null,
-    },
-    { label: "Location", value: boat.locationLabel },
-  ].filter((s): s is { label: string; value: string } => Boolean(s.value));
-  const stats = [
-    { label: `Charters in ${now.getFullYear()}`, value: String(performance.charters) },
-    { label: "Hours chartered", value: String(performance.hours) },
-    {
-      label: "Your payout",
-      value:
-        performance.earningsCents > 0 ? formatCentsAsWholeDollars(performance.earningsCents) : "—",
-    },
-  ];
+    categoryLabel(boat.category),
+    `${boat.lengthFt} ft`,
+    `Up to ${boat.capacity} guests`,
+    [boat.yearBuilt, boat.make, boat.model].filter(Boolean).join(" ") || null,
+  ].filter(Boolean);
 
   return (
-    <div className="space-y-10">
-      <ArrowLink href="/owner/boats" direction="back">
-        My boats
-      </ArrowLink>
-
-      <article className={`overflow-hidden md:grid md:grid-cols-2 ${surface}`}>
-        <div className="relative aspect-[16/10] bg-slate-100 md:aspect-auto md:min-h-[300px]">
-          <Image
-            src={boat.mainImage || TRIP_FALLBACK_IMAGE}
-            alt={boat.name}
-            fill
-            priority
-            className="object-cover"
-            sizes="(max-width: 768px) 100vw, 560px"
-          />
-        </div>
-        <div className="flex flex-col p-6 sm:p-8">
-          <span
-            className={cn(
-              "self-start rounded-full px-2.5 py-0.5 text-xs font-semibold",
-              boat.active ? "bg-success-soft text-success" : "bg-muted text-muted-foreground"
-            )}
-          >
-            {boat.active ? "Live on kosyachts.com" : "Not listed"}
+    <GlassPage backdrop={boat.mainImage}>
+      <GlassHeader
+        back="/owner/boats"
+        leading={
+          <span className="relative size-16 shrink-0 overflow-hidden rounded-2xl ring-2 ring-glass-border">
+            <Image
+              src={boat.mainImage || TRIP_FALLBACK_IMAGE}
+              alt=""
+              fill
+              sizes="64px"
+              className="object-cover"
+            />
           </span>
-          <h1 className="mt-3 text-2xl font-bold tracking-tight text-primary sm:text-3xl">
-            {boat.name}
-          </h1>
-          <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-            {specs.map((spec) => (
-              <div key={spec.label}>
-                <dt className="text-slate-500">{spec.label}</dt>
-                <dd className="font-medium text-slate-800">{spec.value}</dd>
-              </div>
-            ))}
-          </dl>
-          <div className="mt-auto flex flex-wrap gap-2 pt-6">
+        }
+        title={boat.name}
+        meta={
+          <>
+            <StatusChip boat={boat} />
+            <span>{specs.join(" · ")}</span>
+            {boat.locationLabel ? <span>· {boat.locationLabel}</span> : null}
+          </>
+        }
+        actions={
+          <>
             {boat.active ? (
-              <Button asChild className="rounded-full px-5">
-                <Link href={`/boats/${boat.id}`}>View public listing</Link>
-              </Button>
+              <Link
+                href={`/boats/${boat.id}`}
+                className={`${pill} border border-glass-border bg-glass-strong text-foreground`}
+              >
+                <ExternalLink aria-hidden className="size-4" /> Public listing
+              </Link>
             ) : null}
-            <Button
-              asChild
-              variant="outline"
-              className="rounded-full border-0 bg-slate-100 px-5 text-primary hover:bg-slate-200 hover:text-primary"
-            >
-              <Link href="/contact">Request a change</Link>
-            </Button>
-          </div>
+            {selfListed ? (
+              <>
+                <Link
+                  href={
+                    isListingInProgress(boat)
+                      ? `/list-your-boat/${boat.id}`
+                      : `/list-your-boat/${boat.id}/details`
+                  }
+                  className={`${pill} bg-primary text-primary-foreground shadow-[0_8px_30px_-8px_var(--primary)]`}
+                >
+                  <Pencil aria-hidden className="size-4" />
+                  {isListingInProgress(boat) ? "Continue listing" : "Edit listing"}
+                </Link>
+                {boat.listingStatus === "APPROVED" ? (
+                  <ListingVisibilityButton boatId={boat.id} live={boat.active} />
+                ) : null}
+              </>
+            ) : (
+              <Link
+                href="/contact"
+                className={`${pill} border border-glass-border bg-glass-strong text-foreground`}
+              >
+                Request a change
+              </Link>
+            )}
+          </>
+        }
+      />
+
+      <div className="flex flex-col gap-4">
+        <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
+          <GlassStat
+            size="lg"
+            label={`Earned in ${now.getFullYear()}`}
+            value={
+              performance.earningsCents > 0
+                ? formatCentsAsWholeDollars(performance.earningsCents)
+                : "—"
+            }
+          />
+          <GlassStat
+            size="lg"
+            label={`Charters in ${now.getFullYear()}`}
+            value={performance.charters}
+          />
+          <GlassStat size="lg" label="Hours on the water" value={performance.hours} />
+          <GlassStat size="lg" label="Upcoming charters" value={upcoming.length} />
         </div>
-      </article>
 
-      <dl className="grid gap-3 sm:grid-cols-3">
-        {stats.map((stat) => (
-          <div key={stat.label} className={`p-5 ${surface}`}>
-            <dt className="text-sm font-medium text-slate-500">{stat.label}</dt>
-            <dd className="mt-1 text-2xl font-bold tracking-tight text-primary tabular-nums">
-              {stat.value}
-            </dd>
-          </div>
-        ))}
-      </dl>
+        {flags.length > 0 ? <NeedsAttention items={flags} /> : null}
 
-      <Section
-        id="calendar"
-        title="Calendar"
-        description="Booked days for this boat. To block dates, contact the team."
-      >
-        <div className={`p-5 sm:p-6 ${surface}`}>
-          <BookedCalendar charters={charters} timezone={boat.timezone} />
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
+          <GlassPanel title="Booked days" className="xl:col-span-7">
+            <BookedCalendar charters={charters} timezone={boat.timezone} />
+            <p className="text-xs text-muted-foreground">
+              To block dates for your own use, contact the team.
+            </p>
+          </GlassPanel>
+          <GlassPanel title="Rates" className="xl:col-span-5">
+            <PricingTiersTable tiers={boat.tiers} />
+          </GlassPanel>
         </div>
-      </Section>
 
-      <Section id="rates" title="Rates">
-        <div className={`px-5 py-1 sm:px-6 ${surface}`}>
-          <PricingTiersTable tiers={boat.tiers} />
-        </div>
-      </Section>
+        <GlassPanel
+          title="Upcoming charters"
+          className="p-0 [&>div:first-child]:px-5 [&>div:first-child]:pt-5"
+        >
+          <CharterList
+            charters={upcoming}
+            hideBoat
+            empty="Nothing booked on this boat right now."
+          />
+        </GlassPanel>
 
-      <Section id="boat-upcoming" title="Upcoming charters">
-        <CharterList charters={upcoming} hideBoat empty="Nothing booked on this boat right now." />
-      </Section>
-
-      {past.length > 0 ? (
-        <Section id="boat-past" title="Past charters">
-          <CharterList charters={past.slice(0, 10)} hideBoat empty="" />
-        </Section>
-      ) : null}
-    </div>
+        {past.length > 0 ? (
+          <GlassPanel
+            title="Past charters"
+            className="p-0 [&>div:first-child]:px-5 [&>div:first-child]:pt-5"
+          >
+            <CharterList charters={past.slice(0, 10)} hideBoat empty="" />
+          </GlassPanel>
+        ) : null}
+      </div>
+    </GlassPage>
   );
 }

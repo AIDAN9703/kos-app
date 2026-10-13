@@ -30,12 +30,13 @@ messages safe to show; anything else is logged and replaced by a generic message
 ESLint (`eslint.config.mjs`) enforces the boundary: only services may import
 `@/database/db`; only data files and services may import a service (or the Stripe
 client). Areas: boats, search, deals (`deal.data` + `deal-money.data`), proposal,
-booking requests, profile, owner portal, users, crew rosters, phone sign-in,
-availability/calendars, payments, inbound email, blog, add-ons, settings, dashboard,
-admin search, uploads.
+booking requests, profile, owner portal, owner listings, boat catalog, users, crew
+rosters, phone sign-in, availability/calendars, payments, inbound email, blog, add-ons,
+settings, dashboard, admin search, uploads.
 
-**Features:** bookings, boats, availability, payments, users, profiles, listing,
-search, blog, add-ons, auth, admin, booking-groups, app-settings, `_marketing`.
+**Features:** bookings, boats, boat-catalog, availability, payments, users, profile,
+profiles, listing, owner-listing, owner-dashboard, search, blog, marketing, media,
+add-ons, auth, admin, booking-groups, app-settings, `_marketing`.
 
 ### Three conventions that matter
 
@@ -322,19 +323,41 @@ Unset boats fall back to America/New_York. Prod's remaining 12: 2 at La Coloma M
   deals assigned to the broker. Every deal action checks
   `features/bookings/lib/deal-access.ts`; brokers never see company costs/margin,
   payment recording, refunds, reassignment, settings or users.
-- **Owner portal (`/owner`, 2026-09-30)** — site look (Montserrat, navy, white `surface`
-  cards; reuses profile `PageHeader`/`Section`/`ArrowLink`), no theme CSS. Light sticky header:
-  logo + "Owner portal", tabs (Overview / My boats / Charters), and a large "Exit owner portal"
-  button back to `/profile`. Overview: 4 stat cards (earnings this year + YoY, outstanding vs
-  paid payouts, charters completed + hours, 30-day occupancy), 12-month navy bar chart
-  (earnings/charters toggle + table view), next 5 charters, per-boat table. My boats: photo
-  cards; boat detail: specs, booked-days calendar, rate card with owner payout per tier,
-  upcoming/past charters. Charters: upcoming/past/cancelled filter. Read-only; owners never
-  see guest details or what the guest paid. Payout figures = OWNER_PAYOUT expense lines +
-  `booking_ops.sent_to_owner_cents` as entered by admins. No payouts/statements yet (Stripe
-  Connect not built).
+- **Owner portal (`/owner`, redesigned 2026-10-08)** — the admin glass theme (the layout
+  carries `data-admin-theme`). Glass header: logo, "Owner portal", pill tabs (Overview / My
+  boats / Charters / Earnings) and an "Exit" pill back to `/profile`. Overview: a hero over
+  the owner's boat photo (earned this year, owed, paid, next charter, booked ahead), the
+  next charters, a "Needs attention" list (drafts, changes requested, hidden, under 5
+  photos, insurance due in 45 days; `owner-insights.ts`), the fleet, and a boat × 28-day
+  outlook. Earnings: 12 months back + 3 ahead, by boat, and a month-by-month statement.
+  Read-only money; owners never see guest details or what the guest paid. Payout figures =
+  OWNER_PAYOUT expense lines + `booking_ops.sent_to_owner_cents` as entered by admins. No
+  payouts/statements yet (Stripe Connect not built). Dev demo data:
+  `npx tsx database/scripts/dev/owner-demo.mts seed|clean`.
+- **List your boat (DRAFT, 2026-10-08, migration 0071)** — `/list-your-boat` is a public
+  marketing page with an earnings estimate from live boats' prices; `/list-your-boat/start`
+  takes the first details before sign-up; the 8-step flow lives at
+  `/list-your-boat/<boatId>/<step>` (`app/(listing)`, `features/owner-listing/`). Starting
+  a listing gives the person the owner role. Boats carry `managed_by` (KOS | OWNER) and
+  `listing_status` (DRAFT → IN_REVIEW → CHANGES_REQUESTED / APPROVED); a CHECK keeps
+  unapproved boats hidden. Admins approve or send back at `/admin/boats/review`. Owners
+  edit only `managed_by = OWNER` boats. **KOS's fee is undecided**: the 20% in
+  `listing.constants.ts` is display only. No owner/admin emails, date blocking or payouts.
+- **Boat makes & models (2026-10-13, migrations 0072–0073)** — `boat_make` (name, unique
+  slug) and `boat_model` (per make, unique slug within the make). `boat.make_id` /
+  `boat.model_id` replace the old free-text columns; a composite FK
+  `(make_id, model_id) → boat_model(make_id, id)` means a model always belongs to the
+  boat's make. 0072 seeded 180 makes and linked every existing boat (spellings like
+  "SeaRay" / "Azimut Yachts" folded in, boat types like "Cruiser" dropped, swapped
+  make/model fixed). The pickers (`features/boat-catalog/components/CatalogPicker.tsx`)
+  list the whole catalog. In the admin boat form an unlisted name shows "Add" and is
+  created when the boat saves; owners can't add, they pick "Other", which stores no
+  make/model, and KOS sets it in the boat editor when reviewing the listing. No review
+  queue: names match on `boat-catalog.keys.ts` ("Azimut Yachts" finds Azimut).
+
 - **Customer profile (`/profile`, rebuilt 2026-09-16)** — site header + left rail (identity
-  card, stacked nav, owner/captain entries by role). Overview: to-do cards (proposal to
+  card, stacked nav, "Your roles": Admin / Owner portal / Broker portal / Captain dashboard,
+  matching the site user menu, which is also the only way into admin from the site). Overview: to-do cards (proposal to
   review, payment due, missing phone/photo), next-trip hero with countdown, other upcoming
   trips, past trips ("My trips"), latest blog posts as cards. Trips: "Upcoming" reservation
   cards + "Past" tiles, one shared elevation style (`features/profile/components/surface.ts`); trip detail with boat-local times, payment card, customer-scoped Pay (only while
@@ -420,6 +443,13 @@ sitemap moves to a built-in `app/sitemap.ts`) and drizzle-kit/esbuild (local onl
    success-page verify covers checkout only.
 3. Set timezones on the last 12 boats (2 La Coloma, 10 unlabelled) once their
    locations are known.
+4. **Migrations 0071–0073 go out in two deploys.** 0073 drops `boat.make` / `boat.model`,
+   which the live code reads until the new code is out, and `db:migrate:*` runs every
+   pending migration. So: (1) commit without 0073 (its .sql, `meta/0073_snapshot.json`
+   and its `_journal.json` entry), run `db:migrate:prod` (0071 + 0072: catalog added and
+   backfilled, old columns kept), deploy; (2) commit 0073 and run `db:migrate:prod`. 0073
+   raises and drops nothing if any boat would lose its make or model. 0071 is the
+   owner-listing draft; ship it only once that's signed off.
 
 **Money semantics (fixed 2026-08-19):** `booking_ops.expense_cents` aggregates
 ALL expense lines (owner payout + fuel/crew/dockage), so REV = GMV − every

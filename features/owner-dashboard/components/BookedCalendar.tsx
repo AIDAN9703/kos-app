@@ -29,10 +29,10 @@ export function BookedCalendar({ charters, timezone, months = 2 }: BookedCalenda
         );
         return (
           <div key={i}>
-            <p className="font-semibold text-primary">{format(first, "MMMM yyyy")}</p>
+            <p className="font-semibold text-foreground">{format(first, "MMMM yyyy")}</p>
             <div className="mt-3 grid grid-cols-7 gap-1 text-center text-sm">
               {WEEKDAYS.map((w, idx) => (
-                <span key={idx} className="pb-1 text-xs font-medium text-slate-400">
+                <span key={idx} className="pb-1 text-xs font-medium text-muted-foreground">
                   {w}
                 </span>
               ))}
@@ -49,10 +49,10 @@ export function BookedCalendar({ charters, timezone, months = 2 }: BookedCalenda
                     className={cn(
                       "flex h-9 items-center justify-center rounded-lg tabular-nums",
                       isBooked
-                        ? "bg-primary font-semibold text-white"
+                        ? "bg-primary font-semibold text-primary-foreground shadow-[0_0_12px_-3px_var(--primary)]"
                         : key < todayKey
-                          ? "text-slate-300"
-                          : "text-slate-700",
+                          ? "text-muted-foreground/50"
+                          : "bg-glass-inset text-foreground/85",
                       key === todayKey && !isBooked && "font-semibold ring-1 ring-primary"
                     )}
                   >

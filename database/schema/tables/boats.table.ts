@@ -1,6 +1,9 @@
-import { pgTable, text, integer, boolean, doublePrecision, uuid, timestamp, index, geometry } from "drizzle-orm/pg-core";
-import { boatCategoryEnum, timezoneEnum } from "@/database/schema/enums";
+import { sql } from "drizzle-orm";
+import { pgTable, text, integer, boolean, doublePrecision, uuid, timestamp, index, geometry, check, foreignKey } from "drizzle-orm/pg-core";
+import { boatCategoryEnum, boatListingStatusEnum, boatManagedByEnum, timezoneEnum } from "@/database/schema/enums";
 import { users } from "@/database/schema/tables";
+import { boatMakes } from "./boatMakes.table";
+import { boatModels } from "./boatModels.table";
 
 
 export const boats = pgTable("boat",{
@@ -19,10 +22,23 @@ export const boats = pgTable("boat",{
     // Owner Information
     ownerId: uuid("owner_id").notNull().references(() => users.id, { onDelete: "restrict" }), // Can't delete user if owns boats
     ownerNotes: text("owner_notes"), // Added owner notes for internal use
+
+    // Listing (self-serve "List your boat"; admin-made boats are KOS + APPROVED)
+    managedBy: boatManagedByEnum("managed_by").default("KOS").notNull(),
+    listingStatus: boatListingStatusEnum("listing_status").default("APPROVED").notNull(),
+    listingSubmittedAt: timestamp("listing_submitted_at", { mode: "date", withTimezone: true }),
+    listingReviewedAt: timestamp("listing_reviewed_at", { mode: "date", withTimezone: true }),
+    listingReviewedByUserId: uuid("listing_reviewed_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    /** What KOS asked the owner to fix when it sent the listing back. */
+    listingReviewNote: text("listing_review_note"),
+    /** Who captains it, as the owner described it (free text key; see owner-listing constants). */
+    captainArrangement: text("captain_arrangement"),
     
     // Boat Specifications
-    make: text("make"),
-    model: text("model"),
+    /** The make, from boat_make. Empty when it isn't listed (an owner picked "Other"). */
+    makeId: uuid("make_id").references(() => boatMakes.id, { onDelete: "restrict" }),
+    /** The model, always one of the make's (see the foreign key below). */
+    modelId: uuid("model_id"),
     yearBuilt: integer("year_built"),
     lengthFt: integer("length_ft").notNull(),
     bathrooms: integer("bathrooms"),         // Renamed from numOfBathrooms
@@ -114,6 +130,17 @@ export const boats = pgTable("boat",{
     index("boat_ranking_idx").on(table.searchRankingScore), // For search ranking queries
     // Search-specific indexes
     index("boat_search_name_idx").on(table.name),
-    index("boat_search_make_model_idx").on(table.make, table.model),
+    index("boat_listing_status_idx").on(table.listingStatus),
+    // Only a reviewed listing can be live.
+    check("boat_live_requires_approval", sql`NOT ${table.active} OR ${table.listingStatus} = 'APPROVED'`),
+    index("boat_make_idx").on(table.makeId),
+    index("boat_model_idx").on(table.modelId),
+    // A boat's model is always one of its make's.
+    foreignKey({
+      name: "boat_make_model_fk",
+      columns: [table.makeId, table.modelId],
+      foreignColumns: [boatModels.makeId, boatModels.id],
+    }).onDelete("restrict"),
+    check("boat_model_needs_make", sql`${table.modelId} IS NULL OR ${table.makeId} IS NOT NULL`),
   ]
 );

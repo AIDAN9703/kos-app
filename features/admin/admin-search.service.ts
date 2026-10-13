@@ -4,6 +4,7 @@ import { desc, eq, ilike, or } from "drizzle-orm";
 
 import { db } from "@/database/db";
 import { bookings, boats, users } from "@/database/schema";
+import { makeOrModelLike } from "@/features/boat-catalog/boat-catalog.service";
 
 /**
  * The admin command bar's search across people, boats and bookings.
@@ -33,14 +34,7 @@ export async function searchAll(query: string) {
     db
       .select({ id: boats.id, name: boats.name, locationLabel: boats.locationLabel })
       .from(boats)
-      .where(
-        or(
-          ilike(boats.name, term),
-          ilike(boats.make, term),
-          ilike(boats.model, term),
-          ilike(boats.locationLabel, term)
-        )
-      )
+      .where(or(ilike(boats.name, term), makeOrModelLike(term), ilike(boats.locationLabel, term)))
       .limit(5),
     db
       .select({

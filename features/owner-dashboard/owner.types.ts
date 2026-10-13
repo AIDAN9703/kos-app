@@ -26,6 +26,16 @@ export interface OwnerBoat {
   name: string;
   category: string;
   active: boolean;
+  /** KOS-managed (concierge) boats are read-only here; self-listed ones the owner edits. */
+  managedBy: "KOS" | "OWNER";
+  listingStatus: "DRAFT" | "IN_REVIEW" | "CHANGES_REQUESTED" | "APPROVED";
+  /** What KOS asked to change, when it sent the listing back. */
+  reviewNote: string | null;
+  insuranceExpiry: Date | null;
+  /** Cover plus gallery. */
+  photoCount: number;
+  /** Cheapest active trip, as guests see it. */
+  fromPriceDollars: number | null;
   mainImage: string | null;
   locationLabel: string | null;
   timezone: string | null;
@@ -75,8 +85,12 @@ export interface OwnerKpis {
   /** Same window last year (Jan 1 → today's date), for the year-over-year delta. */
   earningsSamePeriodLastYearCents: number;
   paidOutCents: number;
+  /** Paid out on this year's charters (pairs with earningsThisYearCents). */
+  paidThisYearCents: number;
   /** Recorded payouts not yet sent. */
   pendingPayoutCents: number;
+  /** Payouts on confirmed charters still ahead: money already on the books. */
+  bookedAheadCents: number;
   upcomingCharters: number;
   completedThisYear: number;
   hoursThisYear: number;
@@ -94,6 +108,8 @@ export interface MonthlyPoint {
   longLabel: string;
   earningsCents: number;
   charters: number;
+  /** A month still ahead: its numbers are confirmed charters, not finished ones. */
+  future?: boolean;
 }
 
 export interface BoatPerformance {

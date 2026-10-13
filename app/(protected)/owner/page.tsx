@@ -1,22 +1,25 @@
 import { requireOwner } from "@/shared/lib/utils/auth-utils";
-import { ArrowLink } from "@/features/profile/components/ArrowLink";
-import { PageHeader } from "@/features/profile/components/PageHeader";
-import { Section } from "@/features/profile/components/Section";
-import { ActivityChart } from "@/features/owner-dashboard/components/ActivityChart";
-import { CharterList } from "@/features/owner-dashboard/components/CharterList";
-import { FleetTable } from "@/features/owner-dashboard/components/FleetTable";
+import { GlassPage, GlassPanel } from "@/shared/admin/components/glass";
+import { ComingUp } from "@/features/owner-dashboard/components/ComingUp";
+import { FleetRows } from "@/features/owner-dashboard/components/FleetGrid";
+import { FourWeekOutlook } from "@/features/owner-dashboard/components/FourWeekOutlook";
+import { NeedsAttention } from "@/features/owner-dashboard/components/NeedsAttention";
 import { NoBoatsYet } from "@/features/owner-dashboard/components/NoBoatsYet";
-import { OwnerKpis } from "@/features/owner-dashboard/components/OwnerKpis";
+import { OwnerHero } from "@/features/owner-dashboard/components/OwnerHero";
 import { buildOwnerAnalytics } from "@/features/owner-dashboard/owner-analytics";
+import { attentionItems, buildOutlook } from "@/features/owner-dashboard/owner-insights";
 import {
   getMyBoats,
   getMyCharters,
   getMyOwnerIdentity,
 } from "@/features/owner-dashboard/owner.data";
 
-/** Boats shown in the overview table before linking to the full list. */
-const TOP_BOATS = 5;
-
+/**
+ * The owner's home, time first (the Airbnb Today / Vrbo pattern): the hero
+ * with the money that matters, what's coming up, anything that needs the
+ * owner, then four weeks of availability. The full earnings history lives
+ * on the Earnings tab.
+ */
 export default async function OwnerOverviewPage() {
   await requireOwner();
   const [identity, boats, charters] = await Promise.all([
@@ -24,48 +27,52 @@ export default async function OwnerOverviewPage() {
     getMyBoats(),
     getMyCharters(),
   ]);
-  const title = `Welcome back, ${identity.name.split(" ")[0]}`;
+  const firstName = identity.name.split(" ")[0];
 
   if (boats.length === 0) {
     return (
-      <div className="space-y-8">
-        <PageHeader title={title} />
+      <GlassPage>
         <NoBoatsYet />
-      </div>
+      </GlassPage>
     );
   }
 
   const now = new Date();
   const { kpis, monthly, byBoat, upcoming } = buildOwnerAnalytics(charters, boats, now);
+  const attention = attentionItems(boats, now);
+  const outlook = buildOutlook(boats, charters, now);
+  const photos = new Map(boats.map((b) => [b.id, b.mainImage]));
+  const heroPhoto =
+    boats.find((b) => b.active && b.mainImage)?.mainImage ??
+    boats.find((b) => b.mainImage)?.mainImage ??
+    null;
 
   return (
-    <div className="space-y-10">
-      <PageHeader title={title} />
-
-      <OwnerKpis kpis={kpis} year={now.getFullYear()} />
-
-      <ActivityChart monthly={monthly} />
-
-      <Section
-        id="upcoming-charters"
-        title="Upcoming charters"
-        action={<ArrowLink href="/owner/charters">View all</ArrowLink>}
-      >
-        <CharterList
-          charters={upcoming.slice(0, 5)}
-          empty="Nothing booked on your boats right now. New charters show up here once they're confirmed."
+    <GlassPage>
+      <div className="flex flex-col gap-4">
+        <OwnerHero
+          firstName={firstName}
+          photo={heroPhoto}
+          kpis={kpis}
+          monthly={monthly}
+          next={upcoming[0] ?? null}
         />
-      </Section>
 
-      <Section
-        id="boats"
-        title={`Your boats in ${now.getFullYear()}`}
-        action={
-          boats.length > TOP_BOATS ? <ArrowLink href="/owner/boats">View all</ArrowLink> : null
-        }
-      >
-        <FleetTable rows={byBoat.slice(0, TOP_BOATS)} />
-      </Section>
-    </div>
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
+          <ComingUp charters={upcoming} photos={photos} className="xl:col-span-7" />
+          <div className="flex min-w-0 flex-col gap-4 xl:col-span-5">
+            {attention.length > 0 ? <NeedsAttention items={attention} /> : null}
+            <GlassPanel
+              title={boats.length === 1 ? "Your boat" : `Your boats (${boats.length})`}
+              className="flex-1"
+            >
+              <FleetRows boats={boats} performance={byBoat} />
+            </GlassPanel>
+          </div>
+        </div>
+
+        <FourWeekOutlook {...outlook} />
+      </div>
+    </GlassPage>
   );
 }

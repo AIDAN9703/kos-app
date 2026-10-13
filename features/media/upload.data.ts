@@ -1,8 +1,9 @@
 import "server-only";
 
 import { getImageKit } from "@/shared/lib/services/imagekit-server";
-import { UserFacingError } from "@/shared/lib/errors";
-import { assertCan, assertSignedIn } from "@/shared/lib/utils/auth-utils";
+import { AccessDenied, UserFacingError } from "@/shared/lib/errors";
+import { assertCan, assertSignedIn, can } from "@/shared/lib/utils/auth-utils";
+import { mayAddPhotosTo } from "@/features/owner-listing/listing.data";
 
 const MAX_BYTES = 10 * 1024 * 1024;
 
@@ -30,9 +31,12 @@ export async function uploadImage(input: {
       tags.push(`user_${me.id}`);
       break;
     case "boat": {
-      await assertCan({ boat: ["edit"] });
       if (!entityId || !entityName) {
         throw new UserFacingError("Boat ID and name are required for boat images");
+      }
+      // Staff, or the owner adding photos to a boat they listed themselves.
+      if (!can(me, { boat: ["edit"] }) && !(await mayAddPhotosTo(me.id, entityId))) {
+        throw new AccessDenied();
       }
       // A URL-friendly version of the boat name
       const safeBoatName = entityName.toLowerCase().replace(/[^a-z0-9]+/g, "-");

@@ -19,8 +19,6 @@ export const PUBLIC_BOAT_FIELDS = [
   'description',
   'category',
   'capacity',
-  'make',
-  'model',
   'yearBuilt',
   'lengthFt',
   'bathrooms',
@@ -65,8 +63,14 @@ export type PublicBoatAddOn = Pick<
   'id' | 'addOnId' | 'name' | 'description' | 'category' | 'priceCents' | 'isComplimentary' | 'imageUrl'
 >;
 
+/** A boat's make and model names, from the boat_make / boat_model catalog. */
+export interface BoatMakeAndModel {
+  make: string | null;
+  model: string | null;
+}
+
 /** The boat page and the booking flow. */
-export type PublicBoat = Pick<Boat, (typeof PUBLIC_BOAT_FIELDS)[number]> & {
+export type PublicBoat = Pick<Boat, (typeof PUBLIC_BOAT_FIELDS)[number]> & BoatMakeAndModel & {
   pricingTiers: BoatTier[];
   boatAddOns: PublicBoatAddOn[];
 };
@@ -144,7 +148,7 @@ export interface PaginatedBoatsResponse {
 }
 
 /** Everything about a boat: every column, all tiers with payouts, owner contact. */
-export interface BoatDetail extends Boat {
+export interface BoatDetail extends Boat, BoatMakeAndModel {
   pricingTiers: BoatPricingTier[];
   /** Add-ons this boat offers (joined with the catalog), active or not. */
   boatAddOns: ResolvedBoatAddOn[];

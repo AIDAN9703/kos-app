@@ -36,7 +36,7 @@ const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
   {
     title: "Owners",
     links: [
-      { label: "List your boat", href: "/services/charter-management" },
+      { label: "List your boat", href: "/list-your-boat" },
       { label: "Charter management", href: "/services/charter-management" },
       { label: "Yacht management", href: "/services/yacht-management" },
       { label: "Dock management", href: "/services/dock-management" },

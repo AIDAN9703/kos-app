@@ -26,18 +26,22 @@ import { LocationSection } from "./sections/LocationSection";
 import { CharterOptionsSection } from "./sections/CharterOptionsSection";
 import { OwnerSection } from "./sections/OwnerSection";
 import type { AddOnListItem } from "@/features/add-ons/add-on.types";
+import type { CatalogMake } from "@/features/boat-catalog/boat-catalog.types";
 
 interface AdminBoatFormProps {
   boat?: CreateBoatInput;
   boatId?: string;
   /** Active catalog add-ons, for the per-boat "Add-ons offered" section. */
   availableAddOns?: AddOnListItem[];
+  /** Makes and models for the make and model pickers. */
+  catalog: CatalogMake[];
 }
 
 export default function AdminAddUpdateBoatForm({
   boat,
   boatId,
   availableAddOns = [],
+  catalog,
 }: AdminBoatFormProps) {
   const { toast } = useToast();
   const router = useRouter();
@@ -141,7 +145,7 @@ export default function AdminAddUpdateBoatForm({
 
         <BasicInfoSection />
         <OwnerSection />
-        <SpecsSection />
+        <SpecsSection catalog={catalog} />
         <FeaturesSection />
         <MediaSection
           images={images}

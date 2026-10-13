@@ -3,67 +3,91 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { CalendarDays, LayoutDashboard, LogOut, Ship, Wallet, type LucideIcon } from "lucide-react";
 import { cn } from "@/shared/lib/utils/general-utils";
-import { OWNER_TABS, isOwnerTabActive } from "../owner.nav";
+import { OWNER_TABS, isOwnerTabActive, type OwnerTabIcon } from "../owner.nav";
 
-/** Portal top bar: who's here, the three sections, and a big way out. */
+const ICONS: Record<OwnerTabIcon, LucideIcon> = {
+  overview: LayoutDashboard,
+  boats: Ship,
+  charters: CalendarDays,
+  earnings: Wallet,
+};
+
+/**
+ * The portal's top bar, in the admin's glass language: logo and name on the
+ * left, the tabs as labelled pills (the current one gold), and Exit back to
+ * the customer account. Below lg the tabs get their own row and scroll.
+ */
 export function OwnerHeader({ ownerName }: { ownerName: string }) {
   const pathname = usePathname();
+  const nav = useRef<HTMLElement>(null);
 
+  useEffect(() => {
+    nav.current
+      ?.querySelector('[aria-current="page"]')
+      ?.scrollIntoView({ inline: "center", block: "nearest" });
+  }, [pathname]);
+
+  // Same gutter as the page area (OwnerShell) so the logo lines up with the content.
   return (
-    <header className="sticky top-0 z-30 border-b border-gray-200 bg-white">
-      <div className="mx-auto max-w-[1200px] px-4 sm:px-8">
-        <div className="flex items-center justify-between gap-4 py-3">
-          <Link href="/owner" className="flex min-w-0 items-center gap-3">
-            <Image
-              src="/icons/transparent-logo.png"
-              alt="KOS Yachts"
-              width={44}
-              height={44}
-              className="filter-blue h-10 w-10 shrink-0 rounded-full sm:h-11 sm:w-11"
-              priority
-            />
-            <span className="min-w-0">
-              <span className="block text-base font-bold whitespace-nowrap text-primary sm:text-lg">
-                Owner portal
-              </span>
-              <span className="block truncate text-xs text-slate-500">{ownerName}</span>
+    <header className="shrink-0 px-4 md:px-6 xl:px-12">
+      <div className="mx-auto flex w-full max-w-[1680px] flex-wrap items-center gap-3 py-3 lg:grid lg:h-20 lg:grid-cols-[1fr_auto_1fr] lg:gap-4 lg:py-0">
+        <Link
+          href="/owner"
+          className="flex min-w-0 items-center gap-3 justify-self-start rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Image
+            src="/icons/logo.png"
+            alt="Kings of the Sea"
+            width={40}
+            height={40}
+            priority
+            className="size-10 shrink-0 object-contain"
+          />
+          <span className="min-w-0 leading-tight">
+            <span className="block text-lg font-semibold tracking-tight text-foreground">
+              Owner portal
             </span>
-          </Link>
+            <span className="block h-4 truncate text-xs text-muted-foreground">{ownerName}</span>
+          </span>
+        </Link>
 
-          <Link
-            href="/profile"
-            className="inline-flex h-11 shrink-0 items-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-white transition-colors hover:bg-primary/90"
-          >
-            <LogOut className="h-4 w-4" aria-hidden />
-            Exit <span className="hidden sm:inline">owner</span> portal
-          </Link>
-        </div>
-
-        <nav aria-label="Owner portal" className="-mb-px">
-          <ul className="hide-scrollbar flex gap-6 overflow-x-auto">
-            {OWNER_TABS.map((tab) => {
-              const active = isOwnerTabActive(tab, pathname);
-              return (
-                <li key={tab.href} className="shrink-0">
-                  <Link
-                    href={tab.href}
-                    aria-current={active ? "page" : undefined}
-                    className={cn(
-                      "block border-b-2 pt-1 pb-3 text-sm font-semibold transition-colors",
-                      active
-                        ? "border-primary text-primary"
-                        : "border-transparent text-slate-500 hover:text-primary"
-                    )}
-                  >
-                    {tab.label}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+        <nav
+          ref={nav}
+          aria-label="Owner portal"
+          className="order-last -mx-4 flex w-[calc(100%+2rem)] items-center gap-1.5 overflow-x-auto px-4 py-1 [scrollbar-width:none] md:-mx-6 md:w-[calc(100%+3rem)] md:px-6 lg:order-none lg:mx-0 lg:w-auto lg:overflow-visible lg:px-0"
+        >
+          {OWNER_TABS.map((tab) => {
+            const Icon = ICONS[tab.icon];
+            const active = isOwnerTabActive(tab, pathname);
+            return (
+              <Link
+                key={tab.href}
+                href={tab.href}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "flex h-11 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-medium outline-none transition-[filter,box-shadow] duration-300 focus-visible:ring-2 focus-visible:ring-ring",
+                  active
+                    ? "border-transparent bg-primary text-primary-foreground shadow-[0_8px_24px_-10px_var(--primary)]"
+                    : "border-glass-border bg-glass-strong text-foreground/85 hover:text-foreground hover:brightness-125"
+                )}
+              >
+                <Icon aria-hidden className="size-[18px] shrink-0" />
+                {tab.label}
+              </Link>
+            );
+          })}
         </nav>
+
+        <Link
+          href="/profile"
+          className="ml-auto flex h-11 shrink-0 items-center gap-2 rounded-full border border-glass-border bg-glass-strong px-5 text-sm font-semibold text-foreground outline-none transition-[filter] hover:brightness-125 focus-visible:ring-2 focus-visible:ring-ring lg:ml-0 lg:justify-self-end"
+        >
+          <LogOut aria-hidden className="size-4" />
+          Exit
+        </Link>
       </div>
     </header>
   );

@@ -3,6 +3,8 @@ import "server-only";
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/database/db";
 import {
+  boatMakes,
+  boatModels,
   boatPricingTiers,
   boats,
   bookingExpenseLines,
@@ -49,13 +51,21 @@ const boatColumns = {
   displayTitle: boats.displayTitle,
   category: boats.category,
   active: boats.active,
+  managedBy: boats.managedBy,
+  listingStatus: boats.listingStatus,
+  reviewNote: boats.listingReviewNote,
+  insuranceExpiry: boats.insuranceExpiry,
+  photoCount: sql<number>`(${boats.mainImage} is not null)::int + coalesce(array_length(${boats.galleryImages}, 1), 0)`,
+  fromPriceDollars: sql<
+    number | null
+  >`(select min(t.price) from boat_pricing_tier t where t.boat_id = ${boats.id} and t.is_active)`,
   mainImage: boats.mainImage,
   locationLabel: boats.locationLabel,
   timezone: boats.timezone,
   capacity: boats.capacity,
   lengthFt: boats.lengthFt,
-  make: boats.make,
-  model: boats.model,
+  make: boatMakes.name,
+  model: boatModels.name,
   yearBuilt: boats.yearBuilt,
 };
 
@@ -72,6 +82,8 @@ export async function getOwnerBoats(ownerId: string): Promise<OwnerBoat[]> {
   const rows = await db
     .select(boatColumns)
     .from(boats)
+    .leftJoin(boatMakes, eq(boatMakes.id, boats.makeId))
+    .leftJoin(boatModels, eq(boatModels.id, boats.modelId))
     .where(eq(boats.ownerId, ownerId))
     .orderBy(desc(boats.active), asc(boats.name));
   return rows.map(toOwnerBoat);
@@ -84,6 +96,8 @@ export async function getOwnerBoat(
   const [row] = await db
     .select({ ...boatColumns, description: boats.description })
     .from(boats)
+    .leftJoin(boatMakes, eq(boatMakes.id, boats.makeId))
+    .leftJoin(boatModels, eq(boatModels.id, boats.modelId))
     .where(and(eq(boats.id, boatId), eq(boats.ownerId, ownerId)))
     .limit(1);
   if (!row) return null;

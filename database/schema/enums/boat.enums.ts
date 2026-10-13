@@ -39,3 +39,17 @@ export const timezoneEnum = pgEnum('timezone', [
   'America/Toronto',       // Eastern Canada
   'America/Vancouver',     // Pacific Canada
 ]);
+/**
+ * Where a boat's listing is in review. Admin-made boats start APPROVED; a boat
+ * an owner lists themselves starts as a DRAFT and needs a KOS review before
+ * it can go live (boat.active only when APPROVED; a check constraint holds it).
+ */
+export const boatListingStatusEnum = pgEnum("BoatListingStatus", [
+  "DRAFT",
+  "IN_REVIEW",
+  "CHANGES_REQUESTED",
+  "APPROVED",
+]);
+
+/** Who runs the listing: the KOS team (concierge) or the owner (self-listed). */
+export const boatManagedByEnum = pgEnum("BoatManagedBy", ["KOS", "OWNER"]);

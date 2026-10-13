@@ -10,18 +10,26 @@ export const metadata: Metadata = {
 };
 
 /**
- * /owner — the owner portal: its own header (with a clear way back to the
- * customer account) around the site's usual type and colors. Owners only:
- * requireOwner() sends everyone else to /profile; proxy.ts handles sign-in.
+ * /owner — the owner portal, in the admin's glass theme (data-admin-theme
+ * switches globals.css to it, like AdminShell). Owners only: requireOwner()
+ * sends everyone else to /profile; proxy.ts handles sign-in.
+ *
+ * The page area's padding matches the top bar's; GlassPage undoes it so its
+ * background runs edge to edge, then caps its own content.
  */
 export default async function OwnerLayout({ children }: { children: ReactNode }) {
   await requireOwner();
   const { name } = await getMyOwnerIdentity();
 
   return (
-    <div className="min-h-svh bg-slate-50/60">
+    <div
+      data-admin-theme
+      className="flex h-svh flex-col overflow-hidden bg-background font-sans text-foreground antialiased"
+    >
       <OwnerHeader ownerName={name} />
-      <main className="mx-auto max-w-[1200px] px-4 py-8 sm:px-8 sm:py-10">{children}</main>
+      <main className="min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-6 md:py-6 xl:px-12">
+        <div className="flex min-h-full flex-col">{children}</div>
+      </main>
     </div>
   );
 }

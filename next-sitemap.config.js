@@ -12,6 +12,14 @@ module.exports = {
     '/admin/*',
     '/profile/*', 
     '/bookings/*',
+    '/owner',
+    '/owner/*',
+    '/brokers',
+    '/brokers/*',
+    // The listing flow (the /list-your-boat landing page itself stays in)
+    '/list-your-boat/*',
+    // Landing page redesign mockup (also noindex)
+    '/home-preview',
     
     // Auth routes
     '/auth/*',
@@ -45,6 +53,10 @@ module.exports = {
         disallow: [
           '/admin/',
           '/profile/',
+          '/owner',
+          '/brokers',
+          '/list-your-boat/',
+          '/home-preview',
           '/bookings/',
           '/api/',
           '/auth/',
@@ -66,6 +78,10 @@ module.exports = {
         disallow: [
           '/admin/',
           '/profile/',
+          '/owner',
+          '/brokers',
+          '/list-your-boat/',
+          '/home-preview',
           '/bookings/',
           '/api/',
           '/auth/',
@@ -77,6 +93,10 @@ module.exports = {
         disallow: [
           '/admin/',
           '/profile/',
+          '/owner',
+          '/brokers',
+          '/list-your-boat/',
+          '/home-preview',
           '/bookings/',
           '/api/',
           '/auth/',
@@ -103,6 +123,7 @@ module.exports = {
       // Services (high priority - main business)
       '/services': { priority: 0.9, changefreq: 'monthly' },
       '/services/charter-management': { priority: 0.8, changefreq: 'monthly' },
+      '/list-your-boat': { priority: 0.8, changefreq: 'weekly' },
       '/services/yacht-management': { priority: 0.8, changefreq: 'monthly' },
       '/services/sales': { priority: 0.8, changefreq: 'monthly' },
       '/services/term-charters': { priority: 0.8, changefreq: 'monthly' },

@@ -81,7 +81,9 @@ function buildKpis(charters: OwnerCharter[], boats: OwnerBoat[], now: Date): Own
     earningsThisYearCents: sumPayout(thisYear),
     earningsSamePeriodLastYearCents: sumPayout(samePeriodLastYear),
     paidOutCents,
+    paidThisYearCents: thisYear.reduce((s, c) => s + c.paidOutCents, 0),
     pendingPayoutCents: Math.max(0, earnedCents - paidOutCents),
+    bookedAheadCents: sumPayout(charters.filter((c) => isUpcomingCharter(c, now))),
     upcomingCharters: charters.filter((c) => isUpcomingCharter(c, now)).length,
     completedThisYear: thisYear.filter((c) => c.status === "COMPLETED").length,
     hoursThisYear: thisYear.reduce((s, c) => s + charterHours(c), 0),
@@ -90,16 +92,25 @@ function buildKpis(charters: OwnerCharter[], boats: OwnerBoat[], now: Date): Own
   };
 }
 
-/** The trailing 12 months, oldest first, including the current month. */
-function buildMonthly(charters: OwnerCharter[], now: Date): MonthlyPoint[] {
-  const months: MonthlyPoint[] = Array.from({ length: 12 }, (_, i) => {
-    const month = addMonths(startOfMonth(now), i - 11);
+/**
+ * Month buckets, oldest first: `back` months before this one, this month,
+ * and `ahead` months after it (marked future: booked, not yet sailed).
+ */
+export function buildMonthly(
+  charters: OwnerCharter[],
+  now: Date,
+  back = 11,
+  ahead = 0
+): MonthlyPoint[] {
+  const months: MonthlyPoint[] = Array.from({ length: back + 1 + ahead }, (_, i) => {
+    const month = addMonths(startOfMonth(now), i - back);
     return {
       key: format(month, "yyyy-MM"),
       label: format(month, "MMM"),
       longLabel: format(month, "MMMM yyyy"),
       earningsCents: 0,
       charters: 0,
+      future: i > back,
     };
   });
   const byKey = new Map(months.map((m) => [m.key, m]));

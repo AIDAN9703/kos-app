@@ -43,8 +43,9 @@ const boatBaseSchema = z.object({
   ownerNotes: z.string().optional().nullable(),
   
   // Boat Specifications
-  make: z.string().optional().nullable(),
-  model: z.string().optional().nullable(),
+  // Names, matched to the boat_make / boat_model catalog when the boat is saved.
+  make: z.string().trim().max(60, "Keep the make under 60 characters").optional().nullable(),
+  model: z.string().trim().max(60, "Keep the model under 60 characters").optional().nullable(),
   yearBuilt: z
     .number()
     .int()

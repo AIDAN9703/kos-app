@@ -182,6 +182,7 @@ export const navigationData: NavigationData = {
         },
       ],
     },
+    { href: "/list-your-boat", label: "List your boat", type: "link" },
     { href: "/contact", label: "Contact", type: "link" },
   ],
 
@@ -242,4 +243,6 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
 ];
 
 /** The broker portal (/brokers): their deals, and nothing of the company's. */
-export const BROKER_NAV_ITEMS: AdminNavItem[] = [{ label: "My deals", href: "/brokers", icon: Handshake }];
+export const BROKER_NAV_ITEMS: AdminNavItem[] = [
+  { label: "My deals", href: "/brokers", icon: Handshake },
+];

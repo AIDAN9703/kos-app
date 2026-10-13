@@ -2,7 +2,7 @@ import 'server-only';
 
 //drizzle
 import { db } from '@/database/db';
-import { boats, boatPricingTiers, users, addOns, boatAddOns } from '@/database/schema';
+import { boats, boatPricingTiers, users, addOns, boatAddOns, boatMakes, boatModels } from '@/database/schema';
 import { and, asc, count, eq, desc, inArray, isNotNull, or, ilike, SQL, sql } from 'drizzle-orm';
 import { getTableColumns } from 'drizzle-orm';
 
@@ -26,6 +26,7 @@ import { toDateOrNull } from '@/shared/lib/utils/date-helpers';
 import { resolveAdminListPagination } from '@/shared/admin/list-pagination';
 import { pgErrorCode, UserFacingError } from '@/shared/lib/errors';
 import { startingHourlyRate } from '@/shared/lib/utils/pricing-utils';
+import { makeOrModelLike, resolveMakeAndModel } from '@/features/boat-catalog/boat-catalog.service';
 
 
 // Custom type for our manipulation payload for boats
@@ -85,8 +86,10 @@ class BoatService {
   /** An active boat's public columns, or null. */
   async getActiveBoat(id: string): Promise<Omit<PublicBoat, 'pricingTiers' | 'boatAddOns'> | null> {
     const [boat] = await db
-      .select(publicBoatColumns)
+      .select({ ...publicBoatColumns, make: boatMakes.name, model: boatModels.name })
       .from(boats)
+      .leftJoin(boatMakes, eq(boatMakes.id, boats.makeId))
+      .leftJoin(boatModels, eq(boatModels.id, boats.modelId))
       .where(and(eq(boats.id, id), eq(boats.active, true)))
       .limit(1);
     return boat ?? null;
@@ -271,14 +274,17 @@ class BoatService {
       .select(adminSelectColumns)
       .from(boats)
       .where(
-        term && term.length >= 2
-          ? or(
-              ilike(boats.name, `%${term}%`),
-              ilike(boats.make, `%${term}%`),
-              ilike(boats.model, `%${term}%`),
-              ilike(boats.locationLabel, `%${term}%`)
-            )
-          : undefined
+        and(
+          // Owner listings still in review can't be booked yet.
+          eq(boats.listingStatus, "APPROVED"),
+          term && term.length >= 2
+            ? or(
+                ilike(boats.name, `%${term}%`),
+                makeOrModelLike(`%${term}%`),
+                ilike(boats.locationLabel, `%${term}%`)
+              )
+            : undefined
+        )
       )
       .orderBy(desc(boats.lengthFt))
       .limit(50);
@@ -307,8 +313,7 @@ class BoatService {
     if (filters?.search) {
       whereConditions.push(or(
         ilike(boats.name, `%${filters.search}%`),
-        ilike(boats.make || '', `%${filters.search}%`),
-        ilike(boats.model || '', `%${filters.search}%`),
+        makeOrModelLike(`%${filters.search}%`),
         ilike(boats.locationLabel || '', `%${filters.search}%`),
         ilike(boats.description || '', `%${filters.search}%`)
       ));
@@ -429,6 +434,8 @@ class BoatService {
     const [boat] = await db
       .select({
         ...getTableColumns(boats),
+        make: boatMakes.name,
+        model: boatModels.name,
         ownerFirstName: users.firstName,
         ownerLastName: users.lastName,
         ownerEmail: users.email,
@@ -437,6 +444,8 @@ class BoatService {
       })
       .from(boats)
       .leftJoin(users, eq(boats.ownerId, users.id))
+      .leftJoin(boatMakes, eq(boatMakes.id, boats.makeId))
+      .leftJoin(boatModels, eq(boatModels.id, boats.modelId))
       .where(eq(boats.id, id))
       .limit(1);
 
@@ -462,11 +471,15 @@ class BoatService {
    */
   async createBoat(boatData: CreateBoatInput): Promise<{ id: string }> {
     // Extract pricing tiers, add-on offerings, and location data
-    const { pricingTiers, boatAddOns: addOnAssignments, locationCoordinates, ...boatValues } = boatData;
+    const { pricingTiers, boatAddOns: addOnAssignments, locationCoordinates, make, model, ...boatValues } = boatData;
+    // Admins pick or type names; new makes and models they add count as checked.
+    const { makeId, modelId } = await resolveMakeAndModel({ make, model }, { canAdd: true });
 
     // Prepare insert data - convert ISO string dates to Date objects for database
     const insertData: Partial<BoatManipulationPayload> = {
       ...boatValues,
+      makeId,
+      modelId,
       // Convert date strings from validation to Date objects for database
       insuranceExpiry: toDateOrNull(boatValues.insuranceExpiry),
       lastMaintenanceDate: toDateOrNull(boatValues.lastMaintenanceDate),
@@ -506,11 +519,15 @@ class BoatService {
   async updateBoat(id: string, data: UpdateBoatInput): Promise<void> {
 
     // Extract pricing tiers, add-on offerings, and location data
-    const { pricingTiers, boatAddOns: addOnAssignments, locationCoordinates, ...boatValues } = data;
+    const { pricingTiers, boatAddOns: addOnAssignments, locationCoordinates, make, model, ...boatValues } = data;
+    // The form always sends both; resolve them only when it does.
+    const catalog =
+      make !== undefined ? await resolveMakeAndModel({ make, model }, { canAdd: true }) : undefined;
 
     // Prepare update data - convert ISO string dates to Date objects for database
     const updateData: Partial<BoatManipulationPayload> = {
       ...boatValues,
+      ...(catalog ? { makeId: catalog.makeId, modelId: catalog.modelId } : {}),
       updatedAt: new Date(),
       // Convert date strings from validation to Date objects for database
       insuranceExpiry: boatValues.insuranceExpiry !== undefined ? toDateOrNull(boatValues.insuranceExpiry) : undefined,
