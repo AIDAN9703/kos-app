@@ -512,6 +512,13 @@
       "when": 1792190543537,
       "tag": "0076_boat-markup",
       "breakpoints": true
+    },
+    {
+      "idx": 77,
+      "version": "7",
+      "when": 1792191290412,
+      "tag": "0077_drop-unused-schema",
+      "breakpoints": true
     }
   ]
 }
