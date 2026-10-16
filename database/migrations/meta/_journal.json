@@ -498,6 +498,13 @@
       "when": 1792180566580,
       "tag": "0074_owner-accounts",
       "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1792180567271,
+      "tag": "0075_drop-boat-owner-user",
+      "breakpoints": true
     }
   ]
 }
