@@ -88,7 +88,7 @@ export function PayoutSetupCard({
   return (
     <GlassPanel title="How KOS pays you">
       <p className="text-sm text-muted-foreground">
-        KOS pays you for each charter once the trip is over.
+        KOS pays you for each charter once the trip is over, and emails you when it goes out.
       </p>
 
       <ul className="-mx-5 -mb-5 divide-y divide-glass-border border-t border-glass-border">
@@ -101,12 +101,12 @@ export function PayoutSetupCard({
             </p>
             <p className="text-xs text-muted-foreground">
               {setup.stripeReady
-                ? `To your bank${setup.stripeBankLast4 ? ` ending ${setup.stripeBankLast4}` : ""}, through Stripe.`
+                ? `Automatically the day after each trip, to your bank${setup.stripeBankLast4 ? ` ending ${setup.stripeBankLast4}` : ""}.`
                 : setup.stripeStarted
                   ? linkExpired
                     ? "That setup link expired. Pick up where you left off."
                     : "Stripe still needs a few details from you."
-                  : "Straight to your bank, set up securely with Stripe. KOS never sees your bank details."}
+                  : "Paid automatically the day after each trip, straight to your bank. Set up securely with Stripe; KOS never sees your bank details."}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">

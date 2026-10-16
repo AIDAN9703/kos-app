@@ -3,9 +3,10 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { Landmark, Loader2, Smartphone } from "lucide-react";
+import { Loader2, Smartphone } from "lucide-react";
 import { GlassPanel } from "@/shared/admin/components/glass";
 import { Button } from "@/shared/components/ui/button";
+import { Checkbox } from "@/shared/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -21,11 +22,10 @@ import { formatBoatLocal } from "@/shared/lib/utils/date-helpers";
 import { cn, formatDate } from "@/shared/lib/utils/general-utils";
 import { formatCentsAsCurrency } from "@/shared/lib/utils/money-utils";
 import {
-  payOwnerByDirectDepositAction,
   recordOwnerZellePayoutAction,
   removeOwnerZellePayoutAction,
 } from "../../owner-accounts.actions";
-import { PAYOUT_METHOD_LABELS, zelleLabel } from "../../owner-accounts.constants";
+import { autoPayoutDate, PAYOUT_METHOD_LABELS, zelleLabel } from "../../owner-accounts.constants";
 import type { OwnerPayouts, OwnerPayoutSetup, PayoutLine } from "../../owner-accounts.types";
 
 const money = (cents: number, currency = "USD") => formatCentsAsCurrency(cents, { currency });
@@ -44,8 +44,9 @@ const chip =
 
 /**
  * Paying an owner: charters whose trip is over and that still owe them,
- * each with "Pay" (direct deposit through Stripe) or "Record Zelle", then
- * every payout so far. Amounts come from the charter's Owner payout lines.
+ * then every payout so far. Direct deposit owners are paid by the daily
+ * run (each row says when); for everyone else the team sends Zelle and
+ * records it here. Amounts come from the charter's Owner payout lines.
  */
 export function OwnerPayoutsPanel({
   accountId,
@@ -63,19 +64,21 @@ export function OwnerPayoutsPanel({
   const router = useRouter();
   const { toast } = useToast();
   const [pending, startTransition] = useTransition();
-  const [confirming, setConfirming] = useState<PayoutLine | null>(null);
   const [zelleFor, setZelleFor] = useState<PayoutLine | null>(null);
-  const [zelle, setZelle] = useState({ amount: "", paidOn: "", reference: "" });
+  const [zelle, setZelle] = useState({ amount: "", paidOn: "", reference: "", notify: true });
   const [zelleErrors, setZelleErrors] = useState<Record<string, string[] | undefined>>({});
   const [showAll, setShowAll] = useState(false);
   const [removing, setRemoving] = useState<string | null>(null);
   const history = showAll ? payouts.history : payouts.history.slice(0, HISTORY_SHOWN);
   const upcomingCents = payouts.upcoming.reduce((n, l) => n + left(l), 0);
+  const paidAutomatically = !isHouse && setup.payoutMethod === "STRIPE" && setup.stripeReady;
   const note = isHouse
     ? "These boats' owners aren't set up yet. Record what you pay them here so it's tracked."
-    : setup.stripeReady
-      ? null
-      : `Direct deposit pays in one click once ${ownerName} sets it up in their owner portal.`;
+    : paidAutomatically
+      ? "Paid automatically by direct deposit the day after each trip."
+      : setup.stripeReady
+        ? `${ownerName} chose Zelle: send it from the bank app, then record it here.`
+        : `Once ${ownerName} sets up direct deposit in their owner portal, they're paid automatically. Until then, send Zelle and record it here.`;
 
   function run<T>(work: () => Promise<ActionResponse<T>>, done?: () => void) {
     startTransition(async () => {
@@ -98,6 +101,7 @@ export function OwnerPayoutsPanel({
       amount: (left(line) / 100).toFixed(2),
       paidOn: format(new Date(), "yyyy-MM-dd"),
       reference: "",
+      notify: !isHouse,
     });
     setZelleErrors({});
     setZelleFor(line);
@@ -123,7 +127,7 @@ export function OwnerPayoutsPanel({
       ) : (
         <ul className="-mx-5 divide-y divide-glass-border border-y border-glass-border">
           {payouts.due.map((line) => {
-            const canStripe = setup.stripeReady && line.currency.toUpperCase() === "USD";
+            const auto = paidAutomatically && line.currency.toUpperCase() === "USD";
             return (
               <li key={line.bookingId} className="flex flex-wrap items-center gap-3 px-5 py-3">
                 <div className="min-w-0 flex-1">
@@ -136,17 +140,17 @@ export function OwnerPayoutsPanel({
                       : ""}
                   </p>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {canStripe ? (
-                    <Button
-                      className="h-9 gap-1.5 rounded-full px-4"
-                      disabled={pending}
-                      onClick={() => setConfirming(line)}
-                    >
-                      <Landmark className="size-4" />
-                      Pay {money(left(line), line.currency)}
-                    </Button>
-                  ) : null}
+                {auto ? (
+                  <p className="text-xs whitespace-nowrap text-muted-foreground">
+                    {line.pendingCents > 0
+                      ? "Sending now"
+                      : `Direct deposit ${formatBoatLocal(
+                          autoPayoutDate(line.endsAt ?? line.startsAt),
+                          line.timezone,
+                          "EEE, MMM d"
+                        )}`}
+                  </p>
+                ) : (
                   <Button
                     variant="glass"
                     className="h-9 gap-1.5 border-0 px-4"
@@ -156,7 +160,7 @@ export function OwnerPayoutsPanel({
                     <Smartphone className="size-4" />
                     Record Zelle
                   </Button>
-                </div>
+                )}
               </li>
             );
           })}
@@ -244,45 +248,6 @@ export function OwnerPayoutsPanel({
         </div>
       ) : null}
 
-      <Dialog open={confirming !== null} onOpenChange={(o) => !o && setConfirming(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              Send {confirming ? money(left(confirming), confirming.currency) : ""} to {ownerName}?
-            </DialogTitle>
-            <DialogDescription>
-              {confirming
-                ? `For ${confirming.boatName}, ${tripDate(confirming)}. Stripe moves it to their direct deposit account now; it reaches their bank on their Stripe payout schedule. This can't be undone from here.`
-                : null}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="glass"
-              className="border-0"
-              onClick={() => setConfirming(null)}
-              disabled={pending}
-            >
-              Cancel
-            </Button>
-            <Button
-              className="rounded-full"
-              disabled={pending || !confirming}
-              onClick={() =>
-                confirming &&
-                run(
-                  () => payOwnerByDirectDepositAction(accountId, confirming.bookingId),
-                  () => setConfirming(null)
-                )
-              }
-            >
-              {pending ? <Loader2 className="size-4 animate-spin" /> : null}
-              Send payout
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       <Dialog open={zelleFor !== null} onOpenChange={(o) => !o && setZelleFor(null)}>
         <DialogContent>
           <form
@@ -297,6 +262,7 @@ export function OwnerPayoutsPanel({
                     amountDollars: zelle.amount,
                     paidOn: zelle.paidOn,
                     reference: zelle.reference,
+                    notifyOwner: zelle.notify,
                   }),
                 () => setZelleFor(null)
               );
@@ -346,6 +312,16 @@ export function OwnerPayoutsPanel({
                   maxLength={120}
                 />
               </label>
+              {isHouse ? null : (
+                <label className="flex items-center gap-2 text-sm text-muted-foreground sm:col-span-2">
+                  <Checkbox
+                    id="zelle-notify"
+                    checked={zelle.notify}
+                    onCheckedChange={(c) => setZelle({ ...zelle, notify: c === true })}
+                  />
+                  Email {ownerName} that it&apos;s on its way (untick for payments made long ago)
+                </label>
+              )}
             </div>
             <DialogFooter>
               <Button

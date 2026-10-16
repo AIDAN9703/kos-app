@@ -13,6 +13,7 @@ import { bookingStatusService } from "@/features/bookings/services/booking-statu
 import { bookingService } from "@/features/bookings/services/booking.service";
 import { confirmPaidBooking, type ConfirmOutcome } from "@/features/bookings/services/confirm-paid-booking.service";
 import { fulfillInstantCheckoutSession } from "@/features/bookings/services/instant-checkout-fulfillment.service";
+import * as ownerPayouts from "@/features/owner-accounts/owner-payouts.service";
 import { netPaidCents, paymentService } from "@/features/payments/payment.service";
 import { allocateRefunds, splitProportionally } from "@/features/payments/refund-allocation";
 import {
@@ -47,13 +48,16 @@ import { formatCentsAsCurrency } from "@/shared/lib/utils/money-utils";
  * otherwise null. Both modes' secrets are accepted because Stripe's test and
  * live endpoints can point at the same URL: a genuine event from the other
  * mode is then acknowledged and ignored (processStripeEvent), rather than
- * rejected and retried for days.
+ * rejected and retried for days. The Connect secrets belong to the second
+ * endpoint at the same URL, for events on owners' connected accounts.
  */
 export function verifyWebhookSignature(body: string, signature: string): Stripe.Event | null {
   const secrets = [
     config.stripeWebhookSecret,
     process.env.STRIPE_WEBHOOK_SECRET,
     process.env.STRIPE_LIVE_WEBHOOK_SECRET,
+    process.env.STRIPE_CONNECT_WEBHOOK_SECRET,
+    process.env.STRIPE_LIVE_CONNECT_WEBHOOK_SECRET,
   ].filter((s, i, all): s is string => Boolean(s) && all.indexOf(s) === i);
 
   for (const secret of secrets) {
@@ -138,6 +142,16 @@ async function dispatch(event: Stripe.Event): Promise<void> {
       return;
     case "charge.dispute.closed":
       await handleDispute(event.data.object, "closed");
+      return;
+    // Owners' connected accounts (Stripe Connect): direct deposit setup and bank deposits.
+    case "account.updated":
+      await ownerPayouts.syncByStripeAccount(event.data.object.id);
+      return;
+    case "account.application.deauthorized":
+      if (event.account) await ownerPayouts.disconnectStripeAccount(event.account);
+      return;
+    case "payout.failed":
+      if (event.account) await ownerPayouts.alertBankPayoutFailed(event.account, event.data.object);
       return;
     default:
       console.log(`[Webhook] Unhandled event type: ${event.type}`);

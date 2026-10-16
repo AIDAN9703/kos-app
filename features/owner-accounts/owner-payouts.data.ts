@@ -1,7 +1,7 @@
 import "server-only";
 
 import { z, type ZodTypeAny } from "zod";
-import { invalidFieldsFrom, UserFacingError } from "@/shared/lib/errors";
+import { AccessDenied, invalidFieldsFrom, UserFacingError } from "@/shared/lib/errors";
 import { assertCan } from "@/shared/lib/utils/auth-utils";
 import { getBaseUrl } from "@/shared/lib/utils/base-url";
 import { isUuid } from "@/shared/lib/utils/general-utils";
@@ -17,8 +17,9 @@ import {
 
 /**
  * Owner payouts. In the owner portal, the Owner role sets up how they're
- * paid (direct deposit through Stripe, or Zelle). Sending payouts is for
- * staff who record payments.
+ * paid (direct deposit through Stripe, or Zelle). Direct deposit goes out
+ * on its own (the daily cron); recording Zelle is for staff who record
+ * payments.
  */
 
 function parse<S extends ZodTypeAny>(schema: S, input: unknown): z.output<S> {
@@ -80,18 +81,12 @@ export async function getOwedNowByOwner(): Promise<Map<string, number>> {
   return payoutsService.owedNowByAccount();
 }
 
-/** Sends what's left on a charter by direct deposit; returns the cents sent. */
-export async function payOwnerByDirectDeposit(
-  accountId: string,
-  bookingId: string
-): Promise<number> {
-  const me = await assertCan({ booking: ["record-payment"] });
-  return payoutsService.payWithStripe(id(accountId, "Owner"), id(bookingId, "Charter"), me.id);
-}
-
 export async function recordOwnerZellePayout(accountId: string, input: unknown): Promise<void> {
   const me = await assertCan({ booking: ["record-payment"] });
-  const { bookingId, amountDollars, paidOn, reference } = parse(zellePayoutSchema, input);
+  const { bookingId, amountDollars, paidOn, reference, notifyOwner } = parse(
+    zellePayoutSchema,
+    input
+  );
   await payoutsService.recordZellePayout(
     id(accountId, "Owner"),
     {
@@ -99,6 +94,7 @@ export async function recordOwnerZellePayout(accountId: string, input: unknown):
       amountCents: Math.round(amountDollars * 100),
       paidOn,
       reference: reference ?? null,
+      notifyOwner,
     },
     me.id
   );
@@ -113,4 +109,19 @@ export async function removeOwnerZellePayout(accountId: string, payoutId: string
 export async function refreshOwnerDirectDeposit(accountId: string): Promise<OwnerPayoutSetup> {
   await assertCan({ boat: ["edit"] });
   return payoutsService.syncStripeAccount(id(accountId, "Owner"));
+}
+
+// ── The daily run (Vercel cron) ─────────────────────────────────────────────
+
+/** Pays direct deposit owners for charters that ended a day ago. Cron only. */
+export async function runOwnerPayouts(
+  authorization: string | null
+): Promise<payoutsService.AutoPayoutRun> {
+  const cronSecret = process.env.CRON_SECRET;
+  if (cronSecret) {
+    if (authorization !== `Bearer ${cronSecret}`) throw new AccessDenied("Unauthorized", 401);
+  } else if (process.env.NODE_ENV === "production") {
+    throw new Error("CRON_SECRET is not configured");
+  }
+  return payoutsService.payDueOwners();
 }

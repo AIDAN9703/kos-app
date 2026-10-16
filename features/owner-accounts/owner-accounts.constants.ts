@@ -20,6 +20,24 @@ export const PAYOUT_METHOD_LABELS: Record<OwnerPayoutMethod, string> = {
 export const zelleLabel = (contact: string) =>
   contact.includes("@") ? contact : formatPhoneNumberForDisplay(contact);
 
+/**
+ * Direct deposit owners are paid automatically this long after a trip ends
+ * (a day to catch a problem first). The run is daily: see vercel.json.
+ */
+export const AUTO_PAYOUT_DELAY_HOURS = 24;
+
+/** The daily run's hour (UTC), matching the cron schedule in vercel.json. */
+export const AUTO_PAYOUT_RUN_HOUR_UTC = 15;
+
+/** When the daily run pays a charter that ended at `tripEnd` (never in the past). */
+export function autoPayoutDate(tripEnd: Date, now = new Date()): Date {
+  const earliest = Math.max(tripEnd.getTime() + AUTO_PAYOUT_DELAY_HOURS * 36e5, now.getTime());
+  const run = new Date(earliest);
+  run.setUTCHours(AUTO_PAYOUT_RUN_HOUR_UTC, 0, 0, 0);
+  if (run.getTime() < earliest) run.setUTCDate(run.getUTCDate() + 1);
+  return run;
+}
+
 /** Invites stay open for two weeks. */
 export const INVITE_DAYS = 14;
 

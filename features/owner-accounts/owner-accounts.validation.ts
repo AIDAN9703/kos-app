@@ -90,5 +90,7 @@ export const zellePayoutSchema = z.object({
     .refine((d) => !Number.isNaN(d.getTime()), "Pick the date")
     .refine((d) => d.getTime() < Date.now() + 864e5, "That day hasn't happened yet"),
   reference: optionalText(120),
+  /** Off when catching up on payments made before KOS tracked them. */
+  notifyOwner: z.boolean().default(true),
 });
 export type ZellePayoutInput = z.input<typeof zellePayoutSchema>;

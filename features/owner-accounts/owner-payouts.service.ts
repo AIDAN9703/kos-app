@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import type Stripe from "stripe";
 import { db } from "@/database/db";
 import {
@@ -8,13 +8,19 @@ import {
   bookingExpenseLines,
   bookingPricing,
   bookings,
+  ownerAccountMembers,
   ownerAccounts,
   ownerPayouts,
+  users,
 } from "@/database/schema";
 import { bookingOpsService } from "@/features/bookings/services/booking-ops.service";
 import { UserFacingError, pgErrorCode } from "@/shared/lib/errors";
+import { sendAccountEmail, sendAdminAlertEmail } from "@/shared/lib/services/email.service";
 import { getStripe } from "@/shared/lib/services/stripe.service";
+import { getBaseUrl } from "@/shared/lib/utils/base-url";
 import { formatBoatLocal } from "@/shared/lib/utils/date-helpers";
+import { formatCentsAsCurrency } from "@/shared/lib/utils/money-utils";
+import { AUTO_PAYOUT_DELAY_HOURS, zelleLabel } from "./owner-accounts.constants";
 import { payoutSetupFrom } from "./owner-accounts.service";
 import type {
   OwnerPayoutSetup,
@@ -25,11 +31,12 @@ import type {
 
 /**
  * Paying owners. Guests pay KOS (Stripe Checkout, as always); KOS then pays
- * each owner for a charter once the trip is over: a Stripe transfer to their
- * direct deposit account (a Stripe Connect Express account they set up on
- * Stripe's site), or a Zelle payment the team records. Every payout is an
- * owner_payout row; booking_ops.sent_to_owner_cents follows the PAID ones.
- * Not access-checked here: callers go through owner-payouts.data.ts.
+ * each owner for a charter once the trip is over. Direct deposit owners (a
+ * Stripe Connect Express account they set up on Stripe's site) are paid by
+ * a daily run, a day after the trip; Zelle owners by the team, who record
+ * it. Every payout is an owner_payout row; booking_ops.sent_to_owner_cents
+ * follows the PAID ones, and the owner gets an email for each. Not
+ * access-checked here: callers go through owner-payouts.data.ts.
  */
 
 // ── Direct deposit (Stripe Connect Express) ─────────────────────────────────
@@ -356,7 +363,7 @@ async function madeTransferId(bookingId: string, payoutId: string): Promise<stri
 export async function payWithStripe(
   accountId: string,
   bookingId: string,
-  userId: string
+  userId: string | null
 ): Promise<number> {
   const owner = await accountRow(accountId);
   if (!owner.stripeAccountId || !owner.stripePayoutsEnabled) {
@@ -432,30 +439,42 @@ export async function payWithStripe(
     }
     throw new UserFacingError(`Stripe didn't send it. ${failure}`);
   }
+  await emailOwnerPaid(payoutId);
   return left;
 }
 
 /** Records a Zelle payment the team made for a charter. */
 export async function recordZellePayout(
   accountId: string,
-  params: { bookingId: string; amountCents: number; paidOn: Date; reference: string | null },
+  params: {
+    bookingId: string;
+    amountCents: number;
+    paidOn: Date;
+    reference: string | null;
+    /** Email the owner (off when catching up on payments made before). */
+    notifyOwner: boolean;
+  },
   userId: string
 ): Promise<void> {
   const { left } = await payableLine(accountId, params.bookingId);
   if (params.amountCents > left) {
     throw new UserFacingError(`That's more than is left to pay ($${(left / 100).toFixed(2)}).`);
   }
-  await db.insert(ownerPayouts).values({
-    ownerAccountId: accountId,
-    bookingId: params.bookingId,
-    amountCents: params.amountCents,
-    method: "ZELLE",
-    status: "PAID",
-    reference: params.reference,
-    paidAt: params.paidOn,
-    createdByUserId: userId,
-  });
+  const [row] = await db
+    .insert(ownerPayouts)
+    .values({
+      ownerAccountId: accountId,
+      bookingId: params.bookingId,
+      amountCents: params.amountCents,
+      method: "ZELLE",
+      status: "PAID",
+      reference: params.reference,
+      paidAt: params.paidOn,
+      createdByUserId: userId,
+    })
+    .returning({ id: ownerPayouts.id });
   await syncSentToOwner(params.bookingId);
+  if (params.notifyOwner) await emailOwnerPaid(row.id);
 }
 
 /** Takes back a Zelle payout recorded by mistake. Stripe payouts stay: they really went out. */
@@ -472,4 +491,221 @@ export async function removeZellePayout(accountId: string, payoutId: string): Pr
     .returning({ bookingId: ownerPayouts.bookingId });
   if (!removed) throw new UserFacingError("Only a recorded Zelle payout can be removed.", 404);
   await syncSentToOwner(removed.bookingId);
+}
+
+// ── The daily run ───────────────────────────────────────────────────────────
+
+export type AutoPayoutRun = { paid: number; paidCents: number; waiting: number; failed: number };
+
+/**
+ * Pays every direct deposit owner for charters that ended at least
+ * AUTO_PAYOUT_DELAY_HOURS ago, oldest trip first. A payout that KOS's
+ * available Stripe balance can't cover yet waits for the next run (card
+ * payments take a few days to become available); the team hears about
+ * anything that waited or failed.
+ */
+export async function payDueOwners(now = new Date()): Promise<AutoPayoutRun> {
+  const ready = await db
+    .select({ id: ownerAccounts.id, name: ownerAccounts.name })
+    .from(ownerAccounts)
+    .where(
+      and(
+        eq(ownerAccounts.payoutMethod, "STRIPE"),
+        eq(ownerAccounts.stripePayoutsEnabled, true),
+        isNotNull(ownerAccounts.stripeAccountId),
+        eq(ownerAccounts.isHouse, false)
+      )
+    );
+  const cutoff = now.getTime() - AUTO_PAYOUT_DELAY_HOURS * 36e5;
+  const due = (await payoutLines(ready.map((a) => a.id))).filter(
+    (l) =>
+      (l.endsAt ?? l.startsAt).getTime() <= cutoff &&
+      l.pendingCents === 0 &&
+      leftToPay(l) > 0 &&
+      l.currency.toUpperCase() === "USD"
+  );
+  const run: AutoPayoutRun = { paid: 0, paidCents: 0, waiting: 0, failed: 0 };
+  if (due.length === 0) return run;
+
+  const balance = await getStripe().balance.retrieve();
+  let available = balance.available
+    .filter((b) => b.currency === "usd")
+    .reduce((sum, b) => sum + b.amount, 0);
+  const problems: { line: (typeof due)[number]; why: string }[] = [];
+
+  for (const line of due) {
+    const left = leftToPay(line);
+    if (left > available) {
+      run.waiting += 1;
+      problems.push({ line, why: "Waiting for KOS's Stripe balance to cover it" });
+      continue;
+    }
+    try {
+      const sent = await payWithStripe(line.ownerAccountId, line.bookingId, null);
+      available -= sent;
+      run.paid += 1;
+      run.paidCents += sent;
+    } catch (error) {
+      run.failed += 1;
+      problems.push({
+        line,
+        why: error instanceof Error ? error.message : "Stripe didn't send it.",
+      });
+    }
+  }
+
+  if (problems.length > 0) {
+    const names = new Map(ready.map((a) => [a.id, a.name]));
+    await alertTeamQuietly({
+      subject: `${problems.length} owner ${problems.length === 1 ? "payout" : "payouts"} didn't go out`,
+      heading: "Owner payouts need a look",
+      lines: problems.map(({ line, why }) => ({
+        label: names.get(line.ownerAccountId) ?? "Owner",
+        value: `${money(leftToPay(line), line.currency)} · ${line.boatName}, ${tripDay(line)}\n${why}`,
+      })),
+      bookingId: problems[0].line.bookingId,
+      note: "Each one is tried again on tomorrow's run. Failures show on the owner's page under Payouts.",
+    });
+  }
+  return run;
+}
+
+// ── Stripe's news about connected accounts (webhook) ────────────────────────
+
+/** account.updated: re-read the owner's setup from Stripe. */
+export async function syncByStripeAccount(stripeAccountId: string): Promise<void> {
+  const [owner] = await db
+    .select({ id: ownerAccounts.id })
+    .from(ownerAccounts)
+    .where(eq(ownerAccounts.stripeAccountId, stripeAccountId));
+  if (!owner) {
+    console.warn(`[Connect] ${stripeAccountId} isn't an owner's account; ignored`);
+    return;
+  }
+  await syncStripeAccount(owner.id);
+}
+
+/** account.application.deauthorized: KOS can't pay into it any more. */
+export async function disconnectStripeAccount(stripeAccountId: string): Promise<void> {
+  await db
+    .update(ownerAccounts)
+    .set({ stripePayoutsEnabled: false, updatedAt: new Date() })
+    .where(eq(ownerAccounts.stripeAccountId, stripeAccountId));
+}
+
+/** payout.failed: Stripe couldn't move an owner's money on to their bank. */
+export async function alertBankPayoutFailed(
+  stripeAccountId: string,
+  payout: Stripe.Payout
+): Promise<void> {
+  const [owner] = await db
+    .select({ name: ownerAccounts.name })
+    .from(ownerAccounts)
+    .where(eq(ownerAccounts.stripeAccountId, stripeAccountId));
+  await alertTeamQuietly({
+    subject: `Stripe couldn't deposit an owner's payout${owner ? `: ${owner.name}` : ""}`,
+    heading: "An owner's bank deposit failed",
+    lines: [
+      { label: "Owner", value: owner?.name ?? stripeAccountId },
+      { label: "Amount", value: money(payout.amount, payout.currency.toUpperCase()) },
+      { label: "Why", value: payout.failure_message ?? payout.failure_code ?? null },
+    ],
+    note: "The money is back in their Stripe balance. Ask them to check their bank details in their Stripe dashboard (Earnings → Stripe dashboard); Stripe retries once they fix it.",
+  });
+}
+
+// ── Telling people ──────────────────────────────────────────────────────────
+
+const money = (cents: number, currency = "USD") => formatCentsAsCurrency(cents, { currency });
+const tripDay = (l: { startsAt: Date; timezone: string | null }) =>
+  formatBoatLocal(l.startsAt, l.timezone, "EEE, MMM d");
+
+/** Off the production deployment, mail goes only to Resend's test inboxes. */
+const mailIsLive = process.env.VERCEL_ENV
+  ? process.env.VERCEL_ENV === "production"
+  : process.env.NODE_ENV === "production";
+const mayEmail = (to: string) => mailIsLive || to.toLowerCase().endsWith("@resend.dev");
+
+async function alertTeamQuietly(params: Parameters<typeof sendAdminAlertEmail>[0]) {
+  if (!mailIsLive) {
+    console.info(`[dev] Team alert not sent: ${params.subject}`, params.lines);
+    return;
+  }
+  await sendAdminAlertEmail(params);
+}
+
+/** The account's Owners (Managers don't see money), else its contact email. */
+async function ownerRecipients(
+  accountId: string
+): Promise<{ email: string; name: string | null }[]> {
+  const owners = await db
+    .select({ email: users.email, name: users.firstName })
+    .from(ownerAccountMembers)
+    .innerJoin(users, eq(users.id, ownerAccountMembers.userId))
+    .where(
+      and(eq(ownerAccountMembers.ownerAccountId, accountId), eq(ownerAccountMembers.role, "OWNER"))
+    );
+  if (owners.length > 0) return owners;
+  const [account] = await db
+    .select({ email: ownerAccounts.contactEmail })
+    .from(ownerAccounts)
+    .where(eq(ownerAccounts.id, accountId));
+  return account?.email ? [{ email: account.email, name: null }] : [];
+}
+
+/** Emails the owner that a payout went out. Never throws: the payout already happened. */
+async function emailOwnerPaid(payoutId: string): Promise<void> {
+  try {
+    const [p] = await db
+      .select({
+        accountId: ownerPayouts.ownerAccountId,
+        amountCents: ownerPayouts.amountCents,
+        currency: ownerPayouts.currency,
+        method: ownerPayouts.method,
+        boatName: boats.name,
+        boatTitle: boats.displayTitle,
+        timezone: boats.timezone,
+        startsAt: bookings.startDateTime,
+        zelleContact: ownerAccounts.zelleContact,
+        bankLast4: ownerAccounts.stripeBankLast4,
+      })
+      .from(ownerPayouts)
+      .innerJoin(bookings, eq(bookings.id, ownerPayouts.bookingId))
+      .innerJoin(boats, eq(boats.id, bookings.boatId))
+      .innerJoin(ownerAccounts, eq(ownerAccounts.id, ownerPayouts.ownerAccountId))
+      .where(eq(ownerPayouts.id, payoutId));
+    if (!p?.startsAt) return;
+    const amount = money(p.amountCents, p.currency);
+    const trip = `${p.boatTitle || p.boatName}, ${tripDay({ startsAt: p.startsAt, timezone: p.timezone })}`;
+    const how =
+      p.method === "STRIPE"
+        ? p.bankLast4
+          ? `by direct deposit to your bank ending in ${p.bankLast4}`
+          : "by direct deposit"
+        : p.zelleContact
+          ? `by Zelle to ${zelleLabel(p.zelleContact)}`
+          : "by Zelle";
+
+    for (const to of await ownerRecipients(p.accountId)) {
+      if (!mayEmail(to.email)) {
+        console.info(`[dev] Payout email to ${to.email} not sent: ${amount} for ${trip}`);
+        continue;
+      }
+      await sendAccountEmail({
+        to: to.email,
+        name: to.name,
+        subject: `KOS sent you ${amount}`,
+        previewText: `For ${trip}.`,
+        lead: `KOS sent you ${amount} for ${trip}, ${how}.`,
+        buttonLabel: "See your earnings",
+        url: `${getBaseUrl()}/owner/earnings`,
+        footnote:
+          p.method === "STRIPE"
+            ? "Stripe moves it on to your bank on your payout schedule; your Stripe dashboard (from Earnings) shows when it lands. Questions? Call or text (305) 521-8877."
+            : "Zelle usually arrives within minutes. Don't see it? Call or text (305) 521-8877.",
+      });
+    }
+  } catch (error) {
+    console.error("[Payouts] Owner payout email failed:", error);
+  }
 }

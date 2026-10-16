@@ -7,6 +7,10 @@
     {
       "path": "/api/cron/marketing-sync",
       "schedule": "30 * * * *"
+    },
+    {
+      "path": "/api/cron/owner-payouts",
+      "schedule": "0 15 * * *"
     }
   ]
 }

@@ -171,17 +171,6 @@ export async function chooseMyPayoutMethodAction(method: string) {
 
 // ── Paying owners (admin) ───────────────────────────────────────────────────
 
-const dollars = (cents: number) =>
-  (cents / 100).toLocaleString("en-US", { style: "currency", currency: "USD" });
-
-export async function payOwnerByDirectDepositAction(accountId: string, bookingId: string) {
-  return run(
-    () => payoutsData.payOwnerByDirectDeposit(accountId, bookingId),
-    "Couldn't send the payout.",
-    (cents) => `${dollars(cents)} sent by direct deposit.`
-  );
-}
-
 export async function recordOwnerZellePayoutAction(accountId: string, input: unknown) {
   return run(
     () => payoutsData.recordOwnerZellePayout(accountId, input),
