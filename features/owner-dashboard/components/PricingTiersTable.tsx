@@ -2,8 +2,14 @@ import { formatCurrency } from "@/shared/lib/utils/general-utils";
 import { formatCentsAsWholeDollars } from "@/shared/lib/utils/money-utils";
 import type { OwnerPricingTier } from "../owner.types";
 
-/** What guests pay per charter length, and the owner's payout for it. */
-export function PricingTiersTable({ tiers }: { tiers: OwnerPricingTier[] }) {
+/** What guests pay per charter length, and (for Owners) the payout for it. */
+export function PricingTiersTable({
+  tiers,
+  showMoney,
+}: {
+  tiers: OwnerPricingTier[];
+  showMoney: boolean;
+}) {
   if (tiers.length === 0) {
     return (
       <p className="py-6 text-sm text-muted-foreground">
@@ -21,9 +27,11 @@ export function PricingTiersTable({ tiers }: { tiers: OwnerPricingTier[] }) {
           <th scope="col" className="py-3 text-right font-medium">
             Guest price
           </th>
-          <th scope="col" className="py-3 text-right font-medium">
-            Your payout
-          </th>
+          {showMoney ? (
+            <th scope="col" className="py-3 text-right font-medium">
+              Your payout
+            </th>
+          ) : null}
         </tr>
       </thead>
       <tbody className="divide-y divide-glass-border tabular-nums">
@@ -40,13 +48,15 @@ export function PricingTiersTable({ tiers }: { tiers: OwnerPricingTier[] }) {
             <td className="py-3 text-right text-foreground/85">
               {formatCurrency(tier.guestPriceDollars)}
             </td>
-            <td className="py-3 text-right font-semibold text-foreground">
-              {tier.ownerPayoutCents != null ? (
-                formatCentsAsWholeDollars(tier.ownerPayoutCents)
-              ) : (
-                <span className="font-normal text-muted-foreground">Set per charter</span>
-              )}
-            </td>
+            {showMoney ? (
+              <td className="py-3 text-right font-semibold text-foreground">
+                {tier.ownerPayoutCents != null ? (
+                  formatCentsAsWholeDollars(tier.ownerPayoutCents)
+                ) : (
+                  <span className="font-normal text-muted-foreground">Set per charter</span>
+                )}
+              </td>
+            ) : null}
           </tr>
         ))}
       </tbody>

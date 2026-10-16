@@ -4,23 +4,36 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
-import { CalendarDays, LayoutDashboard, LogOut, Ship, Wallet, type LucideIcon } from "lucide-react";
+import {
+  CalendarDays,
+  LayoutDashboard,
+  LogOut,
+  Ship,
+  Users,
+  Wallet,
+  type LucideIcon,
+} from "lucide-react";
 import { cn } from "@/shared/lib/utils/general-utils";
+import { OwnerSwitcher } from "@/features/owner-accounts/components/OwnerSwitcher";
 import { OWNER_TABS, isOwnerTabActive, type OwnerTabIcon } from "../owner.nav";
+import type { OwnerView } from "../owner.types";
 
 const ICONS: Record<OwnerTabIcon, LucideIcon> = {
   overview: LayoutDashboard,
   boats: Ship,
   charters: CalendarDays,
   earnings: Wallet,
+  team: Users,
 };
 
 /**
- * The portal's top bar, in the admin's glass language: logo and name on the
- * left, the tabs as labelled pills (the current one gold), and Exit back to
- * the customer account. Below lg the tabs get their own row and scroll.
+ * The portal's top bar, in the admin's glass language: logo and the owner's
+ * name on the left (a switcher for people in several owners), the tabs as
+ * labelled pills (the current one gold), and Exit back to the customer
+ * account. Below lg the tabs get their own row and scroll.
  */
-export function OwnerHeader({ ownerName }: { ownerName: string }) {
+export function OwnerHeader({ view }: { view: OwnerView }) {
+  const tabs = OWNER_TABS.filter((tab) => !tab.ownersOnly || view.role === "OWNER");
   const pathname = usePathname();
   const nav = useRef<HTMLElement>(null);
 
@@ -34,32 +47,43 @@ export function OwnerHeader({ ownerName }: { ownerName: string }) {
   return (
     <header className="shrink-0 px-4 md:px-6 xl:px-12">
       <div className="mx-auto flex w-full max-w-[1680px] flex-wrap items-center gap-3 py-3 lg:grid lg:h-20 lg:grid-cols-[1fr_auto_1fr] lg:gap-4 lg:py-0">
-        <Link
-          href="/owner"
-          className="flex min-w-0 items-center gap-3 justify-self-start rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <Image
-            src="/icons/logo.png"
-            alt="Kings of the Sea"
-            width={40}
-            height={40}
-            priority
-            className="size-10 shrink-0 object-contain"
-          />
+        <div className="flex min-w-0 items-center gap-3 justify-self-start">
+          <Link
+            href="/owner"
+            className="shrink-0 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Image
+              src="/icons/logo.png"
+              alt="Kings of the Sea"
+              width={40}
+              height={40}
+              priority
+              className="size-10 shrink-0 object-contain"
+            />
+          </Link>
           <span className="min-w-0 leading-tight">
-            <span className="block text-lg font-semibold tracking-tight text-foreground">
+            <Link
+              href="/owner"
+              className="block text-lg font-semibold tracking-tight text-foreground outline-none focus-visible:underline"
+            >
               Owner portal
-            </span>
-            <span className="block h-4 truncate text-xs text-muted-foreground">{ownerName}</span>
+            </Link>
+            {view.memberships.length > 1 ? (
+              <OwnerSwitcher current={view.accountId} memberships={view.memberships} />
+            ) : (
+              <span className="block h-4 truncate text-xs text-muted-foreground">
+                {view.accountName}
+              </span>
+            )}
           </span>
-        </Link>
+        </div>
 
         <nav
           ref={nav}
           aria-label="Owner portal"
           className="order-last -mx-4 flex w-[calc(100%+2rem)] items-center gap-1.5 overflow-x-auto px-4 py-1 [scrollbar-width:none] md:-mx-6 md:w-[calc(100%+3rem)] md:px-6 lg:order-none lg:mx-0 lg:w-auto lg:overflow-visible lg:px-0"
         >
-          {OWNER_TABS.map((tab) => {
+          {tabs.map((tab) => {
             const Icon = ICONS[tab.icon];
             const active = isOwnerTabActive(tab, pathname);
             return (

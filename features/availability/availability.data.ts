@@ -210,26 +210,24 @@ const FEED_LOOKBACK_DAYS = 60;
 const FEED_LOOKAHEAD_DAYS = 365;
 
 /**
- * Booked trips as calendar events for a signed feed URL — scoped to a boat,
- * a captain, or a boat owner. The HMAC binds that exact scope. Owner feeds
- * leave out customer contact details, like the owner portal does.
+ * Booked trips as calendar events for a signed feed URL, scoped to a boat or
+ * a captain. The HMAC binds that exact scope.
  */
 export async function getCalendarFeed(params: {
   scope: string | null;
   boatId?: string;
   captainId?: string;
-  ownerId?: string;
   token: string;
   origin: string;
 }): Promise<{ name: string; events: IcsEvent[] }> {
   const scope = (params.scope ?? "bookings") as FeedScope;
   if (scope !== "bookings") throw new UserFacingError("Unsupported feed scope");
-  const { boatId, captainId, ownerId, origin } = params;
-  if (!boatId && !captainId && !ownerId) {
-    throw new UserFacingError("Feed must be scoped to a boat, captain, or owner");
+  const { boatId, captainId, origin } = params;
+  if (!boatId && !captainId) {
+    throw new UserFacingError("Feed must be scoped to a boat or a captain");
   }
   // Throws when CALENDAR_FEED_SECRET is missing (a server error, not the caller's).
-  if (!verifyFeedToken({ scope, boatId, captainId, ownerId }, params.token)) {
+  if (!verifyFeedToken({ scope, boatId, captainId }, params.token)) {
     throw new AccessDenied("Invalid feed token", 401);
   }
 
@@ -239,9 +237,7 @@ export async function getCalendarFeed(params: {
     end: new Date(now + FEED_LOOKAHEAD_DAYS * DAY_MS),
     boatId,
     captainId,
-    ownerId,
   });
-  const withContact = !ownerId;
 
   const events: IcsEvent[] = rows
     // Undated INQUIRY-phase deals have no place on a calendar feed.
@@ -253,9 +249,8 @@ export async function getCalendarFeed(params: {
       summary: r.boatName ? `${r.customerName} · ${r.boatName}` : r.customerName,
       description: [
         `Guests: ${r.numberOfPassengers ?? "—"}`,
-        ...(withContact
-          ? [`Customer email: ${r.customerEmail}`, `Customer phone: ${r.customerPhone ?? "—"}`]
-          : []),
+        `Customer email: ${r.customerEmail}`,
+        `Customer phone: ${r.customerPhone ?? "—"}`,
         `Booking: ${origin}/admin/bookings/${r.id}`,
       ].join("\n"),
       location: r.pickupLocation ?? undefined,
@@ -264,11 +259,7 @@ export async function getCalendarFeed(params: {
       status: "CONFIRMED",
     }));
 
-  const name = boatId
-    ? "KOS Yachts — Boat schedule"
-    : captainId
-      ? "KOS Yachts — Captain schedule"
-      : "KOS Yachts — Owner schedule";
+  const name = boatId ? "KOS Yachts — Boat schedule" : "KOS Yachts — Captain schedule";
   return { name, events };
 }
 

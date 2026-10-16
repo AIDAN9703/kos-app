@@ -27,6 +27,7 @@ import { CharterOptionsSection } from "./sections/CharterOptionsSection";
 import { OwnerSection } from "./sections/OwnerSection";
 import type { AddOnListItem } from "@/features/add-ons/add-on.types";
 import type { CatalogMake } from "@/features/boat-catalog/boat-catalog.types";
+import type { OwnerAccountOption } from "@/features/owner-accounts/owner-accounts.types";
 
 interface AdminBoatFormProps {
   boat?: CreateBoatInput;
@@ -35,6 +36,8 @@ interface AdminBoatFormProps {
   availableAddOns?: AddOnListItem[];
   /** Makes and models for the make and model pickers. */
   catalog: CatalogMake[];
+  /** Owners for the owner picker; a new boat starts with KOS Yachts. */
+  owners: OwnerAccountOption[];
 }
 
 export default function AdminAddUpdateBoatForm({
@@ -42,6 +45,7 @@ export default function AdminAddUpdateBoatForm({
   boatId,
   availableAddOns = [],
   catalog,
+  owners,
 }: AdminBoatFormProps) {
   const { toast } = useToast();
   const router = useRouter();
@@ -75,7 +79,7 @@ export default function AdminAddUpdateBoatForm({
       termCharter: false,
       instantBook: false,
       fuelIncluded: false,
-      ownerId: "",
+      ownerAccountId: owners.find((o) => o.isHouse)?.id ?? "",
       ownerNotes: null,
     },
   });
@@ -144,7 +148,7 @@ export default function AdminAddUpdateBoatForm({
         )}
 
         <BasicInfoSection />
-        <OwnerSection />
+        <OwnerSection owners={owners} />
         <SpecsSection catalog={catalog} />
         <FeaturesSection />
         <MediaSection

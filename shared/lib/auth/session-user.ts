@@ -37,7 +37,11 @@ interface AuthUserRow {
   role?: string | null;
 }
 
-export function toSessionUser(user: AuthUserRow): SessionUser {
+/**
+ * `isOwner`: they belong to an owner account (owners are members, not a
+ * role), worked out by the session hook in auth.ts.
+ */
+export function toSessionUser(user: AuthUserRow, isOwner: boolean): SessionUser {
   const roles = parseRoles(user.role);
   return {
     id: user.id,
@@ -52,7 +56,7 @@ export function toSessionUser(user: AuthUserRow): SessionUser {
     roles,
     isAdmin: roles.includes("admin"),
     isBroker: roles.includes("broker"),
-    isOwner: roles.includes("owner"),
+    isOwner,
     isCaptain: roles.includes("captain"),
     isCrew: roles.includes("crew"),
   };

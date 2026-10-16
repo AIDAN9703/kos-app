@@ -24,14 +24,18 @@ const TAG = "delivered+owner-demo@resend.dev";
 const OWNER_EMAIL = "owner-listing-test@kosyachts.test";
 const mode = process.argv[2];
 
-const [owner] = await sql`select id from "user" where email = ${OWNER_EMAIL}`;
-if (!owner) throw new Error("Test owner not found");
+// The test owner's owner account (they're its Owner).
+const [owner] = await sql`
+  select m.owner_account_id as id from owner_account_member m join "user" u on u.id = m.user_id
+  where u.email = ${OWNER_EMAIL} and m.role = 'OWNER' order by m.created_at limit 1`;
+if (!owner) throw new Error("Test owner (or their owner account) not found");
 
 if (mode === "clean") {
+  await sql`delete from owner_payout where booking_id in (select id from booking where customer_email = ${TAG})`;
   const b = await sql`delete from booking where customer_email = ${TAG} returning id`;
   const boats =
-    await sql`delete from boat where owner_id = ${owner.id} and name like 'Demo · %' returning id`;
-  await sql`update boat set insurance_expiry = null, active = false where owner_id = ${owner.id} and managed_by = 'OWNER'`;
+    await sql`delete from boat where owner_account_id = ${owner.id} and name like 'Demo · %' returning id`;
+  await sql`update boat set insurance_expiry = null, active = false where owner_account_id = ${owner.id} and managed_by = 'OWNER'`;
   console.log(`removed ${b.length} bookings, ${boats.length} demo boats`);
   process.exit(0);
 }
@@ -43,14 +47,14 @@ const imgs = (
 // Azimut from the make catalog (migration 0072 seeds it); no model.
 const [azimut] = await sql`select id from boat_make where slug = 'azimut'`;
 const [demo] = await sql`
-  insert into boat (name, display_title, category, capacity, active, owner_id, make_id, year_built, length_ft,
+  insert into boat (name, display_title, category, capacity, active, owner_account_id, make_id, year_built, length_ft,
     features, main_image, gallery_images, location_label, timezone, managed_by, listing_status, insurance_expiry)
   values ('Demo · 62'' Azimut Flybridge', '62'' Azimut Flybridge', 'YACHT', 13, true, ${owner.id}, ${azimut?.id ?? null}, 2020, 62,
     '{}', ${imgs.main_image}, ${imgs.gallery_images}, 'Miami Beach Marina, Miami Beach, FL', 'America/New_York', 'KOS', 'APPROVED',
     now() + interval '21 days')
   returning id, location_label`;
 const [listed] =
-  await sql`select id, location_label from boat where owner_id = ${owner.id} and managed_by = 'OWNER' limit 1`;
+  await sql`select id, location_label from boat where owner_account_id = ${owner.id} and managed_by = 'OWNER' limit 1`;
 // The self-listed test boat: live for the review so it shows in the outlook.
 if (listed)
   await sql`update boat set active = true where id = ${listed.id} and listing_status = 'APPROVED'`;
@@ -135,7 +139,7 @@ for (const p of plans) {
   const end = new Date(start.getTime() + p.hours * 36e5);
   const payout = Math.round(p.price * 100 * (p.boat === (demo as never) ? 0.7 : 1));
   const [b] = await sql`
-    insert into booking (booking_type, booking_status, source, boat_owner_id, boat_id, customer_name, customer_email,
+    insert into booking (booking_type, booking_status, source, owner_account_id, boat_id, customer_name, customer_email,
       start_datetime, end_datetime, number_of_passengers, pickup_location, admin_notes)
     values ('EXTERNAL_BOOKING', ${p.status}, 'ADMIN', ${owner.id}, ${p.boat.id}, 'Demo guest', ${TAG},
       ${start.toISOString()}, ${end.toISOString()}, ${6 + Math.floor(rand() * 7)}, ${p.boat.location_label}, 'owner-demo')
@@ -143,6 +147,10 @@ for (const p of plans) {
   if (p.status !== "CANCELLED") {
     await sql`insert into booking_expense_line (booking_id, category, amount_cents, label) values (${b.id}, 'OWNER_PAYOUT', ${payout}, 'Owner payout')`;
     await sql`insert into booking_ops (booking_id, sent_to_owner_cents) values (${b.id}, ${p.paid ? payout : 0})`;
+    // Older ones were paid by Zelle; the last three weeks are still owed.
+    if (p.paid)
+      await sql`insert into owner_payout (owner_account_id, booking_id, amount_cents, method, status, reference, paid_at)
+        values (${owner.id}, ${b.id}, ${payout}, 'ZELLE', 'PAID', 'owner-demo', ${end.toISOString()})`;
   }
   n += 1;
 }

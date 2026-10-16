@@ -74,15 +74,18 @@ function buildKpis(charters: OwnerCharter[], boats: OwnerBoat[], now: Date): Own
   const liveBoats = boats.filter((b) => b.active).length;
   const capacity = liveBoats * OCCUPANCY_WINDOW_DAYS;
 
-  const earnedCents = sumPayout(earning);
   const paidOutCents = earning.reduce((s, c) => s + c.paidOutCents, 0);
+  // Owed once the trip is over, the same rule KOS pays by.
+  const owedCents = earning
+    .filter((c) => (c.endsAt ?? c.startsAt) < now)
+    .reduce((s, c) => s + Math.max(0, (c.payoutCents ?? 0) - c.paidOutCents), 0);
 
   return {
     earningsThisYearCents: sumPayout(thisYear),
     earningsSamePeriodLastYearCents: sumPayout(samePeriodLastYear),
     paidOutCents,
     paidThisYearCents: thisYear.reduce((s, c) => s + c.paidOutCents, 0),
-    pendingPayoutCents: Math.max(0, earnedCents - paidOutCents),
+    pendingPayoutCents: owedCents,
     bookedAheadCents: sumPayout(charters.filter((c) => isUpcomingCharter(c, now))),
     upcomingCharters: charters.filter((c) => isUpcomingCharter(c, now)).length,
     completedThisYear: thisYear.filter((c) => c.status === "COMPLETED").length,

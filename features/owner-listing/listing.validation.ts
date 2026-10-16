@@ -9,7 +9,7 @@ import {
 
 /**
  * What an owner may write, one schema per step. These are the ONLY boat
- * fields reachable from the owner side: never active, featured, ownerId,
+ * fields reachable from the owner side: never active, featured, the owner,
  * listing status, ranking or internal notes.
  */
 

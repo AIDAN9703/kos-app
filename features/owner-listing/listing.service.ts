@@ -7,19 +7,21 @@ import {
   boatModels,
   boatPricingTiers,
   boats,
-  ownerProfiles,
+  ownerAccountMembers,
+  ownerAccounts,
   users,
 } from "@/database/schema";
 import type { NewBoat } from "@/database/types";
 import { UserFacingError } from "@/shared/lib/errors";
+import { boatOfMember } from "@/features/owner-accounts/owner-accounts.service";
 import { MAX_OPEN_DRAFTS } from "./listing.constants";
 import type { ListingDraft, ListingForReview, ListingStatus } from "./listing.types";
 
 /**
- * Queries for self-listed boats. Owner functions are filtered on
- * owner_id = the caller AND managed_by = OWNER, so an owner can never touch a
- * KOS-managed boat (whose prices KOS sets) or anyone else's. Not
- * access-checked here: callers go through listing.data.ts.
+ * Queries for self-listed boats. Owner functions are filtered on "the boat
+ * belongs to an owner account the caller is in" AND managed_by = OWNER, so
+ * nobody can touch a KOS-managed boat (whose prices KOS sets) or another
+ * owner's. Not access-checked here: callers go through listing.data.ts.
  */
 
 const listingColumns = {
@@ -65,8 +67,8 @@ const selectListing = () =>
     .leftJoin(boatModels, eq(boatModels.id, boats.modelId));
 type ListingRow = Awaited<ReturnType<typeof selectListing>>[number];
 
-function ownListing(ownerId: string, boatId: string): SQL {
-  return and(eq(boats.id, boatId), eq(boats.ownerId, ownerId), eq(boats.managedBy, "OWNER"))!;
+function ownListing(userId: string, boatId: string): SQL {
+  return and(eq(boats.id, boatId), boatOfMember(userId), eq(boats.managedBy, "OWNER"))!;
 }
 
 async function tripsFor(boatIds: string[]) {
@@ -100,29 +102,9 @@ function toDraft(row: ListingRow, trips: { hours: number; price: number }[]): Li
   };
 }
 
-/**
- * Makes someone an owner the moment they start a listing: adds the owner role
- * and their owner_profile row. A direct write, not Better Auth's setRole,
- * which only admins may call; sessions read the role fresh on each request
- * (no cookie cache), so the portal opens on their next page load.
- */
-export async function ensureOwnerAccount(userId: string): Promise<void> {
-  await db.batch([
-    db
-      .update(users)
-      .set({
-        role: sql`CASE
-          WHEN 'owner' = ANY(string_to_array(${users.role}, ',')) THEN ${users.role}
-          WHEN coalesce(${users.role}, '') = '' THEN 'owner'
-          ELSE ${users.role} || ',owner' END`,
-      })
-      .where(eq(users.id, userId)),
-    db.insert(ownerProfiles).values({ userId }).onConflictDoNothing(),
-  ]);
-}
-
+/** A new listing under an owner account (see owner-accounts ensureAccountFor). */
 export async function createDraft(
-  ownerId: string,
+  ownerAccountId: string,
   basics: Pick<NewBoat, "category" | "makeId" | "modelId" | "yearBuilt" | "lengthFt" | "capacity">,
   /** The boat's name until the owner gives it one: "2019 Azimut 55 Fly". */
   name: string
@@ -132,7 +114,7 @@ export async function createDraft(
     .from(boats)
     .where(
       and(
-        eq(boats.ownerId, ownerId),
+        eq(boats.ownerAccountId, ownerAccountId),
         eq(boats.managedBy, "OWNER"),
         eq(boats.listingStatus, "DRAFT")
       )
@@ -147,7 +129,7 @@ export async function createDraft(
     .insert(boats)
     .values({
       ...basics,
-      ownerId,
+      ownerAccountId,
       name,
       managedBy: "OWNER",
       listingStatus: "DRAFT",
@@ -161,8 +143,8 @@ export async function createDraft(
   return row.id;
 }
 
-export async function getDraft(ownerId: string, boatId: string): Promise<ListingDraft | null> {
-  const [row] = await selectListing().where(ownListing(ownerId, boatId)).limit(1);
+export async function getDraft(userId: string, boatId: string): Promise<ListingDraft | null> {
+  const [row] = await selectListing().where(ownListing(userId, boatId)).limit(1);
   if (!row) return null;
   const trips = await tripsFor([boatId]);
   return toDraft(row, trips.get(boatId) ?? []);
@@ -170,14 +152,14 @@ export async function getDraft(ownerId: string, boatId: string): Promise<Listing
 
 /** Writes allow-listed fields (the step schemas) onto the owner's own listing. */
 export async function updateDraft(
-  ownerId: string,
+  userId: string,
   boatId: string,
   patch: Partial<NewBoat>
 ): Promise<void> {
   const updated = await db
     .update(boats)
     .set({ ...patch, updatedAt: new Date() })
-    .where(ownListing(ownerId, boatId))
+    .where(ownListing(userId, boatId))
     .returning({ id: boats.id });
   if (updated.length === 0)
     throw new UserFacingError("That listing isn't yours or no longer exists.", 404);
@@ -189,7 +171,7 @@ export async function updateDraft(
  * at a tier keep working.
  */
 export async function saveTrips(
-  ownerId: string,
+  userId: string,
   boatId: string,
   input: {
     trips: { hours: number; price: number }[];
@@ -200,7 +182,7 @@ export async function saveTrips(
   const [own] = await db
     .select({ id: boats.id })
     .from(boats)
-    .where(ownListing(ownerId, boatId))
+    .where(ownListing(userId, boatId))
     .limit(1);
   if (!own) throw new UserFacingError("That listing isn't yours or no longer exists.", 404);
 
@@ -244,12 +226,12 @@ export async function saveTrips(
   ]);
 }
 
-export async function submitDraft(ownerId: string, boatId: string): Promise<void> {
+export async function submitDraft(userId: string, boatId: string): Promise<void> {
   const updated = await db
     .update(boats)
     .set({ listingStatus: "IN_REVIEW", listingSubmittedAt: new Date(), updatedAt: new Date() })
     .where(
-      and(ownListing(ownerId, boatId), inArray(boats.listingStatus, ["DRAFT", "CHANGES_REQUESTED"]))
+      and(ownListing(userId, boatId), inArray(boats.listingStatus, ["DRAFT", "CHANGES_REQUESTED"]))
     )
     .returning({ id: boats.id });
   if (updated.length === 0)
@@ -257,11 +239,11 @@ export async function submitDraft(ownerId: string, boatId: string): Promise<void
 }
 
 /** Owners may pull a listing that isn't live yet. */
-export async function deleteDraft(ownerId: string, boatId: string): Promise<void> {
+export async function deleteDraft(userId: string, boatId: string): Promise<void> {
   const deleted = await db
     .delete(boats)
     .where(
-      and(ownListing(ownerId, boatId), inArray(boats.listingStatus, ["DRAFT", "CHANGES_REQUESTED"]))
+      and(ownListing(userId, boatId), inArray(boats.listingStatus, ["DRAFT", "CHANGES_REQUESTED"]))
     )
     .returning({ id: boats.id });
   if (deleted.length === 0)
@@ -269,15 +251,11 @@ export async function deleteDraft(ownerId: string, boatId: string): Promise<void
 }
 
 /** Owner pauses or resumes an approved listing. */
-export async function setListingLive(
-  ownerId: string,
-  boatId: string,
-  live: boolean
-): Promise<void> {
+export async function setListingLive(userId: string, boatId: string, live: boolean): Promise<void> {
   const updated = await db
     .update(boats)
     .set({ active: live, updatedAt: new Date() })
-    .where(and(ownListing(ownerId, boatId), eq(boats.listingStatus, "APPROVED")))
+    .where(and(ownListing(userId, boatId), eq(boats.listingStatus, "APPROVED")))
     .returning({ id: boats.id });
   if (updated.length === 0)
     throw new UserFacingError("Only approved listings can be shown or hidden.", 409);
@@ -285,32 +263,52 @@ export async function setListingLive(
 
 // ── KOS review ──────────────────────────────────────────────────────────────
 
-async function withOwners(rows: (ListingRow & { ownerId: string })[]): Promise<ListingForReview[]> {
+/** The owner account behind each listing, with someone to reach: its contact, else its first Owner. */
+async function withOwners(
+  rows: (ListingRow & { ownerAccountId: string })[]
+): Promise<ListingForReview[]> {
   if (rows.length === 0) return [];
-  const ownerIds = [...new Set(rows.map((r) => r.ownerId))];
-  const [owners, trips] = await Promise.all([
+  const accountIds = [...new Set(rows.map((r) => r.ownerAccountId))];
+  const [accounts, owners, trips] = await Promise.all([
     db
       .select({
-        id: users.id,
-        firstName: users.firstName,
-        lastName: users.lastName,
+        id: ownerAccounts.id,
+        name: ownerAccounts.name,
+        email: ownerAccounts.contactEmail,
+        phone: ownerAccounts.contactPhone,
+      })
+      .from(ownerAccounts)
+      .where(inArray(ownerAccounts.id, accountIds)),
+    db
+      .select({
+        accountId: ownerAccountMembers.ownerAccountId,
         email: users.email,
         phone: users.phoneNumber,
       })
-      .from(users)
-      .where(inArray(users.id, ownerIds)),
+      .from(ownerAccountMembers)
+      .innerJoin(users, eq(users.id, ownerAccountMembers.userId))
+      .where(
+        and(
+          inArray(ownerAccountMembers.ownerAccountId, accountIds),
+          eq(ownerAccountMembers.role, "OWNER")
+        )
+      )
+      .orderBy(asc(ownerAccountMembers.createdAt)),
     tripsFor(rows.map((r) => r.id)),
   ]);
-  const byId = new Map(owners.map((o) => [o.id, o]));
-  return rows.map(({ ownerId, ...row }) => {
-    const o = byId.get(ownerId);
+  const accountById = new Map(accounts.map((a) => [a.id, a]));
+  const firstOwner = new Map<string, { email: string; phone: string | null }>();
+  for (const o of owners) if (!firstOwner.has(o.accountId)) firstOwner.set(o.accountId, o);
+  return rows.map(({ ownerAccountId, ...row }) => {
+    const account = accountById.get(ownerAccountId);
+    const person = firstOwner.get(ownerAccountId);
     return {
       ...toDraft(row, trips.get(row.id) ?? []),
       owner: {
-        id: ownerId,
-        name: [o?.firstName, o?.lastName].filter(Boolean).join(" ") || o?.email || "Owner",
-        email: o?.email ?? "",
-        phone: o?.phone ?? null,
+        id: ownerAccountId,
+        name: account?.name ?? "Owner",
+        email: account?.email ?? person?.email ?? "",
+        phone: account?.phone ?? person?.phone ?? null,
       },
     };
   });
@@ -319,7 +317,7 @@ async function withOwners(rows: (ListingRow & { ownerId: string })[]): Promise<L
 /** Self-listed boats waiting for KOS (submitted first), then the ones sent back. */
 export async function listForReview(): Promise<ListingForReview[]> {
   const rows = await db
-    .select({ ...listingColumns, ownerId: boats.ownerId })
+    .select({ ...listingColumns, ownerAccountId: boats.ownerAccountId })
     .from(boats)
     .leftJoin(boatMakes, eq(boatMakes.id, boats.makeId))
     .leftJoin(boatModels, eq(boatModels.id, boats.modelId))
@@ -343,7 +341,7 @@ export async function countAwaitingReview(): Promise<number> {
 
 export async function getForReview(boatId: string): Promise<ListingForReview | null> {
   const rows = await db
-    .select({ ...listingColumns, ownerId: boats.ownerId })
+    .select({ ...listingColumns, ownerAccountId: boats.ownerAccountId })
     .from(boats)
     .leftJoin(boatMakes, eq(boatMakes.id, boats.makeId))
     .leftJoin(boatModels, eq(boatModels.id, boats.modelId))

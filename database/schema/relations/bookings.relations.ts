@@ -2,6 +2,7 @@ import { relations } from "drizzle-orm";
 import { bookings } from "../tables/bookings.table";
 import { users } from "../tables/users.table";
 import { boats } from "../tables/boats.table";
+import { ownerAccounts } from "../tables/ownerAccounts.table";
 import { boatPricingTiers } from "../tables/boatPricingTiers.table";
 import { bookingGroups } from "../tables/bookingGroups.table";
 import { reviews } from "../tables/reviews.table";
@@ -21,10 +22,9 @@ export const bookingsRelations = relations(bookings, ({ one, many }) => ({
     references: [users.id],
     relationName: "userBookings",
   }),
-  boatOwner: one(users, {
-    fields: [bookings.boatOwnerId],
-    references: [users.id],
-    relationName: "boatOwnerBookings",
+  ownerAccount: one(ownerAccounts, {
+    fields: [bookings.ownerAccountId],
+    references: [ownerAccounts.id],
   }),
   boat: one(boats, {
     fields: [bookings.boatId],

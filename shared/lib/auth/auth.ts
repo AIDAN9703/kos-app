@@ -7,6 +7,7 @@ import { and, eq, isNull, or } from "drizzle-orm";
 
 import { db } from "@/database/db";
 import { users, sessions, accounts, authVerifications, rateLimits } from "@/database/schema";
+import { hasMembership } from "@/features/owner-accounts/owner-accounts.service";
 import { claimGuestBookingsForUser } from "@/features/users/claim-guest-bookings.service";
 import { sendAccountEmail } from "@/shared/lib/services/email.service";
 import { getBaseUrl } from "@/shared/lib/utils/base-url";
@@ -295,7 +296,13 @@ export const auth = betterAuth({
   ...options,
   plugins: [
     ...options.plugins,
-    customSession(async ({ user, session }) => ({ user: toSessionUser(user), session }), options),
+    customSession(
+      async ({ user, session }) => ({
+        user: toSessionUser(user, await hasMembership(user.id)),
+        session,
+      }),
+      options
+    ),
     // Must stay last: lets server actions set the session cookie.
     nextCookies(),
   ],

@@ -23,11 +23,14 @@ function hours(c: OwnerCharter): string | null {
 export function ComingUp({
   charters,
   photos,
+  showMoney,
   className,
 }: {
   charters: OwnerCharter[];
   /** Boat id → cover photo. */
   photos: Map<string, string | null>;
+  /** Managers don't see what a charter earns. */
+  showMoney: boolean;
   className?: string;
 }) {
   const [next, ...rest] = charters;
@@ -84,17 +87,19 @@ export function ComingUp({
                   {guestsLabel(next.guests)}
                 </li>
               </ul>
-              <div className="mt-auto flex items-end justify-between border-t border-glass-border pt-3">
-                <span className="text-xs text-muted-foreground">Your earnings</span>
-                <span className="text-lg font-semibold text-foreground tabular-nums">
-                  {payoutSummary(next).amount ?? "Pending"}
-                </span>
-              </div>
+              {showMoney ? (
+                <div className="mt-auto flex items-end justify-between border-t border-glass-border pt-3">
+                  <span className="text-xs text-muted-foreground">Your earnings</span>
+                  <span className="text-lg font-semibold text-foreground tabular-nums">
+                    {payoutSummary(next).amount ?? "Pending"}
+                  </span>
+                </div>
+              ) : null}
             </div>
           </article>
           {rest.length > 0 ? (
             <div className="-mx-5 -mb-5 mt-1 border-t border-glass-border">
-              <CharterList charters={rest.slice(0, 3)} empty="" />
+              <CharterList charters={rest.slice(0, 3)} empty="" showMoney={showMoney} />
             </div>
           ) : null}
         </>

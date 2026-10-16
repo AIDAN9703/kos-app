@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, eq, gt, gte, inArray, lt, lte, or } from "drizzle-orm";
+import { and, eq, gt, gte, inArray, lt, lte } from "drizzle-orm";
 
 import { db } from "@/database/db";
 import { bookingPricing, bookings, boatExternalCalendarEvents, boats } from "@/database/schema";
@@ -61,16 +61,12 @@ export async function getCalendarEvents(start: Date, end: Date, boatId?: string)
   return { booked, external };
 }
 
-/**
- * Booked trips for an iCal feed, by boat, captain, or boat owner. The owner
- * match also checks boats.owner_id (older bookings may lack boat_owner_id).
- */
+/** Booked trips for an iCal feed, by boat or captain. */
 export async function getFeedBookings(filter: {
   start: Date;
   end: Date;
   boatId?: string;
   captainId?: string;
-  ownerId?: string;
 }) {
   return db
     .select({
@@ -92,10 +88,7 @@ export async function getFeedBookings(filter: {
         lte(bookings.startDateTime, filter.end),
         inArray(bookings.bookingStatus, ["BOOKED"]),
         filter.boatId ? eq(bookings.boatId, filter.boatId) : undefined,
-        filter.captainId ? eq(bookings.captainUserId, filter.captainId) : undefined,
-        filter.ownerId
-          ? or(eq(bookings.boatOwnerId, filter.ownerId), eq(boats.ownerId, filter.ownerId))
-          : undefined
+        filter.captainId ? eq(bookings.captainUserId, filter.captainId) : undefined
       )
     );
 }

@@ -14,7 +14,6 @@ import {
   boatPricingTiers,
   captainProfiles,
   crewProfiles,
-  ownerProfiles,
   notifications,
 } from "./schema/tables";
 import {
@@ -85,7 +84,6 @@ export type CaptainProfile = typeof captainProfiles.$inferSelect;
 export type CaptainStatus = (typeof captainStatusEnum.enumValues)[number];
 export type CrewProfile = typeof crewProfiles.$inferSelect;
 export type CrewStatus = (typeof crewStatusEnum.enumValues)[number];
-export type OwnerProfile = typeof ownerProfiles.$inferSelect;
 
 // ========================================
 // NOTIFICATIONS

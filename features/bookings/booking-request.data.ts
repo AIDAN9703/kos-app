@@ -286,7 +286,7 @@ export async function createBoatInquiry(data: BoatInquiryInput): Promise<{ booki
     source: "BOAT_PAGE",
     userId: account.id,
     boatId: boat.id,
-    boatOwnerId: boat.ownerId,
+    ownerAccountId: boat.ownerAccountId,
     pricingTierId: tier.id,
     customerName: contact.name,
     customerEmail: contact.email,

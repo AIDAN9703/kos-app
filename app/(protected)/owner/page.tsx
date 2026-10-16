@@ -8,11 +8,7 @@ import { NoBoatsYet } from "@/features/owner-dashboard/components/NoBoatsYet";
 import { OwnerHero } from "@/features/owner-dashboard/components/OwnerHero";
 import { buildOwnerAnalytics } from "@/features/owner-dashboard/owner-analytics";
 import { attentionItems, buildOutlook } from "@/features/owner-dashboard/owner-insights";
-import {
-  getMyBoats,
-  getMyCharters,
-  getMyOwnerIdentity,
-} from "@/features/owner-dashboard/owner.data";
+import { getMyBoats, getMyCharters, getMyOwnerView } from "@/features/owner-dashboard/owner.data";
 
 /**
  * The owner's home, time first (the Airbnb Today / Vrbo pattern): the hero
@@ -21,13 +17,13 @@ import {
  * on the Earnings tab.
  */
 export default async function OwnerOverviewPage() {
-  await requireOwner();
-  const [identity, boats, charters] = await Promise.all([
-    getMyOwnerIdentity(),
+  const session = await requireOwner();
+  const [view, boats, charters] = await Promise.all([
+    getMyOwnerView(),
     getMyBoats(),
     getMyCharters(),
   ]);
-  const firstName = identity.name.split(" ")[0];
+  const firstName = session.user.firstName || session.user.name.split(" ")[0];
 
   if (boats.length === 0) {
     return (
@@ -56,17 +52,23 @@ export default async function OwnerOverviewPage() {
           kpis={kpis}
           monthly={monthly}
           next={upcoming[0] ?? null}
+          showMoney={view.canSeeMoney}
         />
 
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
-          <ComingUp charters={upcoming} photos={photos} className="xl:col-span-7" />
+          <ComingUp
+            charters={upcoming}
+            photos={photos}
+            showMoney={view.canSeeMoney}
+            className="xl:col-span-7"
+          />
           <div className="flex min-w-0 flex-col gap-4 xl:col-span-5">
             {attention.length > 0 ? <NeedsAttention items={attention} /> : null}
             <GlassPanel
               title={boats.length === 1 ? "Your boat" : `Your boats (${boats.length})`}
               className="flex-1"
             >
-              <FleetRows boats={boats} performance={byBoat} />
+              <FleetRows boats={boats} performance={byBoat} showMoney={view.canSeeMoney} />
             </GlassPanel>
           </div>
         </div>

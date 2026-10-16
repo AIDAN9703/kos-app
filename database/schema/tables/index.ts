@@ -4,7 +4,8 @@ export * from "./users.table";
 export * from "./auth.table";
 export * from "./captainProfiles.table";
 export * from "./crewProfiles.table";
-export * from "./ownerProfiles.table";
+export * from "./ownerAccounts.table";
+export * from "./ownerPayouts.table";
 
 // Booking tables
 export * from "./bookingGroups.table";

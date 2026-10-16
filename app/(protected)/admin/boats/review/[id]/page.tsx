@@ -176,7 +176,7 @@ export default async function ListingReviewDetailPage({
                   "Name",
                   <Link
                     key="n"
-                    href={`/admin/users/${listing.owner.id}`}
+                    href={`/admin/owners/${listing.owner.id}`}
                     className="underline-offset-4 hover:underline"
                   >
                     {listing.owner.name}

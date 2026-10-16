@@ -6,11 +6,15 @@ import { FleetGrid } from "@/features/owner-dashboard/components/FleetGrid";
 import { NoBoatsYet } from "@/features/owner-dashboard/components/NoBoatsYet";
 import { buildOwnerAnalytics } from "@/features/owner-dashboard/owner-analytics";
 import { attentionItems } from "@/features/owner-dashboard/owner-insights";
-import { getMyBoats, getMyCharters } from "@/features/owner-dashboard/owner.data";
+import { getMyBoats, getMyCharters, getMyOwnerView } from "@/features/owner-dashboard/owner.data";
 
 export default async function OwnerBoatsPage() {
   await requireOwner();
-  const [boats, charters] = await Promise.all([getMyBoats(), getMyCharters()]);
+  const [view, boats, charters] = await Promise.all([
+    getMyOwnerView(),
+    getMyBoats(),
+    getMyCharters(),
+  ]);
   const live = boats.filter((b) => b.active).length;
   const { byBoat } = buildOwnerAnalytics(charters, boats);
 
@@ -38,7 +42,12 @@ export default async function OwnerBoatsPage() {
       {boats.length === 0 ? (
         <NoBoatsYet />
       ) : (
-        <FleetGrid boats={boats} performance={byBoat} flags={attentionItems(boats)} />
+        <FleetGrid
+          boats={boats}
+          performance={byBoat}
+          flags={attentionItems(boats)}
+          showMoney={view.canSeeMoney}
+        />
       )}
     </GlassPage>
   );

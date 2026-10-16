@@ -4,7 +4,6 @@ import { cn } from "@/shared/lib/utils/general-utils";
 const ROLE_LABELS: Record<Role, string> = {
   admin: "Admin",
   broker: "Broker",
-  owner: "Owner",
   captain: "Captain",
   crew: "Crew",
   customer: "Customer",
@@ -14,7 +13,6 @@ const ROLE_LABELS: Record<Role, string> = {
 const ROLE_COLORS: Record<Role, string> = {
   admin: "bg-primary/15 text-primary-strong ring-primary/30",
   broker: "bg-violet-400/15 text-violet-300 ring-violet-400/30",
-  owner: "bg-pink-400/15 text-pink-300 ring-pink-400/30",
   captain: "bg-cyan-400/15 text-cyan-300 ring-cyan-400/30",
   crew: "bg-emerald-400/15 text-emerald-300 ring-emerald-400/30",
   customer: "bg-sky-400/15 text-sky-300 ring-sky-400/30",

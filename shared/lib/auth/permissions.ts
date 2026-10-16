@@ -6,10 +6,11 @@ import { adminAc, defaultStatements } from "better-auth/plugins/admin/access";
  * import server code.
  *
  * Roles live on `user.role`, comma-separated: one person can hold several
- * (an owner who also books trips is just "owner"; booking is open to everyone).
+ * (booking is open to everyone). Boat owners aren't a role: they're members
+ * of an owner account (features/owner-accounts).
  *
  * Statements answer "may this role do X at all". WHICH rows (a broker's own
- * deals, an owner's own boats, a customer's own trips) is decided in queries.
+ * deals, a customer's own trips) is decided in queries.
  */
 export const statement = {
   // user + session management for the admin plugin (list, ban, impersonate…)
@@ -46,7 +47,6 @@ export const roles = {
   // plus new ones they create. Sees boats to price trips; never the company's
   // margins, payments, refunds, settings or other people's deals.
   broker: ac.newRole({ booking: ["view", "create", "edit", "price"], boat: ["view"] }),
-  owner: ac.newRole({}),
   captain: ac.newRole({}),
   crew: ac.newRole({}),
   customer: ac.newRole({}),
@@ -58,7 +58,7 @@ export const DEFAULT_ROLE: Role = "customer";
 
 const KNOWN_ROLES = new Set<string>(Object.keys(roles));
 
-/** "admin,owner" → ["admin", "owner"]; unknown entries are dropped. */
+/** "admin,broker" → ["admin", "broker"]; unknown entries (like the retired "owner") are dropped. */
 export function parseRoles(value: string | null | undefined): Role[] {
   const parsed = (value ?? "")
     .split(",")

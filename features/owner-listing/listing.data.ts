@@ -5,6 +5,7 @@ import { invalidFieldsFrom, UserFacingError } from "@/shared/lib/errors";
 import { assertCan, assertSignedIn } from "@/shared/lib/utils/auth-utils";
 import { isUuid } from "@/shared/lib/utils/general-utils";
 import { resolveMakeAndModel } from "@/features/boat-catalog/boat-catalog.service";
+import { ensureAccountFor } from "@/features/owner-accounts/owner-accounts.service";
 import { missingForReview } from "./listing-progress";
 import { defaultListingName } from "./listing.constants";
 import * as listingService from "./listing.service";
@@ -13,8 +14,9 @@ import { basicsSchema, stepSchemas, type EditableStep } from "./listing.validati
 
 /**
  * "List your boat" data layer. Anyone signed in may start a listing (that
- * makes them an owner); after that every read and write is scoped to the
- * caller's own self-listed boats. Review is for staff who can edit boats.
+ * gives them an owner account, with them as its Owner); after that every
+ * read and write is scoped to self-listed boats of owners they're in.
+ * Review is for staff who can edit boats.
  */
 
 function parse<S extends ZodTypeAny>(schema: S, input: unknown): z.output<S> {
@@ -26,11 +28,16 @@ function parse<S extends ZodTypeAny>(schema: S, input: unknown): z.output<S> {
 export async function startListing(input: unknown): Promise<string> {
   const me = await assertSignedIn("Sign in to list your boat");
   const { make, model, ...basics } = parse(basicsSchema, input);
-  await listingService.ensureOwnerAccount(me.id);
+  const ownerAccountId = await ensureAccountFor({
+    id: me.id,
+    name: [me.firstName, me.lastName].filter(Boolean).join(" ") || me.name || me.email,
+    email: me.email,
+    phone: me.phoneNumber,
+  });
   // Owners pick from the catalog; "Other" (or anything unlisted) stays empty for KOS to fill in.
   const catalog = await resolveMakeAndModel({ make, model }, { canAdd: false });
   return listingService.createDraft(
-    me.id,
+    ownerAccountId,
     { ...basics, makeId: catalog.makeId, modelId: catalog.modelId },
     defaultListingName({ ...basics, make: catalog.makeName, model: catalog.modelName })
   );

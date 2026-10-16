@@ -59,6 +59,13 @@ export default async function BoatsPage({
                     variant="glass"
                     className="h-9 gap-2 rounded-full border-0 px-4 font-semibold"
                   >
+                    <Link href="/admin/owners">Owners</Link>
+                  </Button>
+                  <Button
+                    asChild
+                    variant="glass"
+                    className="h-9 gap-2 rounded-full border-0 px-4 font-semibold"
+                  >
                     <Link href="/admin/boats/review">
                       Owner listings
                       {awaitingReview > 0 ? (

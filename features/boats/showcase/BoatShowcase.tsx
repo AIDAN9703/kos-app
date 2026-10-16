@@ -112,7 +112,7 @@ export function BoatShowcase({
     ["Bathrooms", boat.bathrooms ? String(boat.bathrooms) : null],
     ["Crew", boat.crewIncluded ? "Included" : boat.crewRequired ? "Required" : "Not needed"],
     ["Turnaround", `${boat.turnaroundMinutes} min`],
-    ["Owner", [boat.ownerFirstName, boat.ownerLastName].filter(Boolean).join(" ") || null],
+    ["Owner", boat.ownerAccountName],
   ];
 
   // Dot grid: 18 columns (weeks) × 7 rows (Mon–Sun).

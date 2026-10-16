@@ -3,7 +3,7 @@ import { users } from "../tables/users.table";
 import { boats } from "../tables/boats.table";
 import { captainProfiles } from "../tables/captainProfiles.table";
 import { crewProfiles } from "../tables/crewProfiles.table";
-import { ownerProfiles } from "../tables/ownerProfiles.table";
+import { ownerAccountMembers } from "../tables/ownerAccounts.table";
 import { bookingCrew } from "../tables/bookingCrew.table";
 import { bookings } from "../tables/bookings.table";
 import { reviews } from "../tables/reviews.table";
@@ -16,19 +16,13 @@ export const usersRelations = relations(users, ({ one, many }) => ({
     fields: [users.id],
     references: [captainProfiles.userId],
   }),
-  ownerProfile: one(ownerProfiles, {
-    fields: [users.id],
-    references: [ownerProfiles.userId],
-  }),
   crewProfile: one(crewProfiles, {
     fields: [users.id],
     references: [crewProfiles.userId],
   }),
 
-  // Boats owned by this user
-  ownedBoats: many(boats, {
-    relationName: "ownerBoats",
-  }),
+  // Owner accounts this person belongs to
+  ownerAccountMemberships: many(ownerAccountMembers),
 
   // Boats where this user is primary captain
   captainedBoats: many(boats, {
@@ -38,9 +32,6 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   // Bookings
   bookings: many(bookings, {
     relationName: "userBookings",
-  }),
-  boatOwnerBookings: many(bookings, {
-    relationName: "boatOwnerBookings",
   }),
   captainBookings: many(bookings, {
     relationName: "captainBookings",

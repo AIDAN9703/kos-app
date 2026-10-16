@@ -11,7 +11,7 @@ import { and, eq, inArray } from "drizzle-orm";
 
 type BoatForBooking = {
   id: string;
-  ownerId: string;
+  ownerAccountId: string;
   cleaningFee: number | null;
   depositAmount: number | null;
   crewRequired: boolean;
@@ -38,7 +38,7 @@ export async function fetchBoatAndTier(
   const [boat] = await db
     .select({
       id: boats.id,
-      ownerId: boats.ownerId,
+      ownerAccountId: boats.ownerAccountId,
       cleaningFee: boats.cleaningFee,
       depositAmount: boats.depositAmount,
       crewRequired: boats.crewRequired,
@@ -68,7 +68,7 @@ export async function fetchBoatAndTier(
   return {
     boat: {
       id: boat.id,
-      ownerId: boat.ownerId,
+      ownerAccountId: boat.ownerAccountId,
       cleaningFee: boat.cleaningFee,
       depositAmount: boat.depositAmount,
       crewRequired: boat.crewRequired ?? false,
@@ -82,7 +82,7 @@ type BoatForBulkBooking = {
   id: string;
   name: string;
   mainImage: string | null;
-  ownerId: string;
+  ownerAccountId: string;
   cleaningFee: number | null;
   depositAmount: number | null;
   crewRequired: boolean;
@@ -113,7 +113,7 @@ export async function fetchBoatsAndTiersBulk(
             id: boats.id,
             name: boats.name,
             mainImage: boats.mainImage,
-            ownerId: boats.ownerId,
+            ownerAccountId: boats.ownerAccountId,
             cleaningFee: boats.cleaningFee,
             depositAmount: boats.depositAmount,
             crewRequired: boats.crewRequired,
@@ -142,7 +142,7 @@ export async function fetchBoatsAndTiersBulk(
         id: b.id,
         name: b.name,
         mainImage: b.mainImage,
-        ownerId: b.ownerId,
+        ownerAccountId: b.ownerAccountId,
         cleaningFee: b.cleaningFee,
         depositAmount: b.depositAmount,
         crewRequired: b.crewRequired ?? false,

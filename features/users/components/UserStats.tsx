@@ -17,7 +17,7 @@ function tripSummary(user: AdminUserProfile, now = Date.now()) {
 export function UserStats({ user }: { user: AdminUserProfile }) {
   const { real, next, last } = tripSummary(user);
   const isStaff = user.roles.includes("admin") || user.roles.includes("broker");
-  const isOwner = user.roles.includes("owner") || user.boats.length > 0;
+  const isOwner = user.owners.length > 0;
 
   const cells = [
     { label: "Trips", value: real.length.toLocaleString() },
@@ -26,7 +26,7 @@ export function UserStats({ user }: { user: AdminUserProfile }) {
     isStaff
       ? { label: "Deals assigned", value: user.assignedDeals.length.toLocaleString() }
       : isOwner
-        ? { label: "Boats", value: user.boats.length.toLocaleString() }
+        ? { label: "Boats", value: user.owners.reduce((n, o) => n + o.boatCount, 0).toLocaleString() }
         : { label: "Last trip", value: last ? formatDate(new Date(last.at)) : "None" },
   ];
 

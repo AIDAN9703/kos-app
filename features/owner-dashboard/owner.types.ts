@@ -1,4 +1,8 @@
 import type { BookingStatus } from "@/database/types";
+import type {
+  OwnerAccountRole,
+  OwnerMembership,
+} from "@/features/owner-accounts/owner-accounts.types";
 
 /**
  * The owner portal (/owner) — what a boat owner sees about their
@@ -16,9 +20,15 @@ export const OWNER_VISIBLE_STATUSES = [
 type OwnerCharterStatus = (typeof OWNER_VISIBLE_STATUSES)[number];
 
 /** Who the portal is for — shown in the sidebar. */
-export interface OwnerIdentity {
-  name: string;
-  businessName: string | null;
+/** Which owner the portal shows, and what this person may see of it. */
+export interface OwnerView {
+  accountId: string;
+  accountName: string;
+  role: OwnerAccountRole;
+  /** Owners see earnings and payout details; managers don't. */
+  canSeeMoney: boolean;
+  /** Every owner they belong to, for the switcher. */
+  memberships: OwnerMembership[];
 }
 
 export interface OwnerBoat {

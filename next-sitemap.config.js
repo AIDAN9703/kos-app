@@ -20,6 +20,8 @@ module.exports = {
     '/list-your-boat/*',
     // Landing page redesign mockup (also noindex)
     '/home-preview',
+    // Owner portal invite links
+    '/owner-invite/*',
     
     // Auth routes
     '/auth/*',
@@ -57,6 +59,7 @@ module.exports = {
           '/brokers',
           '/list-your-boat/',
           '/home-preview',
+          '/owner-invite/',
           '/bookings/',
           '/api/',
           '/auth/',
@@ -82,6 +85,7 @@ module.exports = {
           '/brokers',
           '/list-your-boat/',
           '/home-preview',
+          '/owner-invite/',
           '/bookings/',
           '/api/',
           '/auth/',
@@ -97,6 +101,7 @@ module.exports = {
           '/brokers',
           '/list-your-boat/',
           '/home-preview',
+          '/owner-invite/',
           '/bookings/',
           '/api/',
           '/auth/',

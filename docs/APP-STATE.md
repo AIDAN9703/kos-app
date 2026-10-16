@@ -30,7 +30,7 @@ messages safe to show; anything else is logged and replaced by a generic message
 ESLint (`eslint.config.mjs`) enforces the boundary: only services may import
 `@/database/db`; only data files and services may import a service (or the Stripe
 client). Areas: boats, search, deals (`deal.data` + `deal-money.data`), proposal,
-booking requests, profile, owner portal, owner listings, boat catalog, users, crew
+booking requests, profile, owner portal, owner accounts, owner listings, boat catalog, users, crew
 rosters, phone sign-in, availability/calendars, payments, inbound email, blog, add-ons,
 settings, dashboard, admin search, uploads.
 
@@ -307,9 +307,43 @@ Unset boats fall back to America/New_York. Prod's remaining 12: 2 at La Coloma M
   methods in `account`; rate limits in `rate_limit`. Verify email, forgot/reset password,
   confirmed email change, connect/disconnect Google and sign out other devices are in
   Account settings. Guest checkout throughout.
-- **Roles** — `user.role`, comma-separated: admin, broker, owner, captain, crew, customer.
+- **Roles** — `user.role`, comma-separated: admin, broker, captain, crew, customer.
   Permissions in `shared/lib/auth/permissions.ts` (Better Auth access control). Admins set
-  admin/broker/owner on the person's page; captain/crew come from their promotion flows.
+  admin/broker on the person's page; captain/crew come from their promotion flows. Boat
+  owners are not a role: they're members of an owner account (below); `session.user.isOwner`
+  means "belongs to at least one".
+- **Owner accounts (2026-10-16, migrations 0074–0075)** — `owner_account` is who a boat
+  belongs to and who KOS pays: one person or a business, and not a login. People join it
+  through `owner_account_member` as **Owner** (everything, money included, invites people)
+  or **Manager** (boats, calendar and charters, no money). `boat.owner_account_id`
+  replaces `boat.owner_id`; each booking records its boat's account (`booking.owner_account_id`)
+  so history stays put when a boat changes owners. **KOS Yachts** is the house account
+  (`is_house`) holding every boat whose owner isn't set up; 0074 put all staff-held boats
+  there and gave every other owner an account in their name. Admins manage owners at
+  `/admin/owners` (create one before its owner has a login, move boats in with or without
+  their past charters, invite people, edit contact details and Zelle, pay them).
+  Invites are emailed links
+  (`/owner-invite/<token>`, 14 days, token stored hashed) that need a login with the invited
+  email. Code: `features/owner-accounts/` (one access check: the boat's account must be one
+  the person is in). Own tables, not Better Auth's organization plugin, because KOS
+  creates accounts nobody has joined yet and admins invite into accounts they aren't in.
+- **Owner payouts (2026-10-16, part of migration 0074)** — guests pay KOS; KOS pays each
+  owner per charter once the trip is over. What's owed = the charter's OWNER_PAYOUT
+  expense lines; every payment is an `owner_payout` row (STRIPE or ZELLE; PENDING / PAID /
+  FAILED), and `booking_ops.sent_to_owner_cents` is kept equal to the PAID ones (nothing
+  else writes it). Owners choose how they're paid on Earnings → "How KOS pays you":
+  **direct deposit** (a Stripe Connect Express account they set up on Stripe's site; KOS
+  never sees bank or tax details; `owner_account.stripe_account_id`, readiness synced on
+  return and on "Check with Stripe") or **Zelle** (an email or US phone). Admins pay from
+  the owner's page (`/admin/owners/<id>` → Payouts): **Pay $X** sends a Stripe transfer
+  from KOS's balance after a confirm (row written PENDING first; a unique index allows one
+  in flight per charter; idempotency key per row; a dropped connection is checked against
+  Stripe before it's called failed), or **Record Zelle** after sending it from the bank
+  app (removable if recorded by mistake; Stripe ones aren't). `/admin/owners` shows
+  "Owed now" per owner. Code: `owner-payouts.service.ts` / `.data.ts`. Not automatic yet:
+  an admin clicks Pay. Transfers need available Stripe balance (card payments take a few
+  days); charters already paid before this shipped show as due once, so record them as
+  Zelle.
 - **Admin people (`/admin/users`, 2026-10)** — list with role views; **Add user** is a
   right-hand sheet (`?newUser=true`, also in the header's + menu) that creates the account
   with no password and emails a set-password link. Finishing that link marks the email
@@ -324,21 +358,25 @@ Unset boats fall back to America/New_York. Prod's remaining 12: 2 at La Coloma M
   `features/bookings/lib/deal-access.ts`; brokers never see company costs/margin,
   payment recording, refunds, reassignment, settings or users.
 - **Owner portal (`/owner`, redesigned 2026-10-08)** — the admin glass theme (the layout
-  carries `data-admin-theme`). Glass header: logo, "Owner portal", pill tabs (Overview / My
-  boats / Charters / Earnings) and an "Exit" pill back to `/profile`. Overview: a hero over
-  the owner's boat photo (earned this year, owed, paid, next charter, booked ahead), the
+  carries `data-admin-theme`). Glass header: logo, "Owner portal" with the owner account's
+  name (a switcher for people in several), pill tabs (Overview / My boats / Charters, plus
+  Earnings and Team for the Owner role) and an "Exit" pill back to `/profile`. Overview: a
+  hero over the owner's boat photo (earned this year, owed, paid, next charter, booked
+  ahead; Managers get charters ahead, completed, hours and 30-day occupancy instead), the
   next charters, a "Needs attention" list (drafts, changes requested, hidden, under 5
   photos, insurance due in 45 days; `owner-insights.ts`), the fleet, and a boat × 28-day
-  outlook. Earnings: 12 months back + 3 ahead, by boat, and a month-by-month statement.
-  Read-only money; owners never see guest details or what the guest paid. Payout figures =
-  OWNER_PAYOUT expense lines + `booking_ops.sent_to_owner_cents` as entered by admins. No
-  payouts/statements yet (Stripe Connect not built). Dev demo data:
+  outlook. Earnings (Owners only): 12 months back + 3 ahead, by boat, "How KOS pays you",
+  and a month-by-month statement. Team (Owners only): people and invites. `owner.data.ts`
+  leaves every money figure out for Managers. Owners never see guest details or what the
+  guest paid. Payout figures = OWNER_PAYOUT expense lines and the payout ledger above;
+  "Owed to you" counts trips that are over. Dev demo data:
   `npx tsx database/scripts/dev/owner-demo.mts seed|clean`.
 - **List your boat (DRAFT, 2026-10-08, migration 0071)** — `/list-your-boat` is a public
   marketing page with an earnings estimate from live boats' prices; `/list-your-boat/start`
   takes the first details before sign-up; the 8-step flow lives at
   `/list-your-boat/<boatId>/<step>` (`app/(listing)`, `features/owner-listing/`). Starting
-  a listing gives the person the owner role. Boats carry `managed_by` (KOS | OWNER) and
+  a listing puts it under an owner account where the person is an Owner (a new one in their
+  name the first time). Boats carry `managed_by` (KOS | OWNER) and
   `listing_status` (DRAFT → IN_REVIEW → CHANGES_REQUESTED / APPROVED); a CHECK keeps
   unapproved boats hidden. Admins approve or send back at `/admin/boats/review`. Owners
   edit only `managed_by = OWNER` boats. **KOS's fee is undecided**: the 20% in
@@ -387,7 +425,7 @@ auto-generated and not editable.
 **🟡 Google Maps loads via `window.google` polling** instead of a proper provider.
 
 **Not built:** contract e-signature, Google Calendar push to captains, QuickBooks sync,
-owner-payout automation, customer-submitted reviews (the `review` table is empty since
+automatic owner payouts (an admin clicks Pay), owner payout emails, customer-submitted reviews (the `review` table is empty since
 migration 0067; homepage testimonials come from Google).
 
 **Tech debt:** lint shows 7 problems (3 errors, 4 warnings), all pre-existing:
@@ -450,6 +488,17 @@ sitemap moves to a built-in `app/sitemap.ts`) and drizzle-kit/esbuild (local onl
    backfilled, old columns kept), deploy; (2) commit 0073 and run `db:migrate:prod`. 0073
    raises and drops nothing if any boat would lose its make or model. 0071 is the
    owner-listing draft; ship it only once that's signed off.
+5. **Migrations 0074–0075 (owner accounts) also go out in two deploys**, the same way:
+   run 0074 (accounts added and filled, `boat.owner_id` made optional, nothing dropped),
+   deploy the code, then add and run 0075 (drops `boat.owner_id`, `booking.boat_owner_id`,
+   `owner_profile` and the "owner" role; it first links anything the old code saved in
+   between, and refuses to drop anything if a boat would be left without an owner).
+   0074 also adds the owner payout ledger and the direct deposit / Zelle columns.
+6. **Stripe Connect for owner direct deposit.** In the Stripe Dashboard (test mode first,
+   then live): Connect must be on with Express accounts allowed (test mode already works
+   on dev), the platform profile filled in, and Connect branding set (name, icon, color),
+   since owners see it on Stripe's setup pages. Decide 1099 tax forms (Connect → Tax
+   forms) before the first live payouts. No new env vars: it uses `STRIPE_SECRET_KEY`.
 
 **Money semantics (fixed 2026-08-19):** `booking_ops.expense_cents` aggregates
 ALL expense lines (owner payout + fuel/crew/dockage), so REV = GMV − every

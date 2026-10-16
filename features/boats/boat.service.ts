@@ -2,7 +2,7 @@ import 'server-only';
 
 //drizzle
 import { db } from '@/database/db';
-import { boats, boatPricingTiers, users, addOns, boatAddOns, boatMakes, boatModels } from '@/database/schema';
+import { boats, boatPricingTiers, addOns, boatAddOns, boatMakes, boatModels, ownerAccounts } from '@/database/schema';
 import { and, asc, count, eq, desc, inArray, isNotNull, or, ilike, SQL, sql } from 'drizzle-orm';
 import { getTableColumns } from 'drizzle-orm';
 
@@ -121,7 +121,7 @@ class BoatService {
         boat: {
           id: boats.id,
           name: boats.name,
-          ownerId: boats.ownerId,
+          ownerAccountId: boats.ownerAccountId,
           mainImage: boats.mainImage,
           cleaningFee: boats.cleaningFee,
           depositAmount: boats.depositAmount,
@@ -323,7 +323,7 @@ class BoatService {
     if (filters?.category) whereConditions.push(eq(boats.category, filters.category));
     if (filters?.featured !== undefined) whereConditions.push(eq(boats.featured, filters.featured));
     if (filters?.active !== undefined) whereConditions.push(eq(boats.active, filters.active));
-    if (filters?.ownerId) whereConditions.push(eq(boats.ownerId, filters.ownerId));
+    if (filters?.ownerAccountId) whereConditions.push(eq(boats.ownerAccountId, filters.ownerAccountId));
 
     // Size/capacity range filters
     if (filters?.minLength) whereConditions.push(sql`${boats.lengthFt} >= ${filters.minLength}`);
@@ -389,8 +389,8 @@ class BoatService {
       featured: boats.featured,
       mainImage: boats.mainImage,
       createdAt: boats.createdAt,
-      ownerName: sql<string>`CONCAT(${users.firstName}, ' ', ${users.lastName})`,
-      ownerId: boats.ownerId,
+      ownerName: ownerAccounts.name,
+      ownerAccountId: boats.ownerAccountId,
     };
 
     // Include lowest pricing tier in main query for performance
@@ -404,7 +404,7 @@ class BoatService {
       )`,
     })
       .from(boats)
-      .leftJoin(users, eq(boats.ownerId, users.id))
+      .leftJoin(ownerAccounts, eq(ownerAccounts.id, boats.ownerAccountId))
       .where(whereClause)
       .limit(limit)
       .offset(offset)
@@ -436,14 +436,12 @@ class BoatService {
         ...getTableColumns(boats),
         make: boatMakes.name,
         model: boatModels.name,
-        ownerFirstName: users.firstName,
-        ownerLastName: users.lastName,
-        ownerEmail: users.email,
+        ownerAccountName: ownerAccounts.name,
         latitude: sql<number | null>`ST_Y(${boats.location}::geometry)`.mapWith(Number),
         longitude: sql<number | null>`ST_X(${boats.location}::geometry)`.mapWith(Number),
       })
       .from(boats)
-      .leftJoin(users, eq(boats.ownerId, users.id))
+      .leftJoin(ownerAccounts, eq(ownerAccounts.id, boats.ownerAccountId))
       .leftJoin(boatMakes, eq(boatMakes.id, boats.makeId))
       .leftJoin(boatModels, eq(boatModels.id, boats.modelId))
       .where(eq(boats.id, id))

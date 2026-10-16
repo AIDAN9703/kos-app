@@ -252,10 +252,6 @@ export interface BookingDetails extends BookingListItem {
   // Extended boat info
   boatCapacity: number | null;
   boatTimezone: string | null;
-  boatOwnerId: string | null;
-  boatOwnerFirstName: string | null;
-  boatOwnerLastName: string | null;
-  boatOwnerEmail: string | null;
 }
 
 /**

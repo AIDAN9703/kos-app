@@ -9,6 +9,8 @@ interface CharterListProps {
   /** Show the date instead of the boat name (on a single boat's page). */
   hideBoat?: boolean;
   empty: string;
+  /** Managers don't see what a charter earns. */
+  showMoney: boolean;
 }
 
 /** Status chips in the admin's ring style: colored text on a soft fill. */
@@ -19,7 +21,7 @@ const TONE: Record<string, string> = {
 };
 
 /** Charters on the owner's boats, as rows inside a glass panel. No guest details, by design. */
-export function CharterList({ charters, hideBoat = false, empty }: CharterListProps) {
+export function CharterList({ charters, hideBoat = false, empty, showMoney }: CharterListProps) {
   if (charters.length === 0) {
     return <p className="px-5 py-10 text-center text-sm text-muted-foreground">{empty}</p>;
   }
@@ -65,12 +67,14 @@ export function CharterList({ charters, hideBoat = false, empty }: CharterListPr
               {status.label}
             </span>
 
-            <div className="w-24 shrink-0 text-right">
-              {payout.amount ? (
-                <p className="font-semibold text-foreground tabular-nums">{payout.amount}</p>
-              ) : null}
-              <p className="text-xs text-muted-foreground">{payout.note}</p>
-            </div>
+            {showMoney ? (
+              <div className="w-24 shrink-0 text-right">
+                {payout.amount ? (
+                  <p className="font-semibold text-foreground tabular-nums">{payout.amount}</p>
+                ) : null}
+                <p className="text-xs text-muted-foreground">{payout.note}</p>
+              </div>
+            ) : null}
           </li>
         );
       })}

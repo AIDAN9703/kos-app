@@ -26,9 +26,3 @@ export const crewStatusEnum = pgEnum("CrewStatus", [
   "ON_LEAVE",
   "SUSPENDED",
 ]);
-
-// Owner profile business type
-export const ownerBusinessTypeEnum = pgEnum("OwnerBusinessType", [
-  "INDIVIDUAL",        // Personal boat owner
-  "COMPANY",           // Charter company or LLC
-]);

@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { requireOwner } from "@/shared/lib/utils/auth-utils";
 import { cn } from "@/shared/lib/utils/general-utils";
 import { formatBoatLocal } from "@/shared/lib/utils/date-helpers";
@@ -6,7 +7,12 @@ import { GlassHeader, GlassPage, GlassPanel, GlassStat } from "@/shared/admin/co
 import { EarningsChart } from "@/features/owner-dashboard/components/EarningsChart";
 import { buildMonthly, buildOwnerAnalytics } from "@/features/owner-dashboard/owner-analytics";
 import { payoutSummary } from "@/features/owner-dashboard/owner-presentation";
-import { getMyBoats, getMyCharters } from "@/features/owner-dashboard/owner.data";
+import { getMyBoats, getMyCharters, getMyOwnerView } from "@/features/owner-dashboard/owner.data";
+import {
+  getMyPayoutSetup,
+  syncMyDirectDeposit,
+} from "@/features/owner-accounts/owner-payouts.data";
+import { PayoutSetupCard } from "@/features/owner-accounts/components/PayoutSetupCard";
 import type { OwnerCharter } from "@/features/owner-dashboard/owner.types";
 
 function tripLength(c: OwnerCharter): string {
@@ -18,11 +24,25 @@ function tripLength(c: OwnerCharter): string {
 /**
  * Earnings, Airbnb-style: the headline money, the months behind and the
  * months already booked ahead, each boat's share, and a statement of every
- * charter with what it pays and whether it's been paid.
+ * charter with what it pays and whether it's been paid. Owners only:
+ * managers never see the money.
  */
-export default async function OwnerEarningsPage() {
+export default async function OwnerEarningsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ stripe?: string }>;
+}) {
   await requireOwner();
-  const [boats, charters] = await Promise.all([getMyBoats(), getMyCharters()]);
+  const [view, { stripe }] = await Promise.all([getMyOwnerView(), searchParams]);
+  if (!view.canSeeMoney) redirect("/owner");
+  const [boats, charters, payout] = await Promise.all([
+    getMyBoats(),
+    getMyCharters(),
+    // Back from Stripe's setup pages: read where it stands (what we have if Stripe is down).
+    stripe === "return"
+      ? syncMyDirectDeposit().catch(() => getMyPayoutSetup())
+      : getMyPayoutSetup(),
+  ]);
   const now = new Date();
   const { kpis, byBoat } = buildOwnerAnalytics(charters, boats, now);
   const timeline = buildMonthly(charters, now, 11, 3);
@@ -105,6 +125,8 @@ export default async function OwnerEarningsPage() {
             </ul>
           </GlassPanel>
         </div>
+
+        <PayoutSetupCard setup={payout} linkExpired={stripe === "refresh"} />
 
         <GlassPanel title="Statement" className="p-0">
           {months.size === 0 ? (

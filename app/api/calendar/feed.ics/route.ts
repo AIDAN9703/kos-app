@@ -1,18 +1,17 @@
 /**
  * Public iCal feed for KOS bookings.
  *
- * URL: /api/calendar/feed.ics?token=<hmac>&scope=bookings&boatId=...|captainId=...|ownerId=...
+ * URL: /api/calendar/feed.ics?token=<hmac>&scope=bookings&boatId=...|captainId=...
  *
  * Auth model:
  * - No user session — this endpoint is meant to be subscribed to from external
  *   calendars (Google Calendar “Add by URL”, Apple Calendar, Outlook).
  * - Access is gated by an HMAC token derived from the filter combination plus
  *   `CALENDAR_FEED_SECRET` (see `shared/lib/calendar/feed-tokens.ts`).
- * - Only bookings the URL is scoped to are returned — boatId, captainId, or
- *   boat-ownership (ownerId). At least one of those must be present.
+ * - Only bookings the URL is scoped to are returned — boatId or captainId.
+ *   One of those must be present.
  *
  * Returned events are BOOKED trips only, to keep external calendars clean.
- * Owner feeds leave out customer contact details (see availability.data.ts).
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -29,7 +28,6 @@ export async function GET(request: NextRequest) {
       scope: params.get("scope"),
       boatId: params.get("boatId") || undefined,
       captainId: params.get("captainId") || undefined,
-      ownerId: params.get("ownerId") || undefined,
       token: params.get("token") || "",
       origin: url.origin,
     });

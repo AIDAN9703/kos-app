@@ -1,5 +1,5 @@
 import { pgTable, uuid, text, boolean, timestamp, index, json, integer, bigint, date, unique } from "drizzle-orm/pg-core";
-import { users, boats, boatPricingTiers, bookingGroups } from "@/database/schema/tables";
+import { users, boats, boatPricingTiers, bookingGroups, ownerAccounts } from "@/database/schema/tables";
 import {
   bookingStatusEnum,
   bookingTypeEnum,
@@ -22,7 +22,8 @@ export const bookings = pgTable(
     // RELATIONSHIPS
     // ==========================================================================
     userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
-    boatOwnerId: uuid("boat_owner_id").references(() => users.id, { onDelete: "set null" }),
+    /** The boat's owner when the booking was made, so history stays put if the boat changes owners. */
+    ownerAccountId: uuid("owner_account_id").references(() => ownerAccounts.id, { onDelete: "set null" }),
     // Nullable: INQUIRY-status deals may not have chosen a boat yet.
     boatId: uuid("boat_id").references(() => boats.id, { onDelete: "restrict" }),
     captainUserId: uuid("captain_user_id").references(() => users.id, { onDelete: "set null" }),
@@ -124,6 +125,7 @@ export const bookings = pgTable(
     index("booking_source_idx").on(table.source),
     index("booking_user_idx").on(table.userId),
     index("booking_boat_idx").on(table.boatId),
+    index("booking_owner_account_idx").on(table.ownerAccountId),
     index("booking_captain_idx").on(table.captainUserId),
     index("booking_group_idx").on(table.bookingGroupId),
     index("booking_public_token_idx").on(table.publicToken),

@@ -5,7 +5,7 @@ export * from "./boats.relations";
 export * from "./users.relations";
 export * from "./captainProfiles.relations";
 export * from "./crewProfiles.relations";
-export * from "./ownerProfiles.relations";
+export * from "./ownerAccounts.relations";
 
 // Booking relations
 export * from "./bookingGroups.relations";

@@ -39,7 +39,7 @@ const boatBaseSchema = z.object({
   searchRankingScore: z.number().nonnegative().optional().nullable(),
   
   // Owner Information
-  ownerId: z.string().uuid("Please select an owner"),
+  ownerAccountId: z.string().uuid("Choose the owner"),
   ownerNotes: z.string().optional().nullable(),
   
   // Boat Specifications
@@ -140,7 +140,7 @@ export interface BoatFilterInput {
   category?: (typeof boatCategoryEnum.enumValues)[number];
   featured?: boolean;
   active?: boolean;
-  ownerId?: string;
+  ownerAccountId?: string;
   minPrice?: number;
   maxPrice?: number;
   minLength?: number;

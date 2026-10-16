@@ -7,7 +7,7 @@
  *
  * Why HMAC instead of opaque DB tokens for now: avoids a migration and a UI
  * for token management. Once we want per-user revocation, we can switch to a
- * `calendar_feed_token` table keyed by `userId` (boat owner, captain) — the
+ * `calendar_feed_token` table keyed by `userId` (a captain) — the
  * route signature stays the same.
  */
 
@@ -15,7 +15,7 @@ import crypto from "node:crypto";
 
 const ENV_VAR = "CALENDAR_FEED_SECRET";
 /** Filter knobs the HMAC binds — same list as `verifyFeedToken` reads. */
-const SIGNED_KEYS = ["scope", "boatId", "captainId", "ownerId"] as const;
+const SIGNED_KEYS = ["scope", "boatId", "captainId"] as const;
 
 export type FeedScope = "bookings";
 
@@ -24,7 +24,6 @@ interface FeedTokenInput {
   scope: FeedScope;
   boatId?: string;
   captainId?: string;
-  ownerId?: string;
 }
 
 function getSecret(): string {

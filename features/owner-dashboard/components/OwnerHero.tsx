@@ -44,7 +44,8 @@ function Spark({ values }: { values: number[] }) {
 /**
  * The top of the overview, over the owner's own boat: the greeting, this
  * year's earnings with the 12-month trend, and four frosted chips with the
- * numbers owners ask about first.
+ * numbers owners ask about first. Managers (`showMoney` off) get the
+ * charters instead of the money.
  */
 export function OwnerHero({
   firstName,
@@ -52,14 +53,34 @@ export function OwnerHero({
   kpis,
   monthly,
   next,
+  showMoney,
 }: {
   firstName: string;
   photo: string | null;
   kpis: OwnerKpis;
   monthly: MonthlyPoint[];
   next: OwnerCharter | null;
+  showMoney: boolean;
 }) {
   const year = new Date().getFullYear();
+  const nextCharter = (
+    <GlassStat
+      size="lg"
+      label="Next charter"
+      value={
+        next ? (
+          <>
+            {countdown(next.startsAt)}
+            <span className="ml-1.5 text-xs font-medium text-muted-foreground">
+              {formatBoatLocal(next.startsAt, next.timezone, "MMM d")}
+            </span>
+          </>
+        ) : (
+          "None booked"
+        )
+      }
+    />
+  );
   return (
     <section className="glass-panel relative isolate overflow-hidden p-0">
       <div aria-hidden className="absolute inset-y-0 right-0 -z-10 w-full md:w-[62%]">
@@ -84,53 +105,58 @@ export function OwnerHero({
           Welcome back, {firstName}
         </h1>
 
-        <div>
-          <p className="text-sm text-muted-foreground">Earned in {year}</p>
-          <div className="mt-2 flex flex-wrap items-end gap-x-6 gap-y-3">
-            <p className="text-5xl leading-none font-semibold tracking-tight text-foreground tabular-nums md:text-6xl">
-              {formatCentsAsWholeDollars(kpis.earningsThisYearCents)}
-            </p>
-            <Spark values={monthly.map((m) => m.earningsCents)} />
-          </div>
-        </div>
+        {showMoney ? (
+          <>
+            <div>
+              <p className="text-sm text-muted-foreground">Earned in {year}</p>
+              <div className="mt-2 flex flex-wrap items-end gap-x-6 gap-y-3">
+                <p className="text-5xl leading-none font-semibold tracking-tight text-foreground tabular-nums md:text-6xl">
+                  {formatCentsAsWholeDollars(kpis.earningsThisYearCents)}
+                </p>
+                <Spark values={monthly.map((m) => m.earningsCents)} />
+              </div>
+            </div>
 
-        <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-[repeat(4,minmax(0,200px))]">
-          <GlassStat
-            size="lg"
-            label="Owed to you"
-            value={
-              <span className={kpis.pendingPayoutCents > 0 ? "text-primary-strong" : undefined}>
-                {formatCentsAsWholeDollars(kpis.pendingPayoutCents)}
-              </span>
-            }
-          />
-          <GlassStat
-            size="lg"
-            label={`Paid in ${year}`}
-            value={formatCentsAsWholeDollars(kpis.paidThisYearCents)}
-          />
-          <GlassStat
-            size="lg"
-            label="Next charter"
-            value={
-              next ? (
-                <>
-                  {countdown(next.startsAt)}
-                  <span className="ml-1.5 text-xs font-medium text-muted-foreground">
-                    {formatBoatLocal(next.startsAt, next.timezone, "MMM d")}
+            <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-[repeat(4,minmax(0,200px))]">
+              <GlassStat
+                size="lg"
+                label="Owed to you"
+                value={
+                  <span className={kpis.pendingPayoutCents > 0 ? "text-primary-strong" : undefined}>
+                    {formatCentsAsWholeDollars(kpis.pendingPayoutCents)}
                   </span>
-                </>
-              ) : (
-                "None booked"
-              )
-            }
-          />
-          <GlassStat
-            size="lg"
-            label="Booked ahead"
-            value={formatCentsAsWholeDollars(kpis.bookedAheadCents)}
-          />
-        </div>
+                }
+              />
+              <GlassStat
+                size="lg"
+                label={`Paid in ${year}`}
+                value={formatCentsAsWholeDollars(kpis.paidThisYearCents)}
+              />
+              {nextCharter}
+              <GlassStat
+                size="lg"
+                label="Booked ahead"
+                value={formatCentsAsWholeDollars(kpis.bookedAheadCents)}
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            <div>
+              <p className="text-sm text-muted-foreground">Charters ahead</p>
+              <p className="mt-2 text-5xl leading-none font-semibold tracking-tight text-foreground tabular-nums md:text-6xl">
+                {kpis.upcomingCharters}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-[repeat(4,minmax(0,200px))]">
+              {nextCharter}
+              <GlassStat size="lg" label={`Completed in ${year}`} value={kpis.completedThisYear} />
+              <GlassStat size="lg" label="Hours on the water" value={kpis.hoursThisYear} />
+              <GlassStat size="lg" label="Next 30 days booked" value={`${kpis.occupancyNext30}%`} />
+            </div>
+          </>
+        )}
       </div>
     </section>
   );

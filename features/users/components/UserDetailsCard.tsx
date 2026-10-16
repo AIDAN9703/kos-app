@@ -38,7 +38,7 @@ function ReadOnlyRow({ label, children }: { label: string; children: React.React
   );
 }
 
-/** Admin / broker / owner access, edited in place like the other rows. */
+/** Admin / broker access, edited in place like the other rows. Owners are set on the Owners page. */
 function AccessRow({ userId, roles }: { userId: string; roles: Role[] }) {
   const { toast } = useToast();
   const assigned = roles.filter((r): r is AssignableRole => (ASSIGNABLE_ROLES as readonly Role[]).includes(r));

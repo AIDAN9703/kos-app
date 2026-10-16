@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ExternalLink, Pencil } from "lucide-react";
 import { requireOwner } from "@/shared/lib/utils/auth-utils";
 import { formatCentsAsWholeDollars } from "@/shared/lib/utils/money-utils";
+import { formatBoatLocal } from "@/shared/lib/utils/date-helpers";
 import { GlassHeader, GlassPage, GlassPanel, GlassStat } from "@/shared/admin/components/glass";
 import { TRIP_FALLBACK_IMAGE } from "@/features/profile/trip-presentation";
 import { BookedCalendar } from "@/features/owner-dashboard/components/BookedCalendar";
@@ -14,7 +15,7 @@ import { PricingTiersTable } from "@/features/owner-dashboard/components/Pricing
 import { buildOwnerAnalytics, splitCharters } from "@/features/owner-dashboard/owner-analytics";
 import { attentionItems } from "@/features/owner-dashboard/owner-insights";
 import { categoryLabel, isListingInProgress } from "@/features/owner-dashboard/owner-presentation";
-import { getMyBoat, getMyCharters } from "@/features/owner-dashboard/owner.data";
+import { getMyBoat, getMyCharters, getMyOwnerView } from "@/features/owner-dashboard/owner.data";
 import { ListingVisibilityButton } from "@/features/owner-listing/components/ListingVisibilityButton";
 
 const pill =
@@ -23,7 +24,12 @@ const pill =
 export default async function OwnerBoatPage({ params }: { params: Promise<{ id: string }> }) {
   const [, { id }] = await Promise.all([requireOwner(), params]);
   // Both reads are scoped to the signed-in owner: another owner's boat id is a 404.
-  const [boat, charters] = await Promise.all([getMyBoat(id), getMyCharters(id)]);
+  const [view, boat, charters] = await Promise.all([
+    getMyOwnerView(),
+    getMyBoat(id),
+    getMyCharters(id),
+  ]);
+  const showMoney = view.canSeeMoney;
   if (!boat) notFound();
 
   const now = new Date();
@@ -102,15 +108,27 @@ export default async function OwnerBoatPage({ params }: { params: Promise<{ id: 
 
       <div className="flex flex-col gap-4">
         <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4">
-          <GlassStat
-            size="lg"
-            label={`Earned in ${now.getFullYear()}`}
-            value={
-              performance.earningsCents > 0
-                ? formatCentsAsWholeDollars(performance.earningsCents)
-                : "—"
-            }
-          />
+          {showMoney ? (
+            <GlassStat
+              size="lg"
+              label={`Earned in ${now.getFullYear()}`}
+              value={
+                performance.earningsCents > 0
+                  ? formatCentsAsWholeDollars(performance.earningsCents)
+                  : "—"
+              }
+            />
+          ) : (
+            <GlassStat
+              size="lg"
+              label="Next charter"
+              value={
+                upcoming[0]
+                  ? formatBoatLocal(upcoming[0].startsAt, upcoming[0].timezone, "MMM d")
+                  : "None booked"
+              }
+            />
+          )}
           <GlassStat
             size="lg"
             label={`Charters in ${now.getFullYear()}`}
@@ -130,7 +148,7 @@ export default async function OwnerBoatPage({ params }: { params: Promise<{ id: 
             </p>
           </GlassPanel>
           <GlassPanel title="Rates" className="xl:col-span-5">
-            <PricingTiersTable tiers={boat.tiers} />
+            <PricingTiersTable tiers={boat.tiers} showMoney={showMoney} />
           </GlassPanel>
         </div>
 
@@ -142,6 +160,7 @@ export default async function OwnerBoatPage({ params }: { params: Promise<{ id: 
             charters={upcoming}
             hideBoat
             empty="Nothing booked on this boat right now."
+            showMoney={showMoney}
           />
         </GlassPanel>
 
@@ -150,7 +169,7 @@ export default async function OwnerBoatPage({ params }: { params: Promise<{ id: 
             title="Past charters"
             className="p-0 [&>div:first-child]:px-5 [&>div:first-child]:pt-5"
           >
-            <CharterList charters={past.slice(0, 10)} hideBoat empty="" />
+            <CharterList charters={past.slice(0, 10)} hideBoat empty="" showMoney={showMoney} />
           </GlassPanel>
         ) : null}
       </div>

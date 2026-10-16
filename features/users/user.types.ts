@@ -48,7 +48,8 @@ export interface AdminUserProfile {
   /** Deals assigned to them (staff). */
   assignedDeals: UserBookingRow[];
   /** Boats they own. */
-  boats: { id: string; name: string; active: boolean }[];
+  /** Owner accounts they belong to (being an owner is membership, not a role). */
+  owners: { accountId: string; accountName: string; role: "OWNER" | "MANAGER"; boatCount: number }[];
   /** Nothing in the records points at them, so they can be deleted outright. */
   canDelete: boolean;
 }

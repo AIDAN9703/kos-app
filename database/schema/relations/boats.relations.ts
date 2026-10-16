@@ -8,11 +8,12 @@ import { reviews } from '../tables/reviews.table';
 import { users } from '../tables/users.table';
 import { boatMakes } from '../tables/boatMakes.table';
 import { boatModels } from '../tables/boatModels.table';
+import { ownerAccounts } from '../tables/ownerAccounts.table';
 // Relations for boats table
 export const boatsRelations = relations(boats, ({ one, many }) => ({
-  owner: one(users, {
-    fields: [boats.ownerId],
-    references: [users.id],
+  ownerAccount: one(ownerAccounts, {
+    fields: [boats.ownerAccountId],
+    references: [ownerAccounts.id],
   }),
   primaryCaptain: one(users, {
     fields: [boats.primaryCaptainUserId],

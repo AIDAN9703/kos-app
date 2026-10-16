@@ -24,15 +24,3 @@ export function useUser(id: string) {
     staleTime: 5 * 60 * 1000,
   });
 }
-
-/**
- * Fetch list of boat owners (for owner selection dropdowns)
- */
-export function useBoatOwners(search?: string) {
-  return useQuery({
-    queryKey: ['users', 'boat-owners', search],
-    queryFn: () => usersApi.getBoatOwners(search),
-    enabled: !search || search.length >= 2, // Only search if 2+ characters
-    staleTime: 2 * 60 * 1000, // 2 minutes (shorter since it's search-based)
-  });
-}

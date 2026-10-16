@@ -13,6 +13,10 @@ import {
   crewProfiles,
   users,
 } from "@/database/schema";
+import {
+  isOwnerMemberSql,
+  membershipsWithBoats,
+} from "@/features/owner-accounts/owner-accounts.service";
 import { claimGuestBookingsForUser } from "@/features/users/claim-guest-bookings.service";
 import {
   getSignInMethods,
@@ -69,6 +73,7 @@ function searchSql(term: string): SQL {
 
 function viewSql(view: UserListView): SQL {
   if (view === "deactivated") return sql`${users.banned} IS TRUE`;
+  if (view === "owner") return isOwnerMemberSql();
   if (view === "customer") return sql`(${users.role} IS NULL OR ${users.role} = ${DEFAULT_ROLE})`;
   return hasRoleSql(view);
 }
@@ -158,16 +163,11 @@ class UserService {
 
     const roles = parseRoles(row.role);
     const isStaff = roles.includes("admin") || roles.includes("broker");
-    const [signInMethods, trips, assignedDeals, ownedBoats, canDelete] = await Promise.all([
+    const [signInMethods, trips, assignedDeals, owners, canDelete] = await Promise.all([
       getSignInMethods(id),
       bookingRows(eq(bookings.userId, id)),
       isStaff ? bookingRows(eq(bookings.assignedAdminId, id)) : Promise.resolve([]),
-      db
-        .select({ id: boats.id, name: boats.name, active: boats.active })
-        .from(boats)
-        .where(eq(boats.ownerId, id))
-        .orderBy(boats.name)
-        .limit(20),
+      membershipsWithBoats(id),
       this.hasNoRecords(id),
     ]);
 
@@ -190,24 +190,25 @@ class UserService {
       crewStatus: row.crewStatus,
       trips,
       assignedDeals,
-      boats: ownedBoats,
+      owners,
       canDelete,
     };
   }
 
   /**
    * True when nothing points at this person — no bookings (as customer,
-   * assignee, captain or owner), crew history, deal notes, boats or reviews —
-   * so deleting them loses no history.
+   * assignee or captain), crew history, deal notes, captained boats or
+   * reviews — so deleting them loses no history. (Owner memberships go with
+   * them; the owner and its boats stay.)
    */
   async hasNoRecords(id: string): Promise<boolean> {
     const [row] = await db
       .select({
         used: sql<boolean>`(
-          EXISTS (SELECT 1 FROM booking WHERE user_id = ${id} OR assigned_admin_id = ${id} OR captain_user_id = ${id} OR boat_owner_id = ${id})
+          EXISTS (SELECT 1 FROM booking WHERE user_id = ${id} OR assigned_admin_id = ${id} OR captain_user_id = ${id})
           OR EXISTS (SELECT 1 FROM booking_crew WHERE user_id = ${id})
           OR EXISTS (SELECT 1 FROM booking_admin_note WHERE admin_user_id = ${id})
-          OR EXISTS (SELECT 1 FROM boat WHERE owner_id = ${id} OR primary_captain_user_id = ${id})
+          OR EXISTS (SELECT 1 FROM boat WHERE primary_captain_user_id = ${id})
           OR EXISTS (SELECT 1 FROM review WHERE reviewer_id = ${id})
         )`,
       })
@@ -297,7 +298,7 @@ class UserService {
     }
   }
 
-  /** Replace the admin / broker / owner roles (captain and crew are kept). */
+  /** Replace the admin / broker roles (captain and crew are kept). */
   async setAssignableRoles(id: string, picked: AssignableRole[]): Promise<void> {
     const [current] = await db.select({ role: users.role }).from(users).where(eq(users.id, id)).limit(1);
     if (!current) throw new UserFacingError("User not found", 404);
@@ -344,7 +345,7 @@ class UserService {
       .limit(50);
   }
 
-  /** People for the account pickers (booking composer, boat owner), newest first. */
+  /** People for the account picker (the booking composer), newest first. */
   async searchUserOptions(search?: string, limit = 20): Promise<UserOption[]> {
     const term = search?.trim();
     return db

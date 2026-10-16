@@ -1,6 +1,5 @@
 import "server-only";
 
-import { ownerProfileService } from "@/features/profiles/owner-profile.service";
 import type { AssignableRole } from "@/features/users/user-roles.constants";
 import { userService } from "@/features/users/user.service";
 import type { AdminUserProfile, PaginatedUsersResponse, UserOption } from "@/features/users/user.types";
@@ -42,7 +41,7 @@ export async function getUserProfile(id: string): Promise<AdminUserProfile | nul
   return isUuid(id) ? userService.getAdminProfile(id) : null;
 }
 
-/** People for the account pickers (linking a booking, choosing a boat owner). */
+/** People for the account picker (linking a booking to a customer). */
 export async function searchUserOptions(search?: string): Promise<UserOption[]> {
   await assertCan({ user: ["list"] });
   return userService.searchUserOptions(search);
@@ -51,12 +50,6 @@ export async function searchUserOptions(search?: string): Promise<UserOption[]> 
 export async function getUserOption(id: string): Promise<UserOption | null> {
   await assertCan({ user: ["list"] });
   return isUuid(id) ? userService.getUserOption(id) : null;
-}
-
-/** People who can own a boat (the Owner role), for the boat form. */
-export async function listBoatOwnerOptions(search?: string) {
-  await assertCan({ boat: ["edit"] });
-  return ownerProfileService.getOwnersForAssignment(search?.trim() || undefined);
 }
 
 // ============================================================================

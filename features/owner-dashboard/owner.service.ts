@@ -10,40 +10,19 @@ import {
   bookingExpenseLines,
   bookingOps,
   bookings,
-  ownerProfiles,
-  users,
 } from "@/database/schema";
 import {
   OWNER_VISIBLE_STATUSES,
   type OwnerBoat,
   type OwnerBoatDetail,
   type OwnerCharter,
-  type OwnerIdentity,
 } from "./owner.types";
 
 /**
- * Read-only queries for the owner portal, each filtered on boats.owner_id.
- * Not access-checked: pages go through owner.data.ts, which passes the
- * signed-in owner's own id (never one from the URL).
+ * Read-only queries for the owner portal, each filtered on one owner
+ * account. Not access-checked: pages go through owner.data.ts, which passes
+ * an account the signed-in person belongs to (never one from the URL).
  */
-
-export async function getOwnerIdentity(ownerId: string): Promise<OwnerIdentity> {
-  const [row] = await db
-    .select({
-      firstName: users.firstName,
-      lastName: users.lastName,
-      username: users.username,
-      businessName: ownerProfiles.businessName,
-    })
-    .from(users)
-    .leftJoin(ownerProfiles, eq(ownerProfiles.userId, users.id))
-    .where(eq(users.id, ownerId))
-    .limit(1);
-  return {
-    name: [row?.firstName, row?.lastName].filter(Boolean).join(" ") || row?.username || "Owner",
-    businessName: row?.businessName ?? null,
-  };
-}
 
 const boatColumns = {
   id: boats.id,
@@ -78,19 +57,19 @@ function toOwnerBoat<T extends { name: string; displayTitle: string | null }>({
   return { ...rest, name: displayTitle || name };
 }
 
-export async function getOwnerBoats(ownerId: string): Promise<OwnerBoat[]> {
+export async function getOwnerBoats(accountId: string): Promise<OwnerBoat[]> {
   const rows = await db
     .select(boatColumns)
     .from(boats)
     .leftJoin(boatMakes, eq(boatMakes.id, boats.makeId))
     .leftJoin(boatModels, eq(boatModels.id, boats.modelId))
-    .where(eq(boats.ownerId, ownerId))
+    .where(eq(boats.ownerAccountId, accountId))
     .orderBy(desc(boats.active), asc(boats.name));
   return rows.map(toOwnerBoat);
 }
 
 export async function getOwnerBoat(
-  ownerId: string,
+  accountId: string,
   boatId: string
 ): Promise<OwnerBoatDetail | null> {
   const [row] = await db
@@ -98,7 +77,7 @@ export async function getOwnerBoat(
     .from(boats)
     .leftJoin(boatMakes, eq(boatMakes.id, boats.makeId))
     .leftJoin(boatModels, eq(boatModels.id, boats.modelId))
-    .where(and(eq(boats.id, boatId), eq(boats.ownerId, ownerId)))
+    .where(and(eq(boats.id, boatId), eq(boats.ownerAccountId, accountId)))
     .limit(1);
   if (!row) return null;
 
@@ -137,8 +116,15 @@ const payoutByBooking = db
   .groupBy(bookingExpenseLines.bookingId)
   .as("payout");
 
-/** Dated charters on the owner's boats, optionally for one boat. */
-export async function getOwnerCharters(ownerId: string, boatId?: string): Promise<OwnerCharter[]> {
+/**
+ * Dated charters booked while the boat was this owner's (the booking keeps
+ * its owner, so history stays put when a boat changes hands), optionally
+ * for one boat.
+ */
+export async function getOwnerCharters(
+  accountId: string,
+  boatId?: string
+): Promise<OwnerCharter[]> {
   const rows = await db
     .select({
       id: bookings.id,
@@ -161,7 +147,7 @@ export async function getOwnerCharters(ownerId: string, boatId?: string): Promis
     .leftJoin(bookingOps, eq(bookingOps.bookingId, bookings.id))
     .where(
       and(
-        eq(boats.ownerId, ownerId),
+        eq(bookings.ownerAccountId, accountId),
         boatId ? eq(boats.id, boatId) : undefined,
         inArray(bookings.bookingStatus, [...OWNER_VISIBLE_STATUSES]),
         sql`${bookings.startDateTime} is not null`

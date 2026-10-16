@@ -33,14 +33,4 @@ export const usersApi = {
   getUser(id: string): Promise<UserOption> {
     return getJson(`/api/admin/users/${id}`, 'user');
   },
-
-  /**
-   * People with the Owner role, for the boat form.
-   * Calls: GET /api/admin/users/boat-owners?search=...
-   */
-  getBoatOwners(search?: string): Promise<Omit<UserOption, 'phoneNumber'>[]> {
-    const params = new URLSearchParams();
-    if (search) params.set('search', search);
-    return getJson(`/api/admin/users/boat-owners?${params.toString()}`, 'boat owners');
-  },
 };

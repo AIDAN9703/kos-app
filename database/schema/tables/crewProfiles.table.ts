@@ -4,7 +4,7 @@ import { crewStatusEnum } from "@/database/schema/enums";
 
 /**
  * Crew profiles — extension for users who can be assigned to bookings as crew.
- * Mirrors captain_profile / owner_profile: userId is the primary key.
+ * Mirrors captain_profile: userId is the primary key.
  */
 export const crewProfiles = pgTable(
   "crew_profile",

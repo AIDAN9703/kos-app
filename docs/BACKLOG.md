@@ -230,5 +230,12 @@ variables.
   - every price in cents
   - payments linked to bookings with a real foreign key
   - "refund as discount"
-- **Owner self-service:** owners edit their boats and calendars, plus Stripe Connect payouts.
-- **Teams** (Better Auth organizations), if owner companies or broker agencies become real.
+- **Owner self-service:** owners block dates on their calendar. (Owner accounts with
+  Owner/Manager teams and Stripe Connect payouts shipped 2026-10-16.)
+- **Owner payouts, next steps:**
+  - pay automatically a day or two after the trip, instead of an admin clicking Pay
+  - tie each transfer to the guest's charge (`source_transaction`), so it can go out
+    before card funds are available
+  - email the owner when a payout goes out
+  - the payout amount from Luke's pricing (owner's net rate locked per booking)
+  - 1099s: let Stripe file them (Connect → Tax forms) or do it outside

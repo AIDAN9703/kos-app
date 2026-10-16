@@ -4,6 +4,7 @@ import { boatCategoryEnum, boatListingStatusEnum, boatManagedByEnum, timezoneEnu
 import { users } from "@/database/schema/tables";
 import { boatMakes } from "./boatMakes.table";
 import { boatModels } from "./boatModels.table";
+import { ownerAccounts } from "./ownerAccounts.table";
 
 
 export const boats = pgTable("boat",{
@@ -20,7 +21,10 @@ export const boats = pgTable("boat",{
     searchRankingScore: doublePrecision("search_ranking_score").default(0), // For advanced search algorithms
     
     // Owner Information
-    ownerId: uuid("owner_id").notNull().references(() => users.id, { onDelete: "restrict" }), // Can't delete user if owns boats
+    /** Who the boat belongs to and who KOS pays (owner_account; KOS Yachts until its owner is set up). */
+    ownerAccountId: uuid("owner_account_id")
+      .notNull()
+      .references(() => ownerAccounts.id, { onDelete: "restrict" }),
     ownerNotes: text("owner_notes"), // Added owner notes for internal use
 
     // Listing (self-serve "List your boat"; admin-made boats are KOS + APPROVED)
@@ -122,7 +126,7 @@ export const boats = pgTable("boat",{
     updatedAt: timestamp("updated_at", { mode: "date", withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
-    index("boat_owner_idx").on(table.ownerId),
+    index("boat_owner_account_idx").on(table.ownerAccountId),
     index("boat_captain_idx").on(table.primaryCaptainUserId),
     index("boat_category_idx").on(table.category),
     index("boat_spatial_idx").using("gist", table.location),

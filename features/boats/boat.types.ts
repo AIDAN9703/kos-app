@@ -133,7 +133,7 @@ export type BoatListItem = Pick<
   | 'featured'
   | 'mainImage'
   | 'createdAt'
-  | 'ownerId'
+  | 'ownerAccountId'
 > & {
   ownerName?: string | null;
   basePrice?: number | null;
@@ -147,7 +147,7 @@ export interface PaginatedBoatsResponse {
   totalPages: number;
 }
 
-/** Everything about a boat: every column, all tiers with payouts, owner contact. */
+/** Everything about a boat: every column, all tiers with payouts, its owner. */
 export interface BoatDetail extends Boat, BoatMakeAndModel {
   pricingTiers: BoatPricingTier[];
   /** Add-ons this boat offers (joined with the catalog), active or not. */
@@ -156,7 +156,6 @@ export interface BoatDetail extends Boat, BoatMakeAndModel {
     lat: number;
     lng: number;
   } | null;
-  ownerFirstName: string | null;
-  ownerLastName: string | null;
-  ownerEmail: string | null;
+  /** The owner account it belongs to (KOS Yachts until its owner is set up). */
+  ownerAccountName: string | null;
 }

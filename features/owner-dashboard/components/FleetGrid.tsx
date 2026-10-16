@@ -36,11 +36,14 @@ export function FleetGrid({
   boats,
   performance,
   flags,
+  showMoney,
 }: {
   boats: OwnerBoat[];
   performance: BoatPerformance[];
   /** Attention items, for a per-boat flag count. */
   flags: AttentionItem[];
+  /** Managers see hours instead of earnings. */
+  showMoney: boolean;
 }) {
   const byId = new Map(performance.map((p) => [p.boatId, p]));
 
@@ -83,11 +86,15 @@ export function FleetGrid({
               </div>
               <dl className="grid grid-cols-3 gap-2 px-4 py-3.5 text-sm">
                 <div>
-                  <dt className="text-[11px] text-muted-foreground">This year</dt>
+                  <dt className="text-[11px] text-muted-foreground">
+                    {showMoney ? "This year" : "Hours this year"}
+                  </dt>
                   <dd className="font-semibold text-foreground tabular-nums">
-                    {perf && perf.earningsCents > 0
-                      ? formatCentsAsWholeDollars(perf.earningsCents)
-                      : "—"}
+                    {showMoney
+                      ? perf && perf.earningsCents > 0
+                        ? formatCentsAsWholeDollars(perf.earningsCents)
+                        : "—"
+                      : (perf?.hours ?? 0)}
                   </dd>
                 </div>
                 <div>
@@ -121,9 +128,11 @@ export function FleetGrid({
 export function FleetRows({
   boats,
   performance,
+  showMoney,
 }: {
   boats: OwnerBoat[];
   performance: BoatPerformance[];
+  showMoney: boolean;
 }) {
   const byId = new Map(performance.map((p) => [p.boatId, p]));
   return (
@@ -158,9 +167,11 @@ export function FleetRows({
               <span className="flex shrink-0 flex-col items-end gap-1">
                 <StatusChip boat={boat} />
                 <span className="text-xs text-muted-foreground tabular-nums">
-                  {perf && perf.earningsCents > 0
-                    ? `${formatCentsAsWholeDollars(perf.earningsCents)} this year`
-                    : "No earnings yet"}
+                  {showMoney
+                    ? perf && perf.earningsCents > 0
+                      ? `${formatCentsAsWholeDollars(perf.earningsCents)} this year`
+                      : "No earnings yet"
+                    : `${perf?.charters ?? 0} charters this year`}
                 </span>
               </span>
             </Link>

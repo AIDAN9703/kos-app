@@ -12,8 +12,9 @@ export const users = pgTable(
     username: text("username").notNull().unique(),
     status: userStatusEnum("status").default("ACTIVE").notNull(),
 
-    // Access: comma-separated roles (admin, broker, owner, captain, crew,
-    // customer). See shared/lib/auth/permissions.ts.
+    // Access: comma-separated roles (admin, broker, captain, crew, customer).
+    // Owners aren't a role: they're members of an owner account. See
+    // shared/lib/auth/permissions.ts.
     role: text("role").default("customer").notNull(),
     banned: boolean("banned").default(false),
     banReason: text("ban_reason"),

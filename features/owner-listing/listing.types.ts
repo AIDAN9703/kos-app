@@ -48,6 +48,7 @@ export interface ListingDraft {
 
 /** A listing in KOS's review queue. */
 export interface ListingForReview extends ListingDraft {
+  /** The owner account it belongs to, and who to reach there. */
   owner: { id: string; name: string; email: string; phone: string | null };
 }
 

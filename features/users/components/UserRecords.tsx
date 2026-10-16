@@ -55,10 +55,9 @@ function BookingList({ rows, empty, showCustomer = false }: { rows: UserBookingR
   );
 }
 
-/** What the person is connected to: their trips, deals assigned to them, boats they own. */
+/** What the person is connected to: their trips, deals assigned to them, owners they're in. */
 export function UserRecords({ user }: { user: AdminUserProfile }) {
   const isStaff = user.roles.includes("admin") || user.roles.includes("broker");
-  const isOwner = user.roles.includes("owner") || user.boats.length > 0;
 
   return (
     <div className="space-y-4">
@@ -67,27 +66,21 @@ export function UserRecords({ user }: { user: AdminUserProfile }) {
           <BookingList rows={user.assignedDeals} empty="No deals assigned to them yet." showCustomer />
         </Section>
       ) : null}
-      {isOwner ? (
-        <Section title="Boats they own" count={user.boats.length}>
-          {user.boats.length === 0 ? (
-            <p className="px-5 py-6 text-sm text-muted-foreground">
-              No boats yet. Choose them as the owner in a boat&apos;s editor.
-            </p>
-          ) : (
-            <ul>
-              {user.boats.map((boat) => (
-                <li key={boat.id} className="border-b border-border last:border-b-0">
-                  <Link href={`/admin/boats/${boat.id}`} className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-muted/50">
-                    <span className="min-w-0 flex-1 truncate text-sm text-foreground">{boat.name}</span>
-                    <span className={cn("text-xs font-medium", boat.active ? "text-success" : "text-muted-foreground")}>
-                      {boat.active ? "Listed" : "Hidden"}
-                    </span>
-                    <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
+      {user.owners.length > 0 ? (
+        <Section title="Owner of" count={user.owners.length}>
+          <ul>
+            {user.owners.map((owner) => (
+              <li key={owner.accountId} className="border-b border-border last:border-b-0">
+                <Link href={`/admin/owners/${owner.accountId}`} className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-muted/50">
+                  <span className="min-w-0 flex-1 truncate text-sm text-foreground">{owner.accountName}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {owner.role === "OWNER" ? "Owner" : "Manager"} · {owner.boatCount} {owner.boatCount === 1 ? "boat" : "boats"}
+                  </span>
+                  <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+                </Link>
+              </li>
+            ))}
+          </ul>
         </Section>
       ) : null}
       <Section title="Their trips" count={user.trips.length}>

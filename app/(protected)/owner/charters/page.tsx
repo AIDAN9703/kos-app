@@ -3,7 +3,7 @@ import { GlassHeader, GlassPage, GlassPanel } from "@/shared/admin/components/gl
 import { SegmentedNav } from "@/shared/admin/filters/SegmentedPills";
 import { CharterList } from "@/features/owner-dashboard/components/CharterList";
 import { splitCharters } from "@/features/owner-dashboard/owner-analytics";
-import { getMyCharters } from "@/features/owner-dashboard/owner.data";
+import { getMyCharters, getMyOwnerView } from "@/features/owner-dashboard/owner.data";
 
 const VIEWS = [
   {
@@ -26,8 +26,13 @@ export default async function OwnerChartersPage({
 }: {
   searchParams: Promise<{ view?: string }>;
 }) {
-  const [, params] = await Promise.all([requireOwner(), searchParams]);
-  const groups = splitCharters(await getMyCharters());
+  const [, params, owner, charters] = await Promise.all([
+    requireOwner(),
+    searchParams,
+    getMyOwnerView(),
+    getMyCharters(),
+  ]);
+  const groups = splitCharters(charters);
   const view: View = VIEWS.some((v) => v.key === params.view) ? (params.view as View) : "upcoming";
   const current = VIEWS.find((v) => v.key === view)!;
 
@@ -47,7 +52,7 @@ export default async function OwnerChartersPage({
         }
       />
       <GlassPanel className="p-0">
-        <CharterList charters={groups[view]} empty={current.empty} />
+        <CharterList charters={groups[view]} empty={current.empty} showMoney={owner.canSeeMoney} />
       </GlassPanel>
     </GlassPage>
   );

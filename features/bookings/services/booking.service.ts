@@ -226,7 +226,7 @@ class BookingService {
 
       const dealFields = {
         userId: b.userId ?? null,
-        boatOwnerId: boat.ownerId,
+        ownerAccountId: boat.ownerAccountId,
         boatId: boat.id,
         pricingTierId: tier?.id ?? null,
         bookingGroupId: groupId,
@@ -648,7 +648,7 @@ class BookingService {
           : null,
         source: "WEBSITE" as BookingSource,
         userId: input.userId ?? null,
-        boatOwnerId: boat.ownerId,
+        ownerAccountId: boat.ownerAccountId,
         boatId: input.boatId,
         pricingTierId: input.pricingTierId ?? null,
         customerName: input.customerName,
@@ -912,7 +912,6 @@ class BookingService {
    */
   async getBookingById(id: string): Promise<BookingDetails | null> {
     const assignedAdmin = aliasedTable(users, "assignedAdmin");
-    const boatOwner = aliasedTable(users, "boatOwner");
     const captainUser = aliasedTable(users, "captainUser");
 
     const [booking] = await db
@@ -922,7 +921,6 @@ class BookingService {
         bookingStatus: bookings.bookingStatus,
         source: bookings.source,
         userId: bookings.userId,
-        boatOwnerId: bookings.boatOwnerId,
         boatId: bookings.boatId,
         captainUserId: bookings.captainUserId,
         captainFirstName: captainUser.firstName,
@@ -1003,10 +1001,6 @@ class BookingService {
         userLastName: users.lastName,
         userEmail: users.email,
         userProfileImage: users.profileImage,
-        // Boat owner info
-        boatOwnerFirstName: boatOwner.firstName,
-        boatOwnerLastName: boatOwner.lastName,
-        boatOwnerEmail: boatOwner.email,
         // Assigned admin info
         assignedAdminFirstName: assignedAdmin.firstName,
         assignedAdminLastName: assignedAdmin.lastName,
@@ -1017,7 +1011,6 @@ class BookingService {
       .leftJoin(boats, eq(bookings.boatId, boats.id))
       .leftJoin(bookingGroups, eq(bookings.bookingGroupId, bookingGroups.id))
       .leftJoin(users, eq(bookings.userId, users.id))
-      .leftJoin(boatOwner, eq(bookings.boatOwnerId, boatOwner.id))
       .leftJoin(assignedAdmin, eq(bookings.assignedAdminId, assignedAdmin.id))
       .leftJoin(captainUser, eq(bookings.captainUserId, captainUser.id))
       .where(eq(bookings.id, id))
@@ -1123,7 +1116,7 @@ class BookingService {
         bookingStatus: "PROPOSED",
         source: "ADMIN" as BookingSource,
         userId: lead.userId ?? null,
-        boatOwnerId: boat.ownerId,
+        ownerAccountId: boat.ownerAccountId,
         boatId: boat.id,
         pricingTierId: tier.id,
         bookingGroupId: groupId,
