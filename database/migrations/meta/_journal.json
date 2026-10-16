@@ -505,6 +505,13 @@
       "when": 1792180567271,
       "tag": "0075_drop-boat-owner-user",
       "breakpoints": true
+    },
+    {
+      "idx": 76,
+      "version": "7",
+      "when": 1792190543537,
+      "tag": "0076_boat-markup",
+      "breakpoints": true
     }
   ]
 }

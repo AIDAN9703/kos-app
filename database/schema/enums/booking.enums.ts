@@ -45,14 +45,6 @@ export const bookingSourceEnum = pgEnum("BookingSource", [
   "OTHER",
 ]);
 
-// Admin note type - categorizes internal notes
-export const adminNoteTypeEnum = pgEnum("AdminNoteType", [
-  "GENERAL", // General note
-  "CONTACTED", // Customer was contacted
-  "FOLLOW_UP", // Follow-up needed
-  "ISSUE", // Problem or concern
-]);
-
 // ============================================================================
 // DEAL INTAKE / TIMELINE ENUMS
 // (relocated from the retired inquiry.enums.ts — used by booking + booking_event

@@ -81,6 +81,24 @@ export async function approveListingAction(boatId: string): Promise<ActionRespon
   }
 }
 
+export async function setListingMarkupAction(
+  boatId: string,
+  markupPercent: number
+): Promise<ActionResponse<null>> {
+  try {
+    await listingData.setListingMarkup(boatId, markupPercent);
+    refreshListing(boatId);
+    revalidatePath(`/boats/${boatId}`);
+    return {
+      success: true,
+      data: null,
+      message: `Markup set to ${markupPercent}%. Prices updated.`,
+    };
+  } catch (error) {
+    return actionError(error, "Couldn't set the markup.");
+  }
+}
+
 export async function sendListingBackAction(
   boatId: string,
   note: string

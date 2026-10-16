@@ -14,8 +14,8 @@ import {
 import type { NewBoat } from "@/database/types";
 import { UserFacingError } from "@/shared/lib/errors";
 import { boatOfMember } from "@/features/owner-accounts/owner-accounts.service";
-import { MAX_OPEN_DRAFTS } from "./listing.constants";
-import type { ListingDraft, ListingForReview, ListingStatus } from "./listing.types";
+import { guestPriceFor, MAX_OPEN_DRAFTS } from "./listing.constants";
+import type { ListingDraft, ListingForReview, ListingStatus, ListingTrip } from "./listing.types";
 
 /**
  * Queries for self-listed boats. Owner functions are filtered on "the boat
@@ -50,6 +50,7 @@ const listingColumns = {
   bathrooms: boats.bathrooms,
   captainArrangement: boats.captainArrangement,
   fuelIncluded: boats.fuelIncluded,
+  markupPercent: boats.markupPercent,
   rules: boats.rules,
   cancellationPolicy: boats.cancellationPolicy,
   hullId: boats.hullId,
@@ -72,26 +73,31 @@ function ownListing(userId: string, boatId: string): SQL {
 }
 
 async function tripsFor(boatIds: string[]) {
-  if (boatIds.length === 0) return new Map<string, { hours: number; price: number }[]>();
+  if (boatIds.length === 0) return new Map<string, ListingTrip[]>();
   const rows = await db
     .select({
       boatId: boatPricingTiers.boatId,
       hours: boatPricingTiers.hours,
       price: boatPricingTiers.price,
+      ownerPayoutCents: boatPricingTiers.ownerPayoutCents,
     })
     .from(boatPricingTiers)
     .where(and(inArray(boatPricingTiers.boatId, boatIds), eq(boatPricingTiers.isActive, true)))
     .orderBy(asc(boatPricingTiers.hours));
-  const byBoat = new Map<string, { hours: number; price: number }[]>();
+  const byBoat = new Map<string, ListingTrip[]>();
   for (const row of rows) {
     const list = byBoat.get(row.boatId) ?? [];
-    list.push({ hours: row.hours, price: Number(row.price) });
+    list.push({
+      hours: row.hours,
+      price: Number(row.price),
+      ownerRate: row.ownerPayoutCents != null ? Number(row.ownerPayoutCents) / 100 : null,
+    });
     byBoat.set(row.boatId, list);
   }
   return byBoat;
 }
 
-function toDraft(row: ListingRow, trips: { hours: number; price: number }[]): ListingDraft {
+function toDraft(row: ListingRow, trips: ListingTrip[]): ListingDraft {
   const { mainImage, galleryImages, ...rest } = row;
   return {
     ...rest,
@@ -166,7 +172,8 @@ export async function updateDraft(
 }
 
 /**
- * Trip lengths and prices, plus the captain and fuel answers. Lengths the
+ * Trip lengths and what the owner earns for each, plus the captain and fuel
+ * answers. The guest price is the rate plus the boat's markup. Lengths the
  * owner un-ticks are switched off, not deleted, so past bookings that point
  * at a tier keep working.
  */
@@ -174,13 +181,13 @@ export async function saveTrips(
   userId: string,
   boatId: string,
   input: {
-    trips: { hours: number; price: number }[];
+    trips: { hours: number; rate: number }[];
     captainArrangement: string;
     fuelIncluded: boolean;
   }
 ): Promise<void> {
   const [own] = await db
-    .select({ id: boats.id })
+    .select({ id: boats.id, markupPercent: boats.markupPercent })
     .from(boats)
     .where(ownListing(userId, boatId))
     .limit(1);
@@ -202,13 +209,16 @@ export async function saveTrips(
       .update(boatPricingTiers)
       .set({ isActive: false, isDefault: false, updatedAt: now })
       .where(and(eq(boatPricingTiers.boatId, boatId), notInArray(boatPricingTiers.hours, hours))),
-    ...input.trips.map((trip) =>
-      db
+    ...input.trips.map((trip) => {
+      const price = guestPriceFor(trip.rate, own.markupPercent);
+      const ownerPayoutCents = Math.round(trip.rate * 100);
+      return db
         .insert(boatPricingTiers)
         .values({
           boatId,
           hours: trip.hours,
-          price: trip.price,
+          price,
+          ownerPayoutCents,
           name: `${trip.hours} hours`,
           isActive: true,
           isDefault: trip.hours === shortest,
@@ -216,13 +226,14 @@ export async function saveTrips(
         .onConflictDoUpdate({
           target: [boatPricingTiers.boatId, boatPricingTiers.hours],
           set: {
-            price: trip.price,
+            price,
+            ownerPayoutCents,
             isActive: true,
             isDefault: trip.hours === shortest,
             updatedAt: now,
           },
-        })
-    ),
+        });
+    }),
   ]);
 }
 
@@ -349,6 +360,38 @@ export async function getForReview(boatId: string): Promise<ListingForReview | n
     .limit(1);
   const [listing] = await withOwners(rows);
   return listing ?? null;
+}
+
+/**
+ * KOS's markup for an owner-listed boat: saves it and re-prices every trip
+ * that has an owner rate (guest price = rate plus markup, rounded up to $5).
+ */
+export async function setMarkup(boatId: string, markupPercent: number): Promise<void> {
+  const tiers = await db
+    .select({ id: boatPricingTiers.id, ownerPayoutCents: boatPricingTiers.ownerPayoutCents })
+    .from(boatPricingTiers)
+    .innerJoin(boats, eq(boats.id, boatPricingTiers.boatId))
+    .where(and(eq(boatPricingTiers.boatId, boatId), eq(boats.managedBy, "OWNER")));
+  const now = new Date();
+  const [updated] = await db.batch([
+    db
+      .update(boats)
+      .set({ markupPercent, updatedAt: now })
+      .where(and(eq(boats.id, boatId), eq(boats.managedBy, "OWNER")))
+      .returning({ id: boats.id }),
+    ...tiers
+      .filter((t) => t.ownerPayoutCents != null)
+      .map((t) =>
+        db
+          .update(boatPricingTiers)
+          .set({
+            price: guestPriceFor(Number(t.ownerPayoutCents) / 100, markupPercent),
+            updatedAt: now,
+          })
+          .where(eq(boatPricingTiers.id, t.id))
+      ),
+  ]);
+  if (updated.length === 0) throw new UserFacingError("Listing not found", 404);
 }
 
 /** Approve and publish in one step (the check constraint needs both together). */

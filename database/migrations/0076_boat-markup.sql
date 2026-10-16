@@ -1,0 +1,2 @@
+ALTER TABLE "boat" ADD COLUMN "markup_percent" integer;--> statement-breakpoint
+ALTER TABLE "boat" ADD CONSTRAINT "boat_markup_range" CHECK ("boat"."markup_percent" IS NULL OR "boat"."markup_percent" BETWEEN 0 AND 50);

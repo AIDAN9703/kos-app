@@ -12,7 +12,6 @@ import { bookingGroups } from "@/database/schema";
 
 interface CreateBookingGroupInput {
   name?: string | null;
-  notes?: string | null;
   createdById?: string | null;
 }
 
@@ -22,7 +21,6 @@ export const bookingGroupService = {
       .insert(bookingGroups)
       .values({
         name: input.name ?? null,
-        notes: input.notes ?? null,
         createdById: input.createdById ?? null,
       })
       .returning();

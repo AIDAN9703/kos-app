@@ -9,10 +9,10 @@ import {
 import { bookings } from "./bookings.table";
 
 /**
- * Booking Ops - Operational/admin fields from the legacy Excel workflow.
- * Maps to: Expense, GMV, REV, PAID, Balance Owner, Balance Client, Crew, Note,
- * Contract?, Connected?, C PAID? (Client), All Paid?, Sheets?, Agent,
- * Commission Agent, Commission KOS, Source.
+ * Booking Ops - money figures per booking, first from the legacy Excel
+ * workflow: expense (the sum of its expense lines), a GMV override, PAID,
+ * sent to owner (kept equal to the paid owner payouts), plus the old sheet's
+ * agent, commission and source columns.
  */
 export const bookingOps = pgTable("booking_ops", {
   bookingId: uuid("booking_id")
@@ -23,25 +23,11 @@ export const bookingOps = pgTable("booking_ops", {
   // Financial (all in cents)
   expenseCents: bigint("expense_cents", { mode: "number" }),
   gmvCents: bigint("gmv_cents", { mode: "number" }),
-  revenueCents: bigint("revenue_cents", { mode: "number" }),
   paidCents: bigint("paid_cents", { mode: "number" }),
-  /** Derived on save: ops expense − sent_to_owner_cents. */
-  balanceOwnerCents: bigint("balance_owner_cents", { mode: "number" }),
-  /** Derived on save: ops GMV − PAID (ops GMV falls back to quote total when null). */
-  balanceClientCents: bigint("balance_client_cents", { mode: "number" }),
-  /** Cumulative amount sent/paid out to the boat owner (USD cents). Updating this adjusts balance_owner. */
+  /** Paid out to the boat owner (USD cents): the PAID owner_payout rows (owner-payouts.service). */
   sentToOwnerCents: bigint("sent_to_owner_cents", { mode: "number" }),
 
-  // Crew/captain name (free text)
-  crewName: text("crew_name"),
-
-  // Checkboxes
-  contractSigned: boolean("contract_signed"),
-  connected: boolean("connected"),
   clientPaid: boolean("client_paid"),
-  captainPaid: boolean("captain_paid"),
-  allPaid: boolean("all_paid"),
-  sheetsSent: boolean("sheets_sent"),
 
   // Agent (free text - agent name/code)
   agentCode: text("agent_code"),

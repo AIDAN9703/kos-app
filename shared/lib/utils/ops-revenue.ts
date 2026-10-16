@@ -36,27 +36,3 @@ export function computeOpsRevenueCents(
   const expense = expenseCents ?? 0;
   return Math.round(effectiveGmv - expense);
 }
-
-/**
- * Amount the client still owes on the charter: **GMV − PAID** (cents).
- * Uses ops `gmv_cents` when set; if empty, uses the booking quote total
- * (`booking_pricing.total_amount_cents`) so PAID isn’t compared to $0 when GMV wasn’t filled in yet.
- */
-export function computeOpsBalanceClientCents(
-  opsGmvCents: number | null | undefined,
-  paidCents: number | null | undefined,
-  charterTotalCents?: number | null
-): number {
-  const gmv = computeEffectiveGmvCents(opsGmvCents, charterTotalCents) ?? 0;
-  return gmv - (paidCents ?? 0);
-}
-
-/**
- * Owner-side balance: **ops expense − cumulative sent to owner** (cents).
- */
-export function computeOpsBalanceOwnerCents(
-  expenseCents: number | null | undefined,
-  sentToOwnerCents: number | null | undefined
-): number {
-  return (expenseCents ?? 0) - (sentToOwnerCents ?? 0);
-}

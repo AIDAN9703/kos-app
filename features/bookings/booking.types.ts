@@ -20,7 +20,6 @@ import type {
   BookingSource,
   PaymentStatus,
   PaymentType,
-  AdminNoteType,
 } from "@/database/types";
 
 // Re-export relevant database types
@@ -30,7 +29,6 @@ export type {
   BookingSource,
   PaymentStatus,
   PaymentType,
-  AdminNoteType,
 };
 
 /**
@@ -195,21 +193,12 @@ export interface BookingListItem {
   // Ops fields (from booking_ops - Excel workflow tracking, all nullable)
   opsExpenseCents?: number | null;
   opsGmvCents?: number | null;
-  /** Stored copy of REV (booking total − expense); recomputed on each ops save. */
+  /** REV, computed live: GMV (override, else price minus card fee) minus expenses. */
   opsRevenueCents?: number | null;
   opsPaidCents?: number | null;
   /** Cumulative paid out to boat owner (ops). */
   opsSentToOwnerCents?: number | null;
-  /** Stored copy of expense − sent to owner; recomputed on each ops save. */
-  opsBalanceOwnerCents?: number | null;
-  /** Stored copy of client balance (GMV − PAID); recomputed on save. GMV uses ops field or quote total. */
-  opsBalanceClientCents?: number | null;
-  opsCrewName?: string | null;
-  opsConnected?: boolean | null;
   opsClientPaid?: boolean | null;
-  opsCaptainPaid?: boolean | null;
-  opsAllPaid?: boolean | null;
-  opsSheetsSent?: boolean | null;
   opsSourceOverride?: string | null;
 }
 
@@ -234,8 +223,6 @@ export interface BookingDetails extends BookingListItem {
   captainFeeCents: number | null;
   cleaningFeeCents: number | null;
   serviceFeeCents: number | null;
-  taxAmountCents: number | null;
-  discountAmountCents: number | null;
   depositAmountCents: number | null;
 
   isMultiDay: boolean | null;
@@ -243,7 +230,6 @@ export interface BookingDetails extends BookingListItem {
   dropoffLocation: string | null;
   cancellationReason: string | null;
   cancelledAt: Date | null;
-  expiresAt: Date | null;
   /** Proposal share token — null once the booking is past the proposal stage or never had one. */
   publicToken: string | null;
   /** When the proposal link first went to the customer; null = never sent. */

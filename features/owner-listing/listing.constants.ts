@@ -1,16 +1,30 @@
 /**
- * "List your boat" — the self-serve listing flow (DRAFT, 2026-10-08).
+ * "List your boat" — the self-serve listing flow.
  *
- * Owner money is undecided: who sets the guest price and what KOS keeps are
- * TBD. Until then the flow shows a take-home figure at a placeholder fee.
- * The fee is display only; nothing stores or charges it.
+ * Pricing (Luke, 2026-10) is a net rate: the owner sets what they earn for
+ * each trip length; KOS adds its markup on top for the guest price, set per
+ * boat in listing review (boat.markup_percent, default 15%), rounded up to
+ * $5. A booking keeps the owner's rate as its owner payout.
  */
 
-/** TBD: KOS's share of the guest price, for estimates on screen only. */
-export const PLACEHOLDER_KOS_FEE_PERCENT = 20;
+/** KOS's markup when review hasn't set one for the boat. */
+export const DEFAULT_MARKUP_PERCENT = 15;
 
-export function takeHome(guestPrice: number): number {
-  return Math.round(guestPrice * (1 - PLACEHOLDER_KOS_FEE_PERCENT / 100));
+/** The markups an admin can set (the database checks the same range). */
+export const MARKUP_LIMITS = { min: 0, max: 50 } as const;
+
+/** The guest price for an owner's rate: the rate plus KOS's markup, rounded up to $5. */
+export function guestPriceFor(ownerRate: number, markupPercent?: number | null): number {
+  const markup = markupPercent ?? DEFAULT_MARKUP_PERCENT;
+  return Math.ceil((ownerRate * (1 + markup / 100)) / 5) * 5;
+}
+
+/**
+ * Roughly what the owner earns on a guest price (estimates, and tiers from
+ * before owner rates). Rounded down, so guestPriceFor gives the price back.
+ */
+export function ownerShareOf(guestPrice: number, markupPercent?: number | null): number {
+  return Math.floor(guestPrice / (1 + (markupPercent ?? DEFAULT_MARKUP_PERCENT) / 100));
 }
 
 /** Trip lengths an owner can price, in hours (Boatsetter uses the same set). */

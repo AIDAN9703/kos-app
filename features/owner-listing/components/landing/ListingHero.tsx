@@ -7,11 +7,7 @@ import { ArrowRight, Info } from "lucide-react";
 import { Input } from "@/shared/components/ui/input";
 import { cn } from "@/shared/lib/utils/general-utils";
 import { estimateEarnings, estimateGroupFor, type ComparableBoat } from "../../estimate";
-import {
-  BUILD_YEARS,
-  LISTING_BOAT_TYPES,
-  PLACEHOLDER_KOS_FEE_PERCENT,
-} from "../../listing.constants";
+import { BUILD_YEARS, LISTING_BOAT_TYPES } from "../../listing.constants";
 import {
   MakePicker,
   ModelPicker,
@@ -264,7 +260,7 @@ export function ListingHero({
                   <Info className="h-4 w-4 text-slate-400" aria-hidden />
                   <span className="pointer-events-none absolute -right-8 bottom-6 z-10 hidden w-56 rounded-lg bg-slate-900 px-3 py-2 text-xs leading-5 font-normal text-white shadow-lg group-hover:block sm:right-auto sm:left-1/2 sm:w-60 sm:-translate-x-1/2">
                     {TRIPS_PER_MONTH} four-hour trips a month at what KOS boats like yours book for,
-                    after a {PLACEHOLDER_KOS_FEE_PERCENT}% KOS fee. The fee isn&apos;t final.
+                    less KOS&apos;s fee. You set your own rate when you list.
                   </span>
                 </span>
               </div>

@@ -57,6 +57,7 @@ async function BoatFormWithData({ boatId }: { boatId: string }) {
       id: tier.id,
       hours: tier.hours,
       price: tier.price,
+      ownerRate: tier.ownerPayoutCents != null ? Number(tier.ownerPayoutCents) / 100 : null,
       name: tier.name || "",
       description: tier.description || "",
       isActive: tier.isActive,
@@ -83,7 +84,6 @@ async function BoatFormWithData({ boatId }: { boatId: string }) {
     active: boatData.active ?? false,
     featured: boatData.featured ?? false,
     featuredOrder: boatData.featuredOrder || null,
-    searchRankingScore: boatData.searchRankingScore || null,
 
     // Owner Information
     ownerAccountId: boatData.ownerAccountId,
@@ -107,14 +107,11 @@ async function BoatFormWithData({ boatId }: { boatId: string }) {
     // Media
     mainImage: boatData.mainImage || null,
     galleryImages: boatData.galleryImages || [],
-    virtualTourUrl: boatData.virtualTourUrl || null,
 
     // Pricing
     currency: normalizeCurrency(boatData.currency),
     pricingTiers: formattedPricingTiers,
     boatAddOns: formattedBoatAddOns,
-    weeklyRate: boatData.weeklyRate || null,
-    monthlyRate: boatData.monthlyRate || null,
     depositAmount: boatData.depositAmount || null,
     cleaningFee: boatData.cleaningFee || null,
 
@@ -129,7 +126,6 @@ async function BoatFormWithData({ boatId }: { boatId: string }) {
     // Charter Options
     crewRequired: boatData.crewRequired ?? true,
     crewIncluded: boatData.crewIncluded ?? true,
-    primaryCaptainUserId: boatData.primaryCaptainUserId || null,
     dayCharter: boatData.dayCharter ?? true,
     termCharter: boatData.termCharter ?? false,
     minimumCharterDays: boatData.minimumCharterDays || null,
@@ -152,15 +148,6 @@ async function BoatFormWithData({ boatId }: { boatId: string }) {
     insuranceExpiry: boatData.insuranceExpiry
       ? boatData.insuranceExpiry.toISOString()
       : null,
-
-    // Maintenance
-    lastMaintenanceDate: boatData.lastMaintenanceDate
-      ? boatData.lastMaintenanceDate.toISOString()
-      : null,
-    nextMaintenanceDate: boatData.nextMaintenanceDate
-      ? boatData.nextMaintenanceDate.toISOString()
-      : null,
-    maintenanceNotes: boatData.maintenanceNotes || null,
   };
 
   return (

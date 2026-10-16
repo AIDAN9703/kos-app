@@ -13,6 +13,7 @@ import { db } from "@/database/db";
 import { bookings, bookingStatusHistory } from "@/database/schema";
 import { eq } from "drizzle-orm";
 import { bookingEventsService } from "@/features/bookings/services/booking-events.service";
+import { bookingExpenseLineService } from "@/features/bookings/services/booking-expense-line.service";
 import type { BookingStatus, BookingStatusHistory } from "@/database/types";
 import { UserFacingError } from "@/shared/lib/errors";
 
@@ -253,6 +254,9 @@ class BookingStatusService {
       reason,
       channel: options?.channel,
     });
+
+    // The owner's rate for this trip length becomes its owner payout.
+    await bookingExpenseLineService.lockOwnerPayout(bookingId);
 
     return historyEntry;
   }

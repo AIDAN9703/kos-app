@@ -13,7 +13,6 @@ export * from "./bookings.table";
 export * from "./bookingPricing.table";
 export * from "./bookingStatusHistory.table";
 export * from "./bookingEvents.table";
-export * from "./bookingAdminNotes.table";
 export * from "./bookingOps.table";
 export * from "./bookingCrew.table";
 export * from "./bookingExpenseLines.table";
@@ -24,7 +23,6 @@ export * from "./stripeEvents.table";
 
 // Other tables
 export * from "./reviews.table";
-export * from "./notifications.table";
 export * from "./blogPosts.table";
 export * from "./boatMakes.table";
 export * from "./boatModels.table";

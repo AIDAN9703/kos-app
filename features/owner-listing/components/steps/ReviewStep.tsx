@@ -15,7 +15,7 @@ import {
   CAPTAIN_ARRANGEMENTS,
   defaultListingName,
   listingStepHref,
-  takeHome,
+  ownerShareOf,
   type ListingStepId,
 } from "../../listing.constants";
 import type { ListingDraft } from "../../listing.types";
@@ -144,7 +144,10 @@ export function ReviewStep({ draft }: { draft: ListingDraft }) {
         <Row draft={draft} step="trips" title="Trips and prices" missing={missingFor("trips")}>
           {draft.trips.length > 0
             ? draft.trips
-                .map((t) => `${t.hours}h ${usd(t.price)} (you ~${usd(takeHome(t.price))})`)
+                .map(
+                  (t) =>
+                    `${t.hours}h: you earn ${usd(t.ownerRate ?? ownerShareOf(t.price, draft.markupPercent))}, guests pay ${usd(t.price)}`
+                )
                 .join(" · ")
             : "No trips priced yet"}
           {captain ? (

@@ -35,18 +35,11 @@ export const bookingPricing = pgTable("booking_pricing", {
       (Zelle / wire / cash). The fee stays stored for the record; the
       effective total drops it. */
   serviceFeeWaived: boolean("service_fee_waived").default(false).notNull(),
-  taxAmountCents: bigint("tax_amount_cents", { mode: "number" }),
-  discountAmountCents: bigint("discount_amount_cents", { mode: "number" }),
-  discountCode: text("discount_code"),
     
   // Deposit and total (in cents)
   depositAmountCents: bigint("deposit_amount_cents", { mode: "number" }),
   totalAmountCents: bigint("total_amount_cents", { mode: "number" }).notNull(),
   currency: text("currency").default("USD").notNull(),
-
-  // Payment schedule
-  depositDueDate: timestamp("deposit_due_date", { mode: "date", withTimezone: true }),
-  remainderDueDate: timestamp("remainder_due_date", { mode: "date", withTimezone: true }),
 
   // Timestamps
   createdAt: timestamp("created_at", { mode: "date", withTimezone: true }).defaultNow().notNull(),

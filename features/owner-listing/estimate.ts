@@ -1,4 +1,4 @@
-import { takeHome } from "./listing.constants";
+import { ownerShareOf } from "./listing.constants";
 
 /**
  * The "what could my boat earn" estimate on /list-your-boat, worked out in
@@ -77,7 +77,8 @@ export function estimateEarnings(
     sample: list.length,
     low,
     high,
-    monthlyLow: roundTo50(takeHome(low) * input.tripsPerMonth),
-    monthlyHigh: roundTo50(takeHome(high) * input.tripsPerMonth),
+    // Comparable boats' guest prices, less KOS's usual markup.
+    monthlyLow: roundTo50(ownerShareOf(low) * input.tripsPerMonth),
+    monthlyHigh: roundTo50(ownerShareOf(high) * input.tripsPerMonth),
   };
 }

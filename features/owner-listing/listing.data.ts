@@ -7,7 +7,7 @@ import { isUuid } from "@/shared/lib/utils/general-utils";
 import { resolveMakeAndModel } from "@/features/boat-catalog/boat-catalog.service";
 import { ensureAccountFor } from "@/features/owner-accounts/owner-accounts.service";
 import { missingForReview } from "./listing-progress";
-import { defaultListingName } from "./listing.constants";
+import { defaultListingName, MARKUP_LIMITS } from "./listing.constants";
 import * as listingService from "./listing.service";
 import type { ListingDraft, ListingForReview } from "./listing.types";
 import { basicsSchema, stepSchemas, type EditableStep } from "./listing.validation";
@@ -138,6 +138,19 @@ export async function approveListing(boatId: string): Promise<void> {
   const me = await assertCan({ boat: ["edit"] });
   if (!isUuid(boatId)) throw new UserFacingError("Listing not found", 404);
   await listingService.approve(me.id, boatId);
+}
+
+/** KOS's markup on the owner's rates for this listing; re-prices its trips. */
+export async function setListingMarkup(boatId: string, markupPercent: unknown): Promise<void> {
+  await assertCan({ boat: ["edit"] });
+  if (!isUuid(boatId)) throw new UserFacingError("Listing not found", 404);
+  const percent = Number(markupPercent);
+  if (!Number.isInteger(percent) || percent < MARKUP_LIMITS.min || percent > MARKUP_LIMITS.max) {
+    throw new UserFacingError(
+      `Use a whole number from ${MARKUP_LIMITS.min} to ${MARKUP_LIMITS.max}.`
+    );
+  }
+  await listingService.setMarkup(boatId, percent);
 }
 
 export async function sendListingBack(boatId: string, note: unknown): Promise<void> {

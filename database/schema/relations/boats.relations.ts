@@ -5,7 +5,6 @@ import { boatBlocking } from '../tables/boatBlocking.table';
 import { boatExternalCalendars } from '../tables/boatExternalCalendar.table';
 import { bookings } from '../tables/bookings.table';
 import { reviews } from '../tables/reviews.table';
-import { users } from '../tables/users.table';
 import { boatMakes } from '../tables/boatMakes.table';
 import { boatModels } from '../tables/boatModels.table';
 import { ownerAccounts } from '../tables/ownerAccounts.table';
@@ -14,11 +13,6 @@ export const boatsRelations = relations(boats, ({ one, many }) => ({
   ownerAccount: one(ownerAccounts, {
     fields: [boats.ownerAccountId],
     references: [ownerAccounts.id],
-  }),
-  primaryCaptain: one(users, {
-    fields: [boats.primaryCaptainUserId],
-    references: [users.id],
-    relationName: 'primaryCaptainBoats',
   }),
   make: one(boatMakes, {
     fields: [boats.makeId],

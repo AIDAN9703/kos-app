@@ -13,7 +13,6 @@ export * from "./bookings.relations";
 export * from "./bookingPricing.relations";
 export * from "./bookingStatusHistory.relations";
 export * from "./bookingEvents.relations";
-export * from "./bookingAdminNotes.relations";
 export * from "./bookingOps.relations";
 export * from "./bookingCrew.relations";
 export * from "./bookingExpenseLines.relations";
@@ -23,7 +22,6 @@ export * from "./payments.relations";
 
 // Other relations
 export * from "./reviews.relations";
-export * from "./notifications.relations";
 export * from "./boatCatalog.relations";
 export * from "./boatPricingTiers.relations";
 export * from "./boatBlocking.relations";

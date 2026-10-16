@@ -75,27 +75,14 @@ export const bookings = pgTable(
     // ==========================================================================
     /** First real contact — INQUIRY + set = the "Contacted" pipeline step. */
     firstContactedAt: timestamp("first_contacted_at", { mode: "date", withTimezone: true }),
-    /** Lead marked cold (INQUIRY rows only); cleared on revive. */
-    coldAt: timestamp("cold_at", { mode: "date", withTimezone: true }),
     /** Hidden from the default master list; the boss's "archive" bucket. */
     archivedAt: timestamp("archived_at", { mode: "date", withTimezone: true }),
-    /** Migration audit breadcrumb: the source inquiry id, if this deal was backfilled. */
-    legacyInquiryId: uuid("legacy_inquiry_id"),
 
     // ==========================================================================
     // PROPOSAL FLOW (sent to customer, awaiting acceptance)
     // ==========================================================================
     publicToken: uuid("public_token"), // Shareable link; set when "sent to customer"
-    allowPayment: boolean("allow_payment").default(false).notNull(),
-    /**
-     * LEGACY (unused since 2026-09-23): the admin's deposit-vs-full default.
-     * Deposits are now driven only by booking_pricing.deposit_amount_cents —
-     * an amount means the guest may pay it first. Drop in a later migration.
-     */
-    paymentType: text("payment_type").default("FULL_PAYMENT"),
     publishedAt: timestamp("published_at", { mode: "date", withTimezone: true }),
-    acceptedAt: timestamp("accepted_at", { mode: "date", withTimezone: true }),
-    acceptedCustomerNote: text("accepted_customer_note"),
     /**
      * The Stripe Checkout Session that created this booking (Instant Book
      * only). Unique, so the webhook and the payment-success page can never
@@ -115,7 +102,6 @@ export const bookings = pgTable(
     // ==========================================================================
     createdAt: timestamp("created_at", { mode: "date", withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { mode: "date", withTimezone: true }).defaultNow().notNull(),
-    expiresAt: timestamp("expires_at", { mode: "date", withTimezone: true }),
   },
   (table) => [
     unique("booking_public_token_unique").on(table.publicToken),

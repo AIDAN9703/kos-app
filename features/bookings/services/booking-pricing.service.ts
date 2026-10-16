@@ -31,14 +31,9 @@ interface CreateBookingPricingInput {
   serviceFeeCents?: Cents | null;
   /** The fee it was priced with — required so the snapshot is never missing. */
   serviceFee: ServiceFee;
-  taxAmountCents?: Cents | null;
-  discountAmountCents?: Cents | null;
-  discountCode?: string | null;
   depositAmountCents?: Cents | null;
   totalAmountCents: Cents;
   currency?: string;
-  depositDueDate?: Date | null;
-  remainderDueDate?: Date | null;
 }
 
 interface UpdateBookingPricingInput {
@@ -48,15 +43,10 @@ interface UpdateBookingPricingInput {
   serviceFeeCents?: Cents | null;
   serviceFeeBps?: number;
   serviceFeeFixedCents?: Cents;
-  taxAmountCents?: Cents | null;
-  discountAmountCents?: Cents | null;
-  discountCode?: string | null;
   depositAmountCents?: Cents | null;
   totalAmountCents?: Cents;
   /** Paid off-card: the card fee drops out of what the customer owes. */
   serviceFeeWaived?: boolean;
-  depositDueDate?: Date | null;
-  remainderDueDate?: Date | null;
 }
 
 /**
@@ -69,13 +59,8 @@ interface SimplePricingInput {
   addOnsCents?: Cents;
   captainFeeCents?: Cents;
   cleaningFeeCents?: Cents;
-  taxAmountCents?: Cents;
-  discountAmountCents?: Cents;
-  discountCode?: string | null;
   depositAmountCents?: Cents | null;
   currency?: string;
-  depositDueDate?: Date | null;
-  remainderDueDate?: Date | null;
 }
 
 // ============================================================================
@@ -97,14 +82,9 @@ class BookingPricingService {
         serviceFeeCents: input.serviceFeeCents ?? null,
         serviceFeeBps: input.serviceFee.bps,
         serviceFeeFixedCents: input.serviceFee.fixedCents,
-        taxAmountCents: input.taxAmountCents ?? null,
-        discountAmountCents: input.discountAmountCents ?? null,
-        discountCode: input.discountCode ?? null,
         depositAmountCents: input.depositAmountCents ?? null,
         totalAmountCents: input.totalAmountCents,
         currency: input.currency ?? 'USD',
-        depositDueDate: input.depositDueDate ?? null,
-        remainderDueDate: input.remainderDueDate ?? null,
       })
       .returning();
     
@@ -128,11 +108,6 @@ class BookingPricingService {
       serviceFee
     );
 
-    // Apply tax and discount after service fee calculation
-    const taxCents = input.taxAmountCents ?? 0;
-    const discountCents = input.discountAmountCents ?? 0;
-    const finalTotalCents = breakdown.totalPriceCents + taxCents - discountCents;
-
     return this.createPricing({
       bookingId,
       basePriceCents: breakdown.basePriceCents,
@@ -140,14 +115,9 @@ class BookingPricingService {
       cleaningFeeCents: breakdown.cleaningFeeCents || null,
       serviceFeeCents: breakdown.serviceFeeCents,
       serviceFee,
-      taxAmountCents: taxCents || null,
-      discountAmountCents: discountCents || null,
-      discountCode: input.discountCode,
       depositAmountCents: input.depositAmountCents,
-      totalAmountCents: finalTotalCents,
+      totalAmountCents: breakdown.totalPriceCents,
       currency: input.currency,
-      depositDueDate: input.depositDueDate,
-      remainderDueDate: input.remainderDueDate,
     });
   }
 

@@ -37,7 +37,7 @@ const DESCRIPTIONS: Record<ListingStepId, string> = {
   location: "The marina or dock where guests board.",
   photos: "Listings with bright, wide photos of every side book far more often.",
   details: "A title and a description in your own words: what a day aboard feels like.",
-  trips: "Set a price for each trip length you offer. Guests see these prices.",
+  trips: "Set what you earn for each trip length you offer. KOS adds its fee on top for guests.",
   rules: "What guests agree to before they book.",
   documents: "Only the KOS team sees these. We check them before the boat goes live.",
   review: "Check everything once more, then send it to the KOS team.",

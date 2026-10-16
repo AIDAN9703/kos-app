@@ -7,6 +7,8 @@ export const pricingTierSchema = z.object({
   id: z.string().uuid("Invalid ID format").optional(), // Optional for new tiers
   hours: z.number().int().positive("Hours must be a positive number"),
   price: z.number().positive("Price must be a positive number"),
+  /** What the owner is paid per trip, in dollars; bookings at this length copy it as the owner payout. */
+  ownerRate: z.number().nonnegative("The owner's rate can't be negative").nullable().optional(),
   name: z.string().optional().nullable(),
   description: z.string().optional().nullable(),
   isActive: z.boolean().default(true),
@@ -36,7 +38,6 @@ const boatBaseSchema = z.object({
   active: z.boolean().default(false),
   featured: z.boolean().default(false),
   featuredOrder: z.number().int().nonnegative().optional().nullable(),
-  searchRankingScore: z.number().nonnegative().optional().nullable(),
   
   // Owner Information
   ownerAccountId: z.string().uuid("Choose the owner"),
@@ -67,14 +68,11 @@ const boatBaseSchema = z.object({
   // Media (permissive URL validation for ImageKit and CDN URLs)
   mainImage: z.string().refine((v) => !v || v.startsWith("http"), "Must be a valid URL").optional().nullable(),
   galleryImages: z.array(z.string().refine((v) => !v || v.startsWith("http"), "Must be a valid URL")).optional().nullable(),
-  virtualTourUrl: z.string().refine((v) => !v || v.startsWith("http"), "Must be a valid URL").optional().nullable(),
   
   // Pricing (tiers only)
   currency: z.enum(SUPPORTED_CURRENCIES).default("USD"),
   pricingTiers: z.array(pricingTierSchema).optional(),
   boatAddOns: z.array(boatAddOnAssignmentSchema).optional(),
-  weeklyRate: z.number().positive().optional().nullable(),
-  monthlyRate: z.number().positive().optional().nullable(),
   depositAmount: z.number().nonnegative().optional().nullable(),
   cleaningFee: z.number().nonnegative().optional().nullable(),
   
@@ -93,7 +91,6 @@ const boatBaseSchema = z.object({
   // Charter Options
   crewRequired: z.boolean().default(true),
   crewIncluded: z.boolean().default(true),
-  primaryCaptainUserId: z.string().uuid("Invalid captain user ID format").optional().nullable(),
   dayCharter: z.boolean().default(true),
   termCharter: z.boolean().default(false),
   minimumCharterDays: z.number().int().nonnegative().optional().nullable(),
@@ -117,13 +114,7 @@ const boatBaseSchema = z.object({
   
   // Availability
   minRentalHours: z.number().int().nonnegative().optional().nullable(),
-  maxRentalDays: z.number().int().nonnegative().optional().nullable(),
   advanceBookingDays: z.number().int().nonnegative().optional().nullable(),
-  
-  // Maintenance
-  lastMaintenanceDate: z.string().datetime().optional().nullable().or(z.literal("")),
-  nextMaintenanceDate: z.string().datetime().optional().nullable().or(z.literal("")),
-  maintenanceNotes: z.string().optional().nullable(),
 });
 
 // Schema for creating a new boat - all required fields must be present

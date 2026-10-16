@@ -105,6 +105,57 @@ export const bookingExpenseLineService = {
     ];
   },
 
+  /**
+   * Locks the owner's rate onto a charter as it's booked: with no owner
+   * payout yet, its trip length's rate (boat_pricing_tier.owner_payout_cents)
+   * becomes the OWNER_PAYOUT line, so a later rate change doesn't touch it.
+   * Skipped when the trip isn't that length (a custom or multi-day quote);
+   * the team enters those by hand. Never throws: the booking comes first.
+   */
+  async lockOwnerPayout(bookingId: string): Promise<void> {
+    try {
+      const [booking] = await db
+        .select({
+          startsAt: bookings.startDateTime,
+          endsAt: bookings.endDateTime,
+          tierHours: boatPricingTiers.hours,
+          ownerRateCents: boatPricingTiers.ownerPayoutCents,
+        })
+        .from(bookings)
+        .innerJoin(boatPricingTiers, eq(boatPricingTiers.id, bookings.pricingTierId))
+        .where(eq(bookings.id, bookingId))
+        .limit(1);
+      if (!booking?.startsAt || !booking.endsAt || booking.ownerRateCents == null) return;
+      const hours = (booking.endsAt.getTime() - booking.startsAt.getTime()) / 36e5;
+      if (Math.abs(hours - booking.tierHours) > 0.25) return;
+
+      const rows = await db
+        .select()
+        .from(bookingExpenseLines)
+        .where(eq(bookingExpenseLines.bookingId, bookingId))
+        .orderBy(asc(bookingExpenseLines.sortOrder), asc(bookingExpenseLines.createdAt));
+      if (rows.some((r) => r.category === "OWNER_PAYOUT")) return;
+      await this.saveLines(bookingId, [
+        {
+          category: "OWNER_PAYOUT",
+          amountCents: Number(booking.ownerRateCents),
+          label: null,
+          sortOrder: 0,
+          source: "BOAT_DEFAULT",
+        },
+        ...rows.map((r, i) => ({
+          category: r.category,
+          amountCents: r.amountCents,
+          label: r.label,
+          sortOrder: i + 1,
+          source: r.source,
+        })),
+      ]);
+    } catch (error) {
+      console.error(`[Expenses] Couldn't lock the owner payout on ${bookingId}:`, error);
+    }
+  },
+
   async saveLines(
     bookingId: string,
     lines: BookingExpenseLineInput[]

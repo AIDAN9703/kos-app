@@ -27,7 +27,6 @@ export const users = pgTable(
     firstName: text("first_name"),
     lastName: text("last_name"),
     phoneNumber: text("phone_number"),
-    birthday: timestamp("birthday", { mode: "date", withTimezone: true }),
     bio: text("bio"),
 
     // Profile Media
@@ -49,14 +48,8 @@ export const users = pgTable(
     address: text("address"),
     postalCode: text("postal_code"),
 
-    // Verification & Compliance
-    identityVerified: boolean("identity_verified").default(false),
-    identityVerificationType: text("identity_verification_type"),
-
-
     // Payment Information
     stripeCustomerId: text("stripe_customer_id"),
-    defaultPaymentMethodId: text("default_payment_method_id"),
 
 
     // Terms & Agreements

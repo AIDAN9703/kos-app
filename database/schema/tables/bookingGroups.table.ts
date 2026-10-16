@@ -6,7 +6,6 @@ export const bookingGroups = pgTable(
   {
     id: uuid("id").defaultRandom().notNull().primaryKey(),
     name: text("name"),
-    notes: text("notes"),
     createdById: uuid("created_by_id").references(() => users.id, {
       onDelete: "set null",
     }),

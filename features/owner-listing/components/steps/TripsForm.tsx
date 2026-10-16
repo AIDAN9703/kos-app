@@ -6,10 +6,11 @@ import { Switch } from "@/shared/components/ui/switch";
 import { cn } from "@/shared/lib/utils/general-utils";
 import {
   CAPTAIN_ARRANGEMENTS,
-  PLACEHOLDER_KOS_FEE_PERCENT,
+  DEFAULT_MARKUP_PERCENT,
   TRIP_LENGTHS,
+  guestPriceFor,
   listingStepHref,
-  takeHome,
+  ownerShareOf,
 } from "../../listing.constants";
 import type { ListingDraft } from "../../listing.types";
 import { ChoiceCard, fieldError } from "../fields";
@@ -37,7 +38,11 @@ export function TripsForm({
   hints: PriceHints;
 }) {
   const { save, pending, fieldErrors, formError } = useStepSave(draft.id, "trips", advance);
-  const existing = new Map(draft.trips.map((t) => [t.hours, t.price]));
+  const markup = draft.markupPercent ?? DEFAULT_MARKUP_PERCENT;
+  // What the owner earns per length (older tiers only have a guest price).
+  const existing = new Map(
+    draft.trips.map((t) => [t.hours, t.ownerRate ?? ownerShareOf(t.price, markup)])
+  );
   const [prices, setPrices] = useState<Record<number, { on: boolean; price: string }>>(() =>
     Object.fromEntries(
       TRIP_LENGTHS.map((h) => [
@@ -54,20 +59,21 @@ export function TripsForm({
 
   const patch = usePreviewPatch();
   useEffect(() => {
+    // The preview shows what guests pay.
     const priced = TRIP_LENGTHS.filter((h) => prices[h].on && Number(prices[h].price) > 0).map(
-      (h) => ({ hours: h, price: Number(prices[h].price) })
+      (h) => ({ hours: h, price: guestPriceFor(Number(prices[h].price), markup) })
     );
     patch({
       fromPrice: priced.length ? priced.reduce((a, b) => (b.price < a.price ? b : a)) : null,
     });
-  }, [prices, patch]);
+  }, [prices, patch, markup]);
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     save({
       trips: TRIP_LENGTHS.filter((h) => prices[h].on).map((h) => ({
         hours: h,
-        price: prices[h].price,
+        rate: prices[h].price,
       })),
       captainArrangement: captain,
       fuelIncluded,
@@ -80,7 +86,7 @@ export function TripsForm({
     <form onSubmit={handleSubmit} className="space-y-10" noValidate>
       <fieldset>
         <legend className="text-sm font-semibold text-slate-800">
-          Trip lengths and guest prices
+          Trip lengths and what you earn
         </legend>
         <ul className="mt-3 divide-y divide-gray-200 rounded-xl border border-gray-200 bg-white">
           {TRIP_LENGTHS.map((h) => {
@@ -119,17 +125,17 @@ export function TripsForm({
                             [h]: { ...p[h], price: e.target.value.replace(/[^\d.]/g, "") },
                           }))
                         }
-                        placeholder={hint ? String(hint.low) : "0"}
+                        placeholder={hint ? String(ownerShareOf(hint.low, markup)) : "0"}
                         className="pl-7 text-right tabular-nums"
-                        aria-label={`Guest price for ${h} hours`}
+                        aria-label={`What you earn for ${h} hours`}
                       />
                     </div>
                     <span className="text-xs text-slate-500 tabular-nums">
                       {price > 0
-                        ? `You take home about ${usd(takeHome(price))}`
+                        ? `Guests pay ${usd(guestPriceFor(price, markup))}`
                         : hint
-                          ? `Similar boats: ${usd(hint.low)}–${usd(hint.high)}`
-                          : "Guest price"}
+                          ? `Similar boats earn ${usd(ownerShareOf(hint.low, markup))}–${usd(ownerShareOf(hint.high, markup))}`
+                          : "What you earn"}
                     </span>
                   </div>
                 ) : null}
@@ -144,7 +150,7 @@ export function TripsForm({
           )}
         >
           {tripsError ??
-            `Take-home assumes a ${PLACEHOLDER_KOS_FEE_PERCENT}% KOS fee, which isn't final. The team confirms the numbers before your boat goes live.`}
+            `This is what KOS pays you for each trip. Guests see your rate plus KOS's fee (${markup}%), and the team confirms the prices before your boat goes live.`}
         </p>
       </fieldset>
 

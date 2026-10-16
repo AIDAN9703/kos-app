@@ -121,8 +121,6 @@ const ECONOMICS_FIELDS = [
   "opsRevenueCents",
   "opsPaidCents",
   "opsSentToOwnerCents",
-  "opsBalanceOwnerCents",
-  "opsBalanceClientCents",
 ] as const satisfies readonly (keyof BookingListItem)[];
 
 function withoutEconomics<T extends BookingListItem>(booking: T): T {

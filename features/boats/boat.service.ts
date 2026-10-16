@@ -73,6 +73,11 @@ const cardColumns = {
 };
 
 
+/** A tier's owner rate (dollars, from the form) as stored cents; empty stays empty. */
+function rateToCents(rate: number | null | undefined): number | null {
+  return rate == null ? null : Math.round(rate * 100);
+}
+
 /**
  * Boat queries. Server-only and not access-checked: pages, routes and actions
  * go through boat.data.ts, which checks the viewer and picks one of these.
@@ -480,8 +485,6 @@ class BoatService {
       modelId,
       // Convert date strings from validation to Date objects for database
       insuranceExpiry: toDateOrNull(boatValues.insuranceExpiry),
-      lastMaintenanceDate: toDateOrNull(boatValues.lastMaintenanceDate),
-      nextMaintenanceDate: toDateOrNull(boatValues.nextMaintenanceDate),
     };
 
     // Add PostGIS point if coordinates provided
@@ -494,8 +497,9 @@ class BoatService {
 
     // Insert pricing tiers if provided
     if (pricingTiers && pricingTiers.length > 0) {
-      const tiersWithBoatId = pricingTiers.map((tier) => ({
+      const tiersWithBoatId = pricingTiers.map(({ ownerRate, ...tier }) => ({
         ...tier,
+        ownerPayoutCents: rateToCents(ownerRate),
         boatId: boatRow.id,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -529,8 +533,6 @@ class BoatService {
       updatedAt: new Date(),
       // Convert date strings from validation to Date objects for database
       insuranceExpiry: boatValues.insuranceExpiry !== undefined ? toDateOrNull(boatValues.insuranceExpiry) : undefined,
-      lastMaintenanceDate: boatValues.lastMaintenanceDate !== undefined ? toDateOrNull(boatValues.lastMaintenanceDate) : undefined,
-      nextMaintenanceDate: boatValues.nextMaintenanceDate !== undefined ? toDateOrNull(boatValues.nextMaintenanceDate) : undefined,
     };
 
     // Handle map coordinates
@@ -633,6 +635,7 @@ class BoatService {
           .set({
             hours: tier.hours,
             price: tier.price,
+            ownerPayoutCents: rateToCents(tier.ownerRate),
             name: tier.name,
             description: tier.description,
             isActive: tier.isActive,
@@ -645,6 +648,7 @@ class BoatService {
         await db.insert(boatPricingTiers).values({
           hours: tier.hours,
           price: tier.price,
+          ownerPayoutCents: rateToCents(tier.ownerRate),
           name: tier.name,
           description: tier.description,
           isActive: tier.isActive,

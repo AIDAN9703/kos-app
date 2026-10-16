@@ -41,6 +41,7 @@ export function PricingTiers({ tiers = [], onChange, currency = "USD" }: Pricing
     defaultValues: {
       hours: 1,
       price: 0,
+      ownerRate: null,
       name: "",
       description: "",
       isActive: true,
@@ -54,6 +55,7 @@ export function PricingTiers({ tiers = [], onChange, currency = "USD" }: Pricing
     tierForm.reset({
       hours: 1,
       price: 0,
+      ownerRate: null,
       name: "",
       description: "",
       isActive: true,
@@ -180,8 +182,15 @@ export function PricingTiers({ tiers = [], onChange, currency = "USD" }: Pricing
                   </div>
                   
                   <div className="flex items-center gap-2">
-                    <div className="text-lg font-semibold mr-2 tabular-nums">
-                      {formatCurrency(tier.price, currency)}
+                    <div className="mr-2 text-right">
+                      <div className="text-lg font-semibold tabular-nums">
+                        {formatCurrency(tier.price, currency)}
+                      </div>
+                      {tier.ownerRate != null ? (
+                        <div className="text-xs text-muted-foreground tabular-nums">
+                          Owner {formatCurrency(tier.ownerRate, currency)}
+                        </div>
+                      ) : null}
                     </div>
                     <Button 
                       type="button" 
@@ -268,6 +277,25 @@ export function PricingTiers({ tiers = [], onChange, currency = "USD" }: Pricing
                   <p className="text-sm text-red-500">{tierForm.formState.errors.price.message}</p>
                 )}
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <FormLabel>Owner&apos;s rate ({symbol})</FormLabel>
+              <Input
+                type="number"
+                min="0"
+                step="1"
+                placeholder="Optional"
+                {...tierForm.register("ownerRate", {
+                  setValueAs: (v) => (v === "" || v == null ? null : parseFloat(v)),
+                })}
+              />
+              <p className="text-sm text-muted-foreground">
+                What the owner is paid per trip. Bookings at this length copy it as their owner payout.
+              </p>
+              {tierForm.formState.errors.ownerRate && (
+                <p className="text-sm text-red-500">{tierForm.formState.errors.ownerRate.message}</p>
+              )}
             </div>
 
             <div className="space-y-2">

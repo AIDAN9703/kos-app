@@ -1,13 +1,11 @@
 import { relations } from "drizzle-orm";
 import { users } from "../tables/users.table";
-import { boats } from "../tables/boats.table";
 import { captainProfiles } from "../tables/captainProfiles.table";
 import { crewProfiles } from "../tables/crewProfiles.table";
 import { ownerAccountMembers } from "../tables/ownerAccounts.table";
 import { bookingCrew } from "../tables/bookingCrew.table";
 import { bookings } from "../tables/bookings.table";
 import { reviews } from "../tables/reviews.table";
-import { notifications } from "../tables/notifications.table";
 import { boatBlocking } from "../tables/boatBlocking.table";
 // Relations for users table
 export const usersRelations = relations(users, ({ one, many }) => ({
@@ -23,11 +21,6 @@ export const usersRelations = relations(users, ({ one, many }) => ({
 
   // Owner accounts this person belongs to
   ownerAccountMemberships: many(ownerAccountMembers),
-
-  // Boats where this user is primary captain
-  captainedBoats: many(boats, {
-    relationName: "primaryCaptainBoats",
-  }),
 
   // Bookings
   bookings: many(bookings, {
@@ -58,7 +51,6 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   }),
 
   // Other
-  notifications: many(notifications),
   createdBlockings: many(boatBlocking),
 
   bookingCrewAssignments: many(bookingCrew),

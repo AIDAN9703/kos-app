@@ -110,7 +110,6 @@ export function BasicInfoSection() {
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <NumberInput name="featuredOrder" label="Featured Order" placeholder="1 (appears first)" />
-              <NumberInput name="searchRankingScore" label="Search Ranking Score" placeholder="0.0" step="0.1" />
             </div>
           </div>
         )}

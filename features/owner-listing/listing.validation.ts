@@ -80,13 +80,13 @@ const tripsSchema = z.object({
         hours: z.coerce
           .number()
           .refine((h) => (TRIP_LENGTHS as readonly number[]).includes(h), "Pick a listed length"),
-        price: z.coerce
-          .number({ invalid_type_error: "Add a price" })
+        rate: z.coerce
+          .number({ invalid_type_error: "Add what you'd earn" })
           .min(50, "At least $50")
-          .max(100_000, "Check the price"),
+          .max(100_000, "Check the amount"),
       })
     )
-    .min(1, "Price at least one trip length"),
+    .min(1, "Add at least one trip length"),
   captainArrangement: enumOf(CAPTAIN_ARRANGEMENTS),
   fuelIncluded: z.boolean(),
 });

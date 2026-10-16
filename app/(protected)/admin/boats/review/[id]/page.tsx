@@ -5,13 +5,13 @@ import { GlassHeader, GlassPage, GlassPanel } from "@/shared/admin/components/gl
 import { Button } from "@/shared/components/ui/button";
 import { formatDate } from "@/shared/lib/utils/general-utils";
 import { categoryLabel } from "@/features/owner-dashboard/owner-presentation";
+import { MarkupControl } from "@/features/owner-listing/components/admin/MarkupControl";
 import { ReviewActions } from "@/features/owner-listing/components/admin/ReviewActions";
 import { missingForReview } from "@/features/owner-listing/listing-progress";
 import {
   CAPTAIN_ARRANGEMENTS,
   LISTING_STATUS_LABELS,
-  PLACEHOLDER_KOS_FEE_PERCENT,
-  takeHome,
+  ownerShareOf,
 } from "@/features/owner-listing/listing.constants";
 import { getListingForReview } from "@/features/owner-listing/listing.data";
 
@@ -193,15 +193,15 @@ export default async function ListingReviewDetailPage({
               <Facts
                 rows={listing.trips.map((t) => [
                   `${t.hours} hours`,
-                  `${usd(t.price)} · owner ~${usd(takeHome(t.price))}`,
+                  t.ownerRate != null
+                    ? `Owner ${usd(t.ownerRate)} · guests ${usd(t.price)}`
+                    : `Guests ${usd(t.price)} · owner ~${usd(ownerShareOf(t.price, listing.markupPercent))}`,
                 ])}
               />
             ) : (
               <p className="text-sm text-muted-foreground">No trips priced.</p>
             )}
-            <p className="text-xs text-muted-foreground">
-              Owner share at a placeholder {PLACEHOLDER_KOS_FEE_PERCENT}% fee (TBD).
-            </p>
+            <MarkupControl boatId={listing.id} markupPercent={listing.markupPercent} />
             <Facts
               rows={[
                 ["Captain", captain],

@@ -2,6 +2,9 @@ import type { ListingStepId } from "./listing.constants";
 
 export type ListingStatus = "DRAFT" | "IN_REVIEW" | "CHANGES_REQUESTED" | "APPROVED";
 
+/** One trip length: the guest price, and the owner's rate (null on tiers from before rates). */
+export type ListingTrip = { hours: number; price: number; ownerRate: number | null };
+
 /** One self-listed boat as the owner's listing flow sees it. */
 export interface ListingDraft {
   id: string;
@@ -32,10 +35,12 @@ export interface ListingDraft {
   sleeps: number | null;
   bathrooms: number | null;
 
-  /** Active trip lengths with their guest price in dollars. */
-  trips: { hours: number; price: number }[];
+  /** Active trip lengths: what the owner earns and what guests pay, in dollars. */
+  trips: ListingTrip[];
   captainArrangement: string | null;
   fuelIncluded: boolean;
+  /** KOS's markup on the owner's rates, percent; null means the default. */
+  markupPercent: number | null;
 
   rules: string | null;
   cancellationPolicy: string | null;

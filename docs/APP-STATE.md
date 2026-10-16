@@ -334,16 +334,20 @@ Unset boats fall back to America/New_York. Prod's remaining 12: 2 at La Coloma M
   else writes it). Owners choose how they're paid on Earnings → "How KOS pays you":
   **direct deposit** (a Stripe Connect Express account they set up on Stripe's site; KOS
   never sees bank or tax details; `owner_account.stripe_account_id`, readiness synced on
-  return and on "Check with Stripe") or **Zelle** (an email or US phone). Admins pay from
-  the owner's page (`/admin/owners/<id>` → Payouts): **Pay $X** sends a Stripe transfer
-  from KOS's balance after a confirm (row written PENDING first; a unique index allows one
-  in flight per charter; idempotency key per row; a dropped connection is checked against
-  Stripe before it's called failed), or **Record Zelle** after sending it from the bank
-  app (removable if recorded by mistake; Stripe ones aren't). `/admin/owners` shows
-  "Owed now" per owner. Code: `owner-payouts.service.ts` / `.data.ts`. Not automatic yet:
-  an admin clicks Pay. Transfers need available Stripe balance (card payments take a few
-  days); charters already paid before this shipped show as due once, so record them as
-  Zelle.
+  return, on "Check with Stripe" and by Stripe's `account.updated` webhook) or **Zelle**
+  (an email or US phone). **Direct deposit is automatic**: the daily cron
+  (`/api/cron/owner-payouts`, 15:00 UTC) pays every charter that ended at least 24 hours
+  before (`AUTO_PAYOUT_DELAY_HOURS`) with a Stripe transfer from KOS's balance (row written
+  PENDING first; a unique index allows one in flight per charter; idempotency key per row;
+  a dropped connection is checked against Stripe before it's called failed). What the
+  available balance can't cover waits for the next run; the team gets one alert email for
+  anything that waited or failed. **Zelle stays manual**: the team sends it from the bank
+  app and clicks Record Zelle on the owner's page (`/admin/owners/<id>` → Payouts;
+  removable if recorded by mistake). The owner's Owners get an email for every payout
+  (off-production, only `@resend.dev` addresses are mailed; the rest are logged).
+  `/admin/owners` shows "Owed now" per owner. Code: `owner-payouts.service.ts` / `.data.ts`.
+  Charters already paid before this shipped show as due once: record them as Zelle with
+  the email box unticked.
 - **Admin people (`/admin/users`, 2026-10)** — list with role views; **Add user** is a
   right-hand sheet (`?newUser=true`, also in the header's + menu) that creates the account
   with no password and emails a set-password link. Finishing that link marks the email
@@ -369,8 +373,7 @@ Unset boats fall back to America/New_York. Prod's remaining 12: 2 at La Coloma M
   and a month-by-month statement. Team (Owners only): people and invites. `owner.data.ts`
   leaves every money figure out for Managers. Owners never see guest details or what the
   guest paid. Payout figures = OWNER_PAYOUT expense lines and the payout ledger above;
-  "Owed to you" counts trips that are over. Dev demo data:
-  `npx tsx database/scripts/dev/owner-demo.mts seed|clean`.
+  "Owed to you" counts trips that are over.
 - **List your boat (DRAFT, 2026-10-08, migration 0071)** — `/list-your-boat` is a public
   marketing page with an earnings estimate from live boats' prices; `/list-your-boat/start`
   takes the first details before sign-up; the 8-step flow lives at
@@ -379,8 +382,15 @@ Unset boats fall back to America/New_York. Prod's remaining 12: 2 at La Coloma M
   name the first time). Boats carry `managed_by` (KOS | OWNER) and
   `listing_status` (DRAFT → IN_REVIEW → CHANGES_REQUESTED / APPROVED); a CHECK keeps
   unapproved boats hidden. Admins approve or send back at `/admin/boats/review`. Owners
-  edit only `managed_by = OWNER` boats. **KOS's fee is undecided**: the 20% in
-  `listing.constants.ts` is display only. No owner/admin emails, date blocking or payouts.
+  edit only `managed_by = OWNER` boats. **Pricing is a net rate (Luke, 2026-10)**: the
+  owner enters what they earn per trip length (`boat_pricing_tier.owner_payout_cents`);
+  the guest price is that plus the boat's markup (`boat.markup_percent`, set in review,
+  default 15%), rounded up to $5 (`guestPriceFor` in `listing.constants.ts`). Changing the
+  markup in review re-prices every trip. Admins can also set an owner's rate per tier in
+  the boat editor (for KOS-managed boats). When a charter is booked (`markBooked`, or an
+  instant book), the rate for its trip length is copied onto it as the OWNER_PAYOUT line
+  (`lockOwnerPayout`), unless the trip isn't that length (custom and multi-day quotes are
+  entered by hand). No owner/admin emails or date blocking yet.
 - **Boat makes & models (2026-10-13, migrations 0072–0073)** — `boat_make` (name, unique
   slug) and `boat_model` (per make, unique slug within the make). `boat.make_id` /
   `boat.model_id` replace the old free-text columns; a composite FK
@@ -425,12 +435,11 @@ auto-generated and not editable.
 **🟡 Google Maps loads via `window.google` polling** instead of a proper provider.
 
 **Not built:** contract e-signature, Google Calendar push to captains, QuickBooks sync,
-automatic owner payouts (an admin clicks Pay), owner payout emails, customer-submitted reviews (the `review` table is empty since
+customer-submitted reviews (the `review` table is empty since
 migration 0067; homepage testimonials come from Google).
 
-**Tech debt:** lint shows 7 problems (3 errors, 4 warnings), all pre-existing:
-set-state-in-effect in PaymentSuccessClient, FilterModal and VisGLSearchMap, plus
-React Compiler / `<img>` warnings.
+**Tech debt:** lint shows set-state-in-effect errors in FilterModal and VisGLSearchMap
+(PaymentSuccessClient's was fixed 2026-10-16), plus React Compiler / `<img>` warnings.
 
 **Dependencies (2026-10-06):** Next 16.3.8; `npm audit --omit=dev` shows no runtime
 issues. What remains is build/dev tooling: next-sitemap's glob dependency (gone once the
@@ -498,7 +507,14 @@ sitemap moves to a built-in `app/sitemap.ts`) and drizzle-kit/esbuild (local onl
    then live): Connect must be on with Express accounts allowed (test mode already works
    on dev), the platform profile filled in, and Connect branding set (name, icon, color),
    since owners see it on Stripe's setup pages. Decide 1099 tax forms (Connect → Tax
-   forms) before the first live payouts. No new env vars: it uses `STRIPE_SECRET_KEY`.
+   forms) before the first live payouts. Add a second webhook endpoint at the same URL
+   (`/api/webhook/stripe`) listening to **Connected accounts** events `account.updated`,
+   `account.application.deauthorized` and `payout.failed`, and put its signing secret in
+   `STRIPE_LIVE_CONNECT_WEBHOOK_SECRET` (test mode: `STRIPE_CONNECT_WEBHOOK_SECRET`).
+7. **Migrations 0076–0077.** 0076 (`boat.markup_percent`) is additive: run it before the
+   code that reads it. 0077 drops schema nothing reads (two dead tables, about 35 dead
+   columns; old admin notes are copied into the activity log first): add it only after
+   that code is live, like 0075.
 
 **Money semantics (fixed 2026-08-19):** `booking_ops.expense_cents` aggregates
 ALL expense lines (owner payout + fuel/crew/dockage), so REV = GMV − every

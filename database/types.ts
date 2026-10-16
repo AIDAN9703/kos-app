@@ -14,7 +14,6 @@ import {
   boatPricingTiers,
   captainProfiles,
   crewProfiles,
-  notifications,
 } from "./schema/tables";
 import {
   userStatusEnum,
@@ -23,7 +22,6 @@ import {
   bookingStatusEnum,
   bookingTypeEnum,
   bookingSourceEnum,
-  adminNoteTypeEnum,
   bookingExpenseCategoryEnum,
   bookingExpenseLineSourceEnum,
   paymentStatusEnum,
@@ -62,7 +60,6 @@ export type BookingStatusHistory = typeof bookingStatusHistory.$inferSelect;
 export type BookingStatus = (typeof bookingStatusEnum.enumValues)[number];
 export type BookingType = (typeof bookingTypeEnum.enumValues)[number];
 export type BookingSource = (typeof bookingSourceEnum.enumValues)[number];
-export type AdminNoteType = (typeof adminNoteTypeEnum.enumValues)[number];
 export type BookingExpenseCategory = (typeof bookingExpenseCategoryEnum.enumValues)[number];
 export type BookingExpenseLineSource = (typeof bookingExpenseLineSourceEnum.enumValues)[number];
 
@@ -89,5 +86,4 @@ export type CrewStatus = (typeof crewStatusEnum.enumValues)[number];
 // NOTIFICATIONS
 // ========================================
 
-export type Notification = typeof notifications.$inferSelect;
 export type NotificationPreference = (typeof notificationPreferenceEnum.enumValues)[number];

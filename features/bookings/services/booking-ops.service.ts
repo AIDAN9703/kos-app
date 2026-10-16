@@ -6,26 +6,16 @@ import "server-only";
  */
 
 import { db } from "@/database/db";
-import { bookingOps, bookingPricing } from "@/database/schema";
+import { bookingOps } from "@/database/schema";
 import { eq } from "drizzle-orm";
-import {
-  computeOpsBalanceClientCents,
-  computeOpsBalanceOwnerCents,
-  computeOpsRevenueCents,
-} from "@/shared/lib/utils/ops-revenue";
 
 type BookingOpsRow = typeof bookingOps.$inferSelect;
 
 /** Every ops column except the key and timestamps. */
 type BookingOpsData = Omit<BookingOpsRow, "bookingId" | "createdAt" | "updatedAt">;
 
-/**
- * Partial ops update. revenue and both balances are always recomputed here,
- * so callers can't set them.
- */
-type BookingOpsInput = Partial<
-  Omit<BookingOpsData, "revenueCents" | "balanceOwnerCents" | "balanceClientCents">
->;
+/** Partial ops update: only the fields passed change. */
+type BookingOpsInput = Partial<BookingOpsData>;
 
 function toData(row: BookingOpsRow): BookingOpsData {
   const { bookingId: _bookingId, createdAt: _createdAt, updatedAt: _updatedAt, ...data } = row;
@@ -43,47 +33,13 @@ export const bookingOpsService = {
   },
 
   async upsert(bookingId: string, input: BookingOpsInput): Promise<BookingOpsData> {
-    const existing = await this.getByBookingId(bookingId);
-
-    const [pricingRow] = await db
-      .select({
-        total: bookingPricing.totalAmountCents,
-        serviceFee: bookingPricing.serviceFeeCents,
-      })
-      .from(bookingPricing)
-      .where(eq(bookingPricing.bookingId, bookingId))
-      .limit(1);
-    const totalAmountCents = pricingRow?.total != null ? Number(pricingRow.total) : null;
-    const serviceFeeCents = pricingRow?.serviceFee != null ? Number(pricingRow.serviceFee) : null;
-
-    // The value after this write: the input when given, else what's stored.
-    const merged = <K extends keyof BookingOpsInput>(key: K): BookingOpsData[K] | null =>
-      input[key] !== undefined ? (input[key] as BookingOpsData[K]) : (existing?.[key] ?? null);
-
-    const mergedGmv = merged("gmvCents");
-    const mergedExpense = merged("expenseCents");
-    const derived = {
-      revenueCents: computeOpsRevenueCents(
-        mergedGmv,
-        totalAmountCents,
-        mergedExpense,
-        serviceFeeCents
-      ),
-      balanceOwnerCents: computeOpsBalanceOwnerCents(mergedExpense, merged("sentToOwnerCents")),
-      balanceClientCents: computeOpsBalanceClientCents(
-        mergedGmv,
-        merged("paidCents"),
-        totalAmountCents
-      ),
-    };
-
     // Undefined keys are skipped by Drizzle, so only the fields passed change.
     const [row] = await db
       .insert(bookingOps)
-      .values({ bookingId, ...input, ...derived })
+      .values({ bookingId, ...input })
       .onConflictDoUpdate({
         target: bookingOps.bookingId,
-        set: { ...input, ...derived, updatedAt: new Date() },
+        set: { ...input, updatedAt: new Date() },
       })
       .returning();
 

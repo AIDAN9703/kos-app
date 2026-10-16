@@ -18,7 +18,6 @@ export const boats = pgTable("boat",{
     active: boolean("active").default(false).notNull(),
     featured: boolean("featured").default(false),
     featuredOrder: integer("featured_order"), // Order for featured fleet display (lower = higher priority)
-    searchRankingScore: doublePrecision("search_ranking_score").default(0), // For advanced search algorithms
     
     // Owner Information
     /** Who the boat belongs to and who KOS pays (owner_account; KOS Yachts until its owner is set up). */
@@ -37,6 +36,11 @@ export const boats = pgTable("boat",{
     listingReviewNote: text("listing_review_note"),
     /** Who captains it, as the owner described it (free text key; see owner-listing constants). */
     captainArrangement: text("captain_arrangement"),
+    /**
+     * KOS's markup on the owner's rates, percent: guest price = rate plus this,
+     * rounded up to $5. Set in listing review; empty means the default (15).
+     */
+    markupPercent: integer("markup_percent"),
     
     // Boat Specifications
     /** The make, from boat_make. Empty when it isn't listed (an owner picked "Other"). */
@@ -57,14 +61,11 @@ export const boats = pgTable("boat",{
     // Media
     mainImage: text("main_image"),           // Renamed from primaryPhoto
     galleryImages: text("gallery_images").array(), // Renamed from galleryPhotos
-    virtualTourUrl: text("virtual_tour_url"),
     
-    // Pricing (all pricing now driven by tiers; weekly/monthly remain optional)
+    // Pricing (all trip pricing is driven by tiers)
     // `currency` is the ISO 4217 code (e.g. "USD", "EUR") used for all tier
     // prices, fees, and downstream booking_pricing/payment records for this boat.
     currency: text("currency").default("USD").notNull(),
-    weeklyRate: doublePrecision("weekly_rate"),
-    monthlyRate: doublePrecision("monthly_rate"),
     depositAmount: doublePrecision("deposit_amount"),
     cleaningFee: doublePrecision("cleaning_fee"), // Added cleaning fee
     
@@ -79,7 +80,6 @@ export const boats = pgTable("boat",{
     // Charter Options
     crewRequired: boolean("crew_required").default(true).notNull(),
     crewIncluded: boolean("crew_included").default(true).notNull(),
-    primaryCaptainUserId: uuid("primary_captain_user_id").references(() => users.id, { onDelete: "set null" }), // Direct reference to user (who has captain_profile)
     dayCharter: boolean("day_charter").default(true).notNull(),
     termCharter: boolean("term_charter").default(false).notNull(),
     minimumCharterDays: integer("minimum_charter_days"),
@@ -110,14 +110,8 @@ export const boats = pgTable("boat",{
     
     // Availability
     minRentalHours: integer("min_rental_hours"), // Added minimum rental hours
-    maxRentalDays: integer("max_rental_days"),   // Added maximum rental days
     advanceBookingDays: integer("advance_booking_days"), // Added advance booking days
     
-    // Maintenance
-    lastMaintenanceDate: timestamp("last_maintenance_date", { mode: "date", withTimezone: true }),
-    nextMaintenanceDate: timestamp("next_maintenance_date", { mode: "date", withTimezone: true }),
-    maintenanceNotes: text("maintenance_notes"), // Added maintenance notes
-
     averageRating: doublePrecision("average_rating"),
     totalReviews: integer("total_reviews").default(0),
     
@@ -127,11 +121,9 @@ export const boats = pgTable("boat",{
   },
   (table) => [
     index("boat_owner_account_idx").on(table.ownerAccountId),
-    index("boat_captain_idx").on(table.primaryCaptainUserId),
     index("boat_category_idx").on(table.category),
     index("boat_spatial_idx").using("gist", table.location),
     index("boat_featured_idx").on(table.featured, table.featuredOrder), // For featured fleet queries
-    index("boat_ranking_idx").on(table.searchRankingScore), // For search ranking queries
     // Search-specific indexes
     index("boat_search_name_idx").on(table.name),
     index("boat_listing_status_idx").on(table.listingStatus),
@@ -146,5 +138,6 @@ export const boats = pgTable("boat",{
       foreignColumns: [boatModels.makeId, boatModels.id],
     }).onDelete("restrict"),
     check("boat_model_needs_make", sql`${table.modelId} IS NULL OR ${table.makeId} IS NOT NULL`),
+    check("boat_markup_range", sql`${table.markupPercent} IS NULL OR ${table.markupPercent} BETWEEN 0 AND 50`),
   ]
 );

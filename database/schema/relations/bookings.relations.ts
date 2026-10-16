@@ -9,7 +9,6 @@ import { reviews } from "../tables/reviews.table";
 import { bookingPricing } from "../tables/bookingPricing.table";
 import { bookingStatusHistory } from "../tables/bookingStatusHistory.table";
 import { bookingEvents } from "../tables/bookingEvents.table";
-import { bookingAdminNotes } from "../tables/bookingAdminNotes.table";
 import { bookingOps } from "../tables/bookingOps.table";
 import { bookingCrew } from "../tables/bookingCrew.table";
 import { bookingExpenseLines } from "../tables/bookingExpenseLines.table";
@@ -51,7 +50,6 @@ export const bookingsRelations = relations(bookings, ({ one, many }) => ({
   }),
   statusHistory: many(bookingStatusHistory),
   events: many(bookingEvents),
-  adminNotes: many(bookingAdminNotes),
   ops: one(bookingOps),
   expenseLines: many(bookingExpenseLines),
   // Note: payments relation is handled via payable_type/payable_id in payments table

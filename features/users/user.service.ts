@@ -207,8 +207,6 @@ class UserService {
         used: sql<boolean>`(
           EXISTS (SELECT 1 FROM booking WHERE user_id = ${id} OR assigned_admin_id = ${id} OR captain_user_id = ${id})
           OR EXISTS (SELECT 1 FROM booking_crew WHERE user_id = ${id})
-          OR EXISTS (SELECT 1 FROM booking_admin_note WHERE admin_user_id = ${id})
-          OR EXISTS (SELECT 1 FROM boat WHERE primary_captain_user_id = ${id})
           OR EXISTS (SELECT 1 FROM review WHERE reviewer_id = ${id})
         )`,
       })

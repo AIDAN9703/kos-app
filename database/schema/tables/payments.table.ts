@@ -40,7 +40,6 @@ export const payments = pgTable("payment", {
   stripePaymentIntentId: text("stripe_payment_intent_id"),
   stripeCheckoutSessionId: text("stripe_checkout_session_id"),
   stripePaymentLinkId: text("stripe_payment_link_id"),
-  stripeInvoiceId: text("stripe_invoice_id"),
   stripeCustomerId: text("stripe_customer_id"),
 
   // Refund rows (paymentType REFUND): the Stripe refund (re_…) and the charge

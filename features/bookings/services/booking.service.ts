@@ -62,6 +62,7 @@ import { bookingGroupService } from "@/features/booking-groups/booking-group.ser
 import { bookingPricingService } from "@/features/bookings/services/booking-pricing.service";
 import { bookingStatusService } from "@/features/bookings/services/booking-status.service";
 import { bookingEventsService } from "@/features/bookings/services/booking-events.service";
+import { bookingExpenseLineService } from "@/features/bookings/services/booking-expense-line.service";
 import { netPaidCentsSql, paymentService } from "@/features/payments/payment.service";
 import { BOOKING_EVENT_TYPES } from "@/features/bookings/booking-events.constants";
 import { fetchBoatAndTier, fetchBoatsAndTiersBulk } from "@/features/bookings/services/booking-helpers";
@@ -170,7 +171,6 @@ class BookingService {
     if (input.bookings.length > 1 || input.groupName) {
       const group = await bookingGroupService.create({
         name: input.groupName ?? `Booking Group ${now.toLocaleDateString()}`,
-        notes: null,
         createdById: assignedAdminId ?? null,
       });
       groupId = group.id;
@@ -707,6 +707,9 @@ class BookingService {
       reason: historyReason,
     });
 
+    // The owner's rate for this trip length becomes its owner payout.
+    if (status === "BOOKED") await bookingExpenseLineService.lockOwnerPayout(bookingId);
+
     return newBooking;
   }
 
@@ -804,14 +807,7 @@ class BookingService {
       END`,
       opsPaidCents: bookingOps.paidCents,
       opsSentToOwnerCents: bookingOps.sentToOwnerCents,
-      opsBalanceOwnerCents: bookingOps.balanceOwnerCents,
-      opsBalanceClientCents: bookingOps.balanceClientCents,
-      opsCrewName: bookingOps.crewName,
-      opsConnected: bookingOps.connected,
       opsClientPaid: bookingOps.clientPaid,
-      opsCaptainPaid: bookingOps.captainPaid,
-      opsAllPaid: bookingOps.allPaid,
-      opsSheetsSent: bookingOps.sheetsSent,
       opsSourceOverride: bookingOps.sourceOverride,
     };
 
@@ -960,8 +956,6 @@ class BookingService {
         serviceFeeWaived: bookingPricing.serviceFeeWaived,
         serviceFeeBps: bookingPricing.serviceFeeBps,
         serviceFeeFixedCents: bookingPricing.serviceFeeFixedCents,
-        taxAmountCents: bookingPricing.taxAmountCents,
-        discountAmountCents: bookingPricing.discountAmountCents,
         totalAmountCents: bookingPricing.totalAmountCents,
         depositAmountCents: bookingPricing.depositAmountCents,
         currency: bookingPricing.currency,
@@ -989,7 +983,6 @@ class BookingService {
         cancellationReason: bookings.cancellationReason,
         createdAt: bookings.createdAt,
         updatedAt: bookings.updatedAt,
-        expiresAt: bookings.expiresAt,
         // Boat info
         boatName: boats.name,
         boatCategory: boats.category,
@@ -1091,7 +1084,6 @@ class BookingService {
     if (!groupId) {
       const group = await bookingGroupService.create({
         name: `${lead.customerName ?? "Charter"} party`,
-        notes: null,
         createdById: adminId,
       });
       groupId = group.id;

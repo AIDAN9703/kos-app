@@ -232,10 +232,17 @@ variables.
   - "refund as discount"
 - **Owner self-service:** owners block dates on their calendar. (Owner accounts with
   Owner/Manager teams and Stripe Connect payouts shipped 2026-10-16.)
-- **Owner payouts, next steps:**
-  - pay automatically a day or two after the trip, instead of an admin clicking Pay
+- **Owner payouts, next steps** (automatic direct deposit, owner emails and net-rate
+  pricing shipped 2026-10-16):
+  - a "hold" on a charter's payout (damage claim, dispute) so the daily run skips it
   - tie each transfer to the guest's charge (`source_transaction`), so it can go out
     before card funds are available
-  - email the owner when a payout goes out
-  - the payout amount from Luke's pricing (owner's net rate locked per booking)
   - 1099s: let Stripe file them (Connect → Tax forms) or do it outside
+  - Luke's open questions: does the owner's rate include the captain, who pays fuel and
+    add-ons, and what an owner gets when a guest cancels (today: nothing)
+- **Schema left on purpose after the 2026-10-16 cleanup (decide later):** booking_ops
+  agent / commission columns (legacy sheet data; one dev row says agent "Chris Klain"),
+  booking_ops paid_cents / client_paid / source_override (written, never shown),
+  booking_status_history (duplicates booking_event), booking.admin_notes (written, never
+  shown: the instant-book overlap warning lands there), user email/sms notification
+  preferences (settings exist; nothing checks them), unused enum values.

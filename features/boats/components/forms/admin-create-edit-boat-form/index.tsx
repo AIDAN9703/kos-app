@@ -72,7 +72,6 @@ export default function AdminAddUpdateBoatForm({
       active: false,
       featured: false,
       featuredOrder: undefined,
-      searchRankingScore: undefined,
       crewRequired: true,
       crewIncluded: true,
       dayCharter: true,
