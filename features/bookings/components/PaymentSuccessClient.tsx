@@ -3,7 +3,7 @@
 import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { formatBoatLocal } from "@/shared/lib/utils/date-helpers";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/shared/components/ui/button";
 import Link from "next/link";
 import { formatCentsAsCurrency } from "@/shared/lib/utils/money-utils";
@@ -95,40 +95,43 @@ export default function PaymentSuccessClient() {
   const [showAnimation, setShowAnimation] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
 
-  const verify = useCallback(async () => {
-    if (!sessionId) return; // rendered as an error state directly
-
-    try {
-      const res = await fetch(`/api/stripe/verify?session_id=${sessionId}`);
-      const data = await res.json();
-
-      if (res.status === 202) {
-        // Webhook hasn't processed yet — retry with backoff
-        setState("processing");
-        const delay = Math.min(2000 * Math.pow(1.5, retryCount), 10000);
-        setTimeout(() => setRetryCount((c) => c + 1), delay);
-        return;
-      }
-
-      if (res.ok && data.success && data.bookingId) {
-        setBooking(data.booking);
-        setState("verified");
-      } else {
-        setState("error");
-      }
-    } catch {
-      setState("error");
-    }
-  }, [sessionId, retryCount]);
-
   useEffect(() => {
     // Guests don't have a profile — home is the only safe landing.
     if (cancelled) {
       router.push("/");
       return;
     }
-    verify();
-  }, [verify, cancelled, router]);
+    if (!sessionId) return; // rendered as an error state directly
+
+    // State changes only once the answer is back; a superseded check is ignored.
+    let stale = false;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    fetch(`/api/stripe/verify?session_id=${sessionId}`)
+      .then(async (res) => ({ res, data: await res.json() }))
+      .then(({ res, data }) => {
+        if (stale) return;
+        if (res.status === 202) {
+          // Webhook hasn't processed yet — retry with backoff
+          setState("processing");
+          const delay = Math.min(2000 * Math.pow(1.5, retryCount), 10000);
+          retryTimer = setTimeout(() => setRetryCount((c) => c + 1), delay);
+          return;
+        }
+        if (res.ok && data.success && data.bookingId) {
+          setBooking(data.booking);
+          setState("verified");
+        } else {
+          setState("error");
+        }
+      })
+      .catch(() => {
+        if (!stale) setState("error");
+      });
+    return () => {
+      stale = true;
+      clearTimeout(retryTimer);
+    };
+  }, [sessionId, retryCount, cancelled, router]);
 
   useEffect(() => {
     if (state === "verified") {
