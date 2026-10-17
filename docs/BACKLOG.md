@@ -235,8 +235,14 @@ variables.
 - **Owner payouts, next steps** (automatic direct deposit, owner emails and net-rate
   pricing shipped 2026-10-16):
   - a "hold" on a charter's payout (damage claim, dispute) so the daily run skips it
-  - tie each transfer to the guest's charge (`source_transaction`), so it can go out
-    before card funds are available
+  - funding: owner transfers come out of KOS's available Stripe balance, and Stripe's
+    automatic payouts to KOS's bank empty it (Stripe: "automatic payouts can interfere
+    with transfers"). `source_transaction` doesn't help: it only covers charges that
+    haven't settled, and guests pay weeks before the trip. For now KOS uses manual (or
+    infrequent) payouts and leaves what owners are owed in Stripe. The full fix: move
+    the owner's share to their Stripe account when the guest pays, and release it to
+    their bank after the trip (connected-account payout schedule; mind Stripe's hold
+    limits and reversals on refunds)
   - 1099s: let Stripe file them (Connect → Tax forms) or do it outside
   - Luke's open questions: does the owner's rate include the captain, who pays fuel and
     add-ons, and what an owner gets when a guest cancels (today: nothing)

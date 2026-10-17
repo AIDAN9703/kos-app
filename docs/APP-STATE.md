@@ -507,7 +507,9 @@ sitemap moves to a built-in `app/sitemap.ts`) and drizzle-kit/esbuild (local onl
    then live): Connect must be on with Express accounts allowed (test mode already works
    on dev), the platform profile filled in, and Connect branding set (name, icon, color),
    since owners see it on Stripe's setup pages. Decide 1099 tax forms (Connect → Tax
-   forms) before the first live payouts. Add a second webhook endpoint at the same URL
+   forms) before the first live payouts. Owner payouts are paid from KOS's available
+   Stripe balance, so KOS's own payouts must not sweep it: use manual payouts (or keep a
+   cushion), or the daily run waits and alerts the team. Add a second webhook endpoint at the same URL
    (`/api/webhook/stripe`) listening to **Connected accounts** events `account.updated`,
    `account.application.deauthorized` and `payout.failed`, and put its signing secret in
    `STRIPE_LIVE_CONNECT_WEBHOOK_SECRET` (test mode: `STRIPE_CONNECT_WEBHOOK_SECRET`).
