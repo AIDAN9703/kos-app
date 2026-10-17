@@ -75,6 +75,15 @@ export async function getOwnerPayouts(accountId: string): Promise<OwnerPayouts> 
   return payoutsService.listPayouts(id(accountId, "Owner"));
 }
 
+/** What direct deposit owners will be paid from KOS's Stripe balance soon (keep it there). */
+export async function getDirectDepositOutlook(): Promise<{
+  dueNowCents: number;
+  comingCents: number;
+}> {
+  await assertCan({ booking: ["record-payment"] });
+  return payoutsService.directDepositOutlook();
+}
+
 /** Owed now per owner (trip over, not yet paid), for the owners list. */
 export async function getOwedNowByOwner(): Promise<Map<string, number>> {
   await assertCan({ booking: ["record-payment"] });

@@ -1,6 +1,10 @@
 import { GlassHeader, GlassPage } from "@/shared/admin/components/glass";
 import { listOwnerAccounts } from "@/features/owner-accounts/owner-accounts.data";
-import { getOwedNowByOwner } from "@/features/owner-accounts/owner-payouts.data";
+import {
+  getDirectDepositOutlook,
+  getOwedNowByOwner,
+} from "@/features/owner-accounts/owner-payouts.data";
+import { formatCentsAsCurrency } from "@/shared/lib/utils/money-utils";
 import { NewOwnerButton } from "@/features/owner-accounts/components/admin/NewOwnerButton";
 import { OwnersList } from "@/features/owner-accounts/components/admin/OwnersList";
 
@@ -10,7 +14,13 @@ import { OwnersList } from "@/features/owner-accounts/components/admin/OwnersLis
  * then invite them.
  */
 export default async function AdminOwnersPage() {
-  const [owners, owed] = await Promise.all([listOwnerAccounts(), getOwedNowByOwner()]);
+  const [owners, owed, outlook] = await Promise.all([
+    listOwnerAccounts(),
+    getOwedNowByOwner(),
+    getDirectDepositOutlook(),
+  ]);
+  const keepCents = outlook.dueNowCents + outlook.comingCents;
+  const usd = (cents: number) => formatCentsAsCurrency(cents, { showCents: false });
   const active = owners.filter((o) => !o.isHouse && o.status === "ACTIVE").length;
 
   return (
@@ -27,6 +37,12 @@ export default async function AdminOwnersPage() {
         }
         actions={<NewOwnerButton />}
       />
+      <p className="text-sm text-muted-foreground">
+        Direct deposit is paid from KOS&apos;s Stripe balance: keep at least{" "}
+        <span className="font-semibold text-foreground">{usd(keepCents)}</span> there (
+        {usd(outlook.dueNowCents)} owed now, {usd(outlook.comingCents)} for trips ending in the next
+        14 days).
+      </p>
       <OwnersList owners={owners} owedNow={Object.fromEntries(owed)} />
     </GlassPage>
   );

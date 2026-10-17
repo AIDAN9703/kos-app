@@ -495,17 +495,9 @@ export async function removeZellePayout(accountId: string, payoutId: string): Pr
 
 // ── The daily run ───────────────────────────────────────────────────────────
 
-export type AutoPayoutRun = { paid: number; paidCents: number; waiting: number; failed: number };
-
-/**
- * Pays every direct deposit owner for charters that ended at least
- * AUTO_PAYOUT_DELAY_HOURS ago, oldest trip first. A payout that KOS's
- * available Stripe balance can't cover yet waits for the next run (card
- * payments take a few days to become available); the team hears about
- * anything that waited or failed.
- */
-export async function payDueOwners(now = new Date()): Promise<AutoPayoutRun> {
-  const ready = await db
+/** Owners the daily run pays: direct deposit chosen and ready on Stripe. */
+function directDepositAccounts() {
+  return db
     .select({ id: ownerAccounts.id, name: ownerAccounts.name })
     .from(ownerAccounts)
     .where(
@@ -516,6 +508,43 @@ export async function payDueOwners(now = new Date()): Promise<AutoPayoutRun> {
         eq(ownerAccounts.isHouse, false)
       )
     );
+}
+
+/**
+ * What the daily run will send from KOS's Stripe balance: owed now on
+ * charters that are over, and on charters ending in the next `days`. KOS
+ * keeps this much in Stripe when it pays itself out by hand.
+ */
+export async function directDepositOutlook(
+  days = 14,
+  now = new Date()
+): Promise<{ dueNowCents: number; comingCents: number }> {
+  const ready = await directDepositAccounts();
+  const lines = await payoutLines(ready.map((a) => a.id));
+  const horizon = now.getTime() + days * 864e5;
+  let dueNowCents = 0;
+  let comingCents = 0;
+  for (const line of lines) {
+    const left = leftToPay(line);
+    if (left <= 0 || line.currency.toUpperCase() !== "USD") continue;
+    const end = (line.endsAt ?? line.startsAt).getTime();
+    if (end <= now.getTime()) dueNowCents += left;
+    else if (end <= horizon) comingCents += left;
+  }
+  return { dueNowCents, comingCents };
+}
+
+export type AutoPayoutRun = { paid: number; paidCents: number; waiting: number; failed: number };
+
+/**
+ * Pays every direct deposit owner for charters that ended at least
+ * AUTO_PAYOUT_DELAY_HOURS ago, oldest trip first. A payout that KOS's
+ * available Stripe balance can't cover yet waits for the next run (card
+ * payments take a few days to become available); the team hears about
+ * anything that waited or failed.
+ */
+export async function payDueOwners(now = new Date()): Promise<AutoPayoutRun> {
+  const ready = await directDepositAccounts();
   const cutoff = now.getTime() - AUTO_PAYOUT_DELAY_HOURS * 36e5;
   const due = (await payoutLines(ready.map((a) => a.id))).filter(
     (l) =>
